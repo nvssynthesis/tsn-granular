@@ -31,7 +31,9 @@
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" appSandbox="0">
+    <XCODE_MAC targetFolder="Builds/MacOSX" appSandbox="0" extraCompilerFlags="-I/usr/local/include&#10;-I/opt/homebrew/Cellar/mlpack/4.2.0/include&#10;-I/opt/homebrew/Cellar/eigen/3.4.0_1/include&#10;-I/opt/homebrew/Cellar/armadillo/12.6.1/include"
+               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib&#10;-L/opt/homebrew/lib&#10;-L/usr/local/Cellar/armadillo/11.4.3/lib&#10;-L/usr/local/lib"
+               externalLibraries="essentia&#10;tensorflow&#10;tag&#10;avcodec&#10;avdevice&#10;avfilter&#10;avformat&#10;avresample&#10;avutil&#10;postproc&#10;swresample&#10;swscale&#10;samplerate&#10;chromaprint&#10;yaml">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="tsara-granular"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="tsara-granular"/>

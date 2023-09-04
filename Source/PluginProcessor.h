@@ -8,6 +8,7 @@
 #endif
 
 #include <JuceHeader.h>
+#define TSARA_CAPABLE 1
 #include "GranularSynthesis.h"
 #include "dsp_util.h"
 #include "params.h"

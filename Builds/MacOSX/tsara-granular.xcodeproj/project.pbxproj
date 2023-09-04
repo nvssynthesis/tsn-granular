@@ -806,7 +806,9 @@
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				SKIP_INSTALL = YES;
@@ -925,7 +927,9 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				SKIP_INSTALL = YES;
@@ -1049,7 +1053,9 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				USE_HEADERMAP = NO;
@@ -1172,7 +1178,9 @@
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				USE_HEADERMAP = NO;
@@ -1290,7 +1298,9 @@
 				INFOPLIST_PREPROCESS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				USE_HEADERMAP = NO;
@@ -1471,7 +1481,9 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
 				USE_HEADERMAP = NO;
@@ -1594,7 +1606,9 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1718,7 +1732,9 @@
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
-				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
+				OTHER_CFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_CPLUSPLUSFLAGS = "-I/usr/local/include -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include";
+				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/usr/local/Cellar/armadillo/11.4.3/lib -L/usr/local/lib -weak_framework Metal -weak_framework MetalKit";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
