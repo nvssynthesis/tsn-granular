@@ -799,12 +799,13 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -916,13 +917,14 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1036,6 +1038,7 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1045,7 +1048,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1159,6 +1162,7 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1167,7 +1171,7 @@
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/VST3/";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1278,13 +1282,14 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-Standalone_Plugin.plist;
 				INFOPLIST_PREPROCESS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1457,6 +1462,7 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1464,7 +1470,7 @@
 				INFOPLIST_PREPROCESS = NO;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
 				PRODUCT_NAME = "tsara-granular";
@@ -1577,6 +1583,7 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1586,7 +1593,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
@@ -1701,6 +1708,7 @@
 					"/Users/nicholassolem/development/thirdparty/frozen/include",
 					"/Users/nicholassolem/development/TSARA/inc",
 					"/Users/nicholassolem/development/Xoshiro-cpp",
+					"/Users/nicholassolem/development/slicer_granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1709,7 +1717,7 @@
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/Components/";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA/inc /Users/nicholassolem/development/Xoshiro-cpp /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -weak_framework Metal -weak_framework MetalKit";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nvssynthesis.tsaragranular;
