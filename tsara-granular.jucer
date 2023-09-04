@@ -3,7 +3,7 @@
 <JUCERPROJECT id="gXPk7b" name="tsara-granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               version="0.0.1" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
-              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
+              pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/nvs_maps&#10;/Users/nicholassolem/development/nvs_libraries&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;/Users/nicholassolem/development/TSARA/inc&#10;/Users/nicholassolem/development/Xoshiro-cpp">
   <MAINGROUP id="HJxsOe" name="tsara-granular">
