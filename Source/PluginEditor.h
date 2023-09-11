@@ -9,6 +9,8 @@
 //==============================================================================
 /** TODO:
 	-center param names
+	 -add button for onset calculate
+	 -add button for write events to wav
 */
 
 class TsaraGranularAudioProcessorEditor  : public juce::AudioProcessorEditor

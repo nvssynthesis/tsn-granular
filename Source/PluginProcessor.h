@@ -1,5 +1,6 @@
 /** TODO:
 	-output gain
+	-snap position to onsets
 */
 #pragma once
 
@@ -81,6 +82,10 @@ public:
 	};
 	editorInformant<float> rmsInformant;
 	editorInformant<float> rmsWAinformant;
+	
+	
+	void calculateOnsets();
+	void writeEvents();
 	
 private:
 	float normalizationValue {1.f};	// a MULTIPLIER for the overall output, based on the inverse of the absolute max value for the current sample
@@ -196,8 +201,6 @@ private:
 	nvs::gran::TsaraGranular tsara_granular;
 	
 	std::string currentFile;
-	void calculateOnsets();
-	void writeEvents();
 
 	// granular synth
 	
