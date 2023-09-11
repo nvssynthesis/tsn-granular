@@ -17,7 +17,7 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 #if USING_ESSENTIA
 , ess_hold(ess_init)
 #endif
-, gen_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), 30)
+, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), 30)
 , logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
@@ -168,7 +168,15 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f){
 				 newLength);	// int numSamplesToRead
 	
 	audioBuffersChannels.updateActive();
+
+	currentFile = f.getFullPathName().toStdString();	// so far needed only for writeEvents()
 	delete reader;
+}
+void TsaraGranularAudioProcessor::calculateOnsets(){
+	tsara_granular.getOnsets();
+}
+void TsaraGranularAudioProcessor::writeEvents(){
+	tsara_granular.writeEventsToWav(currentFile);
 }
 
 #if (STATIC_MAP | FROZEN_MAP)
@@ -183,7 +191,7 @@ constexpr void TsaraGranularAudioProcessor::paramSet(){
 		if (tmp != *last){
 			*last = tmp;
 			granMembrSetFunc setFunc = paramSetterMap.at(p);
-			(gen_granular.*setFunc)(tmp);	// could replace with std::invoke
+			(tsara_granular.*setFunc)(tmp);	// could replace with std::invoke
 		}
 		
 		paramSet<Start + 1, End>();
@@ -211,10 +219,10 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 			fileLogger.writeToLog (metadata.getMessage().getDescription());
 			juce::MidiMessage message = metadata.getMessage();
 			if (message.isNoteOn()){
-				gen_granular.noteOn(message.getNoteNumber(), message.getVelocity());
+				tsara_granular.noteOn(message.getNoteNumber(), message.getVelocity());
 			}
 			else if (message.isNoteOff()){
-				gen_granular.noteOff(message.getNoteNumber());
+				tsara_granular.noteOff(message.getNoteNumber());
 			}
 			else if (message.isAftertouch()){
 				// do something with it...
@@ -226,9 +234,9 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 			}
 		}
 	}
-	gen_granular.shuffleIndices();
+	tsara_granular.shuffleIndices();
 	for (auto samp = 0; samp < buffer.getNumSamples(); ++samp){
-		std::array<float, 2> output = gen_granular(trigger);
+		std::array<float, 2> output = tsara_granular(trigger);
 
 		rms.accumulate(output[0] + output[1]);
 		for (int channel = 0; channel < totalNumOutputChannels; ++channel)

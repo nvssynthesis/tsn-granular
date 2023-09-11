@@ -8,8 +8,7 @@
 #endif
 
 #include <JuceHeader.h>
-#define TSARA_CAPABLE 1
-#include "GranularSynthesis.h"
+#include "TsaraGranularSynth.h"
 #include "dsp_util.h"
 #include "params.h"
 
@@ -194,14 +193,12 @@ private:
 	nvs::ess::EssentiaHolder ess_hold;
 #endif
 //	NoteHolder currentNotes;
-	nvs::gran::genGranPoly1 gen_granular;
+	nvs::gran::TsaraGranular tsara_granular;
+	
+	std::string currentFile;
+	void calculateOnsets();
+	void writeEvents();
 
-	// button to recompute analysis
-	
-	// sliders to change analysis settings
-	
-	//...
-	
 	// granular synth
 	
 	//======logging=======================

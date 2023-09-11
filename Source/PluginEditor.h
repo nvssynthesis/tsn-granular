@@ -38,11 +38,7 @@ private:
 	std::array<juce::Slider, static_cast<size_t>(params_e::count)> paramSliders;
 	std::array<juce::Label, static_cast<size_t>(params_e::count)> paramLabels;
 	FileSelectorComponent fileComp;
-/*
-	std::unique_ptr<juce::FilenameComponent> fileComp;
-	juce::StringArray recentFiles;
-	juce::File recentFilesListFile;
-*/
+
 	juce::ToggleButton triggeringButton;
 	std::array<juce::Colour, 5> gradientColors {
 		juce::Colours::transparentBlack,
@@ -71,8 +67,10 @@ private:
 	}
 	juce::VBlankAttachment vbAttachment { this, [this] { update(); } };
 	
-	// This reference is provided as a quick way for your editor to
-	// access the processor object that created it.
+	// button to recompute analysis
+	
+	// sliders to change analysis settings
+	
 	TsaraGranularAudioProcessor& audioProcessor;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsaraGranularAudioProcessorEditor)
