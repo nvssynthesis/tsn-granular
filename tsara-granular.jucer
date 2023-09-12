@@ -15,6 +15,8 @@
       <FILE id="NTDw21" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="y7FW2A" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="pLbRIP" name="SettingsWindow.h" compile="0" resource="0"
+            file="Source/SettingsWindow.h"/>
       <FILE id="NrTZFc" name="DataStructures.h" compile="0" resource="0"
             file="../../slicer_granular/Source/DataStructures.h"/>
       <FILE id="uA6vVB" name="dsp_util.h" compile="0" resource="0" file="../../slicer_granular/Source/dsp_util.h"/>

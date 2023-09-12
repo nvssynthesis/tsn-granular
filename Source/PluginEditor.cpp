@@ -100,7 +100,8 @@ void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button,
 }
 void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 //std::make_unique<SettingsWindow>(juce::Colours::darkmagenta)
-	auto* settingsWindow = new SettingsWindow (juce::Colour(100, 100, 100));
+	int const intensity = 70;
+	auto* settingsWindow = new SettingsWindow (juce::Colour(intensity, intensity, intensity));
 	windows.add (settingsWindow);
 
 	juce::Rectangle<int> area (0, 0, 500, 400);
