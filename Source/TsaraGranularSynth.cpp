@@ -19,13 +19,21 @@ namespace gran	{
 	,	_splitSettings(_analysisSettings)
 	{}
 	void TsaraGranular::getOnsets(){
+		if ( (!_wavespan.size()) | (!_wavespan.data()) ){
+			return;
+		}
 		std::vector<float> wave(_wavespan.size());
-		std::copy(_wavespan.begin(), _wavespan.end(), wave.begin());
+		wave.assign(_wavespan.begin(), _wavespan.end());
 		analysis::array2dReal onsets2d = onsetAnalysis(wave, ess_hold.factory, _analysisSettings);
 		essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 		onsetsSeconds = analysis::onsetsInSeconds(onsets2d, tmpStFac, _onsetSettings);
 	}
 	void TsaraGranular::writeEventsToWav(std::string_view ogPath){
+		if (!(_wavespan.size()) | !(_wavespan.data())
+			| !(onsetsSeconds.size())){
+			return;
+		}
+		
 		juce::String name(ogPath.data());
 		name.dropLastCharacters(4);
 		

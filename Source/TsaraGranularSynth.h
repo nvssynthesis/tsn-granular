@@ -13,7 +13,10 @@
 #include "GranularSynthesis.h"
 #include "onsetAnalysis/OnsetAnalysis.h"
 #include <JuceHeader.h>
-
+/** TODO:
+	-bake in some way to be sure that the currently held onsets match the current span
+	
+ */
 namespace nvs	{
 namespace gran	{
 class TsaraGranular		:	public genGranPoly1

@@ -14,12 +14,27 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
 ,	triggeringButton("hi")
+,	calculateOnsetsButton("Calculate Onsets")
+,	writeWavsButton("Write Wavs")
+,	settingsButton("Settings...")
 ,	audioProcessor (p)
 {
 
 	addAndMakeVisible (fileComp);
 	fileComp.addListener (this);
 	fileComp.getRecentFilesFromUserApplicationDataDirectory();
+	
+	addAndMakeVisible(calculateOnsetsButton);
+	calculateOnsetsButton.onClick = [&p]{p.calculateOnsets();};
+	
+	addAndMakeVisible(writeWavsButton);
+	writeWavsButton.onClick = [&p]{p.writeEvents();};
+	
+	addAndMakeVisible(settingsButton);
+	settingsButton.onClick = [this]{
+		closeAllWindows();
+		popupSettings(false);
+	};
 	
 	addAndMakeVisible(triggeringButton);
 	triggeringButton.onClick = [this, &p]{ updateToggleState(&triggeringButton, "Trigger", p.triggerValFromEditor);	};
@@ -57,9 +72,22 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 
 TsaraGranularAudioProcessorEditor::~TsaraGranularAudioProcessorEditor()
 {
+	/*for (auto i = 0; i < windows.size(); ++i){
+		windows[i]->userTriedToCloseWindow();
+	}*/
+	closeAllWindows();
+
 	fileComp.pushRecentFilesToFile();
 	for (auto &a : paramSliderAttachments)
 		a = nullptr;
+	}
+//==============================================================================
+void TsaraGranularAudioProcessorEditor::closeAllWindows()
+{
+	for (auto& window : windows)
+		window.deleteAndZero();
+
+	windows.clear();
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button, juce::String name, bool &valToAffect)
@@ -70,18 +98,33 @@ void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button,
 
 	juce::Logger::outputDebugString (name + " Button changed to " + stateString);
 }
+void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
+//std::make_unique<SettingsWindow>(juce::Colours::darkmagenta)
+	auto* settingsWindow = new SettingsWindow (juce::Colour(100, 100, 100));
+	windows.add (settingsWindow);
+
+	juce::Rectangle<int> area (0, 0, 500, 400);
+
+	juce::RectanglePlacement placement (juce::RectanglePlacement::xMid
+										| juce::RectanglePlacement::yTop
+										| juce::RectanglePlacement::doNotResize);
+
+	auto result = placement.appliedTo (area, juce::Desktop::getInstance().getDisplays()
+												 .getPrimaryDisplay()->userArea.reduced (20));
+	settingsWindow->setBounds (result);
+
+	settingsWindow->setResizable (true, ! native);
+	settingsWindow->setUsingNativeTitleBar (native);
+	settingsWindow->setVisible (true);
+}
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
-#define way1 1
-	
-#if way1
 	juce::Image image(juce::Image::ARGB, getWidth(), getHeight(), true);
 	juce::Graphics tg(image);
 
 	juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
 	juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + 4) % gradientColors.size()];
-//    juce::ColourGradient cg = juce::ColourGradient::horizontal(red.darker(1.0), 0.0, red.darker(20.0), getWidth());
 	juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
 	cg.addColour(0.3, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
 	cg.addColour(0.5, gradientColors[(colourOffsetIndex + 2) % gradientColors.size()]);
@@ -90,11 +133,6 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	tg.fillAll();
 
 	g.drawImage(image, getLocalBounds().toFloat());
-#else
-	auto gradient = juce::ColourGradient(juce::Colours::red, 0, 0, juce::Colours::black, getWidth(), getHeight(), false);
-	g.setGradientFill(gradient);
-#endif
-//    g.fillAll (juce::Colours::black);
 
 	g.setColour (juce::Colours::white);
 	g.setFont (15.0f);
@@ -104,19 +142,31 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 void TsaraGranularAudioProcessorEditor::resized()
 {
 	std::cout << "resized\n";
-
-	
-	int fileCompLeftPad = 10;
-	int fileCompTopPad = 10;
-	int fileCompWidth = getWidth() - (fileCompLeftPad * 2);
-	int fileCompHeight = 20;
-	fileComp.setBounds    (fileCompLeftPad, fileCompTopPad, fileCompWidth, fileCompHeight);
-	
-	triggeringButton.setBounds(fileCompLeftPad, fileCompTopPad + fileCompHeight + fileCompTopPad, 25, 25);
-
-	
+	int x(0), y(0);
+	{
+		int fileCompLeftPad = 10;
+		int fileCompTopPad = 10;
+		int fileCompWidth = getWidth() - (fileCompLeftPad * 2);
+		int fileCompHeight = 20;
+		x = fileCompLeftPad;
+		y = fileCompTopPad;
+		fileComp.setBounds(x, y, fileCompWidth, fileCompHeight);
+		y += fileCompHeight + fileCompTopPad;
+	}
+	{
+		int buttonWidth = 90;
+		int buttonHeight = 25;
+		calculateOnsetsButton.setBounds(x, y, buttonWidth, buttonHeight);
+		x += buttonWidth;
+		writeWavsButton.setBounds(x, y, buttonWidth, buttonHeight);
+		x += buttonWidth;
+		settingsButton.setBounds(x, y, buttonWidth, buttonHeight);
+		x += buttonWidth;
+		buttonWidth = buttonHeight;
+		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
+	}
 	int const numParams = static_cast<size_t>(params_e::count);
-	
+	//=====get num main params, get num random params=======================
 	int numMainParams = 0;
 	int numRandomParams = 0;
 	for (int i = 0; i < numParams; ++i){
@@ -127,10 +177,10 @@ void TsaraGranularAudioProcessorEditor::resized()
 			numRandomParams++;
 		}
 	}
-	
+	//======================================================================
 	assert((numRandomParams + numMainParams) == numParams);
 	
-	int top = 0 + (fileCompTopPad) + fileCompHeight;
+	int top = triggeringButton.getHeight() + fileComp.getHeight();
 	int heightAfterFileComp = getHeight() - top;
 	
 	int const padHorizontal = 25;
