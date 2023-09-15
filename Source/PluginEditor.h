@@ -29,7 +29,7 @@ struct AttachedSlider {
 		_slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 25);
 		_slider.setValue(getParamDefault(param));
 
-		_slider.setColour(juce::Slider::ColourIds::thumbColourId, juce::Colours::red);
+		_slider.setColour(juce::Slider::ColourIds::thumbColourId, juce::Colours::palevioletred);
 		_slider.setColour(juce::Slider::ColourIds::textBoxTextColourId, juce::Colours::black);
 	}
 	
@@ -61,20 +61,18 @@ public:
 		
 		_knob._slider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
 		addAndMakeVisible(&_knob._slider);
+		
+		int const knobMinSz = 65;
+		_knobConstrainer.setMinimumSize(knobMinSz, knobMinSz);
 	}
 	
 	void paint(juce::Graphics& g) override {
-		g.setColour((juce::Colour(juce::Colours::whitesmoke)).withAlpha(0.5f));
-		auto localBounds = getLocalBounds().toFloat();
-		localBounds.reduce(0.93f, 0.93f);
-		g.fillEllipse(localBounds);
-		
 		_label.setFont( juce::Font("Copperplate", "Regular", proportionOfWidth(0.14f)) );
 	}
 	void resized() override {
 		float sliderProportion {0.75f};
-		float labelProportion {0.1f};
-		float knobProportion {0.15f};
+		float labelProportion {0.08f};
+		float knobProportion {0.17f};
 		float proportionSum = sliderProportion + labelProportion + knobProportion;
 		// would compare with 1 but floating point imprecision
 		jassert (proportionSum > 0.999f);
@@ -102,11 +100,13 @@ public:
 		
 		int const knobHeight = localBounds.getHeight() * knobProportion;
 		_knob._slider.setBounds(x, y, localBounds.getWidth(), knobHeight);
+		_knobConstrainer.checkComponentBounds(&(_knob._slider));
 	}
 private:
 	AttachedSlider _slider;
 	juce::Label _label;
 	AttachedSlider _knob;
+	juce::ComponentBoundsConstrainer _knobConstrainer;
 };
 
 class TsaraGranularAudioProcessorEditor  : public juce::AudioProcessorEditor
