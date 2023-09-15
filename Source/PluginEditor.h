@@ -18,7 +18,7 @@
 */
 
 class TsaraGranularAudioProcessorEditor  : public juce::AudioProcessorEditor
-,			                                 public juce::Slider::Listener
+//,			                                 public juce::Slider::Listener
 ,											 public juce::FilenameComponentListener
 {
 public:
@@ -30,7 +30,7 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	
-	void sliderValueChanged(juce::Slider*) override;
+//	void sliderValueChanged(juce::Slider*) override;
 	
 	//===============================================================================
 	void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override;
