@@ -74,6 +74,9 @@ public:
 	void writeToLog(std::string const s);
 	void loadAudioFile(juce::File const f);
 	
+	void calculateOnsets();
+	void writeEvents();
+	
 	bool triggerValFromEditor {false};
 
 	template<typename T>
@@ -82,19 +85,8 @@ public:
 	};
 	editorInformant<float> rmsInformant;
 	editorInformant<float> rmsWAinformant;
-	
-	
-	void calculateOnsets();
-	void writeEvents();
-	
+		
 private:
-	float normalizationValue {1.f};	// a MULTIPLIER for the overall output, based on the inverse of the absolute max value for the current sample
-	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-	juce::AudioFormatManager formatManager;
-	
-	RMS<float> rms;
-	WeightedAveragingBuffer<float, 3> weightAvg;
-
 	class AudioBuffersChannels{
 	private:
 		typedef std::array<std::vector<float>, 2> stereoVector_t;
@@ -137,6 +129,14 @@ private:
 
 	};
 	AudioBuffersChannels audioBuffersChannels;
+	
+	nvs::gran::TsaraGranular tsara_granular;
+	nvs::analysis::Analyzer _analyzer;
+	
+	struct Features {
+		std::optional<std::vector<float>> onsetsInSeconds;
+	};
+	Features _feat;
 	
 	float lastTranspose 	{getParamDefault(params_e::transpose)};
 	float lastPosition 		{getParamDefault(params_e::position)};
@@ -192,18 +192,15 @@ private:
 	float lastSampleRate 	{ 0.f };
 	int lastSamplesPerBlock { 0 };
 	
-#if USING_ESSENTIA
-	// loads into vector<Real> via func in OnsetAnalysis
-	nvs::ess::EssentiaInitializer ess_init;
-	nvs::ess::EssentiaHolder ess_hold;
-#endif
-//	NoteHolder currentNotes;
-	nvs::gran::TsaraGranular tsara_granular;
+	float normalizationValue {1.f};	// a MULTIPLIER for the overall output, based on the inverse of the absolute max value for the current sample
+
+	RMS<float> rms;
+	WeightedAveragingBuffer<float, 3> weightAvg;
 	
+	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+	juce::AudioFormatManager formatManager;
 	std::string currentFile;
 
-	// granular synth
-	
 	//======logging=======================
 	juce::File logFile;
 	juce::FileLogger fileLogger;

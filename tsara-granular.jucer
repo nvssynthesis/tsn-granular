@@ -8,6 +8,9 @@
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/nvs_maps&#10;/Users/nicholassolem/development/nvs_libraries&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;/Users/nicholassolem/development/TSARA&#10;/Users/nicholassolem/development/Xoshiro-cpp&#10;/Users/nicholassolem/development/slicer_granular/Source">
   <MAINGROUP id="HJxsOe" name="tsara-granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
+      <FILE id="NrTZFc" name="DataStructures.h" compile="0" resource="0"
+            file="../../slicer_granular/Source/DataStructures.h"/>
+      <FILE id="uA6vVB" name="dsp_util.h" compile="0" resource="0" file="../../slicer_granular/Source/dsp_util.h"/>
       <FILE id="sgpa6o" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="OfXFiO" name="PluginProcessor.h" compile="0" resource="0"
@@ -17,26 +20,24 @@
       <FILE id="y7FW2A" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
       <FILE id="pLbRIP" name="SettingsWindow.h" compile="0" resource="0"
             file="Source/SettingsWindow.h"/>
-      <FILE id="NrTZFc" name="DataStructures.h" compile="0" resource="0"
-            file="../../slicer_granular/Source/DataStructures.h"/>
-      <FILE id="uA6vVB" name="dsp_util.h" compile="0" resource="0" file="../../slicer_granular/Source/dsp_util.h"/>
-      <FILE id="JTkmm4" name="EssentiaSetup.h" compile="0" resource="0" file="../../slicer_granular/Source/EssentiaSetup.h"/>
       <FILE id="M7N41c" name="FileSelectorComponent.h" compile="0" resource="0"
             file="../../slicer_granular/Source/FileSelectorComponent.h"/>
-      <FILE id="Q9i9lP" name="GranularSynthesis.cpp" compile="1" resource="0"
-            file="../../slicer_granular/Source/GranularSynthesis.cpp"/>
-      <FILE id="EJxF1Y" name="GranularSynthesis.h" compile="0" resource="0"
-            file="../../slicer_granular/Source/GranularSynthesis.h"/>
+      <FILE id="JTkmm4" name="EssentiaSetup.h" compile="0" resource="0" file="../../slicer_granular/Source/EssentiaSetup.h"/>
+      <FILE id="XBwtTT" name="Analyzer.h" compile="0" resource="0" file="Source/Analyzer.h"/>
       <GROUP id="{F86C79D6-A13E-2158-4EA1-11331F91F403}" name="onsetAnalysis">
         <FILE id="ejDdXe" name="OnsetAnalysis.cpp" compile="1" resource="0"
               file="../onsetAnalysis/OnsetAnalysis.cpp"/>
         <FILE id="CIt2XE" name="OnsetAnalysis.h" compile="0" resource="0" file="../onsetAnalysis/OnsetAnalysis.h"/>
       </GROUP>
+      <FILE id="CUYJ0h" name="params.h" compile="0" resource="0" file="../../slicer_granular/Source/params.h"/>
+      <FILE id="Q9i9lP" name="GranularSynthesis.cpp" compile="1" resource="0"
+            file="../../slicer_granular/Source/GranularSynthesis.cpp"/>
+      <FILE id="EJxF1Y" name="GranularSynthesis.h" compile="0" resource="0"
+            file="../../slicer_granular/Source/GranularSynthesis.h"/>
       <FILE id="lHj4W4" name="TsaraGranularSynth.cpp" compile="1" resource="0"
             file="Source/TsaraGranularSynth.cpp"/>
       <FILE id="u3WdiQ" name="TsaraGranularSynth.h" compile="0" resource="0"
             file="Source/TsaraGranularSynth.h"/>
-      <FILE id="CUYJ0h" name="params.h" compile="0" resource="0" file="../../slicer_granular/Source/params.h"/>
       <FILE id="ktoCco" name="plotting.h" compile="0" resource="0" file="../../slicer_granular/Source/plotting.h"/>
     </GROUP>
   </MAINGROUP>

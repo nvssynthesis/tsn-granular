@@ -12,12 +12,15 @@
 
 class SettingsWindow	:	public juce::DocumentWindow
 {
+	juce::ComponentBoundsConstrainer constrainer;
 public:
 	SettingsWindow(juce::Colour backgroundColour)	:	juce::DocumentWindow("Settings", backgroundColour, juce::DocumentWindow::allButtons)
 	, onsetSettingsComponent(*this)
 	{
+		constrainer.setMinimumSize(300, 300);
 		setContentOwned(&onsetSettingsComponent, false);
-		setContentComponentSize(200, 200);
+//		setContentComponentSize(200, 200);
+		setConstrainer(&constrainer);
 	}
 	~SettingsWindow(){
 		std::cout << "destructing SettingsWindow\n";
@@ -26,21 +29,25 @@ public:
 		delete this;
 	}
 	
-	
 private:
 	class OnsetSettingsComponent	:	public juce::Component,
+										private juce::Button::Listener,
 										private juce::Slider::Listener
 	{
 	public:
 		OnsetSettingsComponent(SettingsWindow &owner)
-		:	_owner(owner)
+		:	applyButton("Apply"), _owner(owner)
 		{
-			silenceThresholdSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
 			silenceThresholdSlider.addListener(this);
+			silenceThresholdSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
 			silenceThresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 30);
 			silenceThresholdSlider.setNumDecimalPlacesToDisplay(2);
 			silenceThresholdSlider.setRange(0.0, 1.0);
 			addAndMakeVisible(&silenceThresholdSlider);
+			
+			applyButton.addListener(this);
+			addAndMakeVisible(&applyButton);
+			
 			setSize (100, 100);
 		}
 		void paint(juce::Graphics &g) override{
@@ -60,22 +67,37 @@ private:
 			bounds.setY(barPad + topPad);
 			setBounds(bounds);
 		}
-		void placeSlider(int const topPad, int const leftPad){
+		void placeSlider(int const topPad, int const leftPad, int const bottomPad){
 			int const sliderWidth = getWidth() / 10;
-			int const sliderHeight = getHeight() - topPad*2;
+			int const sliderHeight = getHeight() - topPad - bottomPad;
 			silenceThresholdSlider.setBounds(topPad, leftPad, sliderWidth, sliderHeight);
 		}
-		
+//		void placeButton(
 		void resized() override{
-			placeMe(10, 10);
-			placeSlider(10, 10);
+			placeMe(10, 10);			// top now +10 +10
+			placeSlider(10, 10, 60);	// top now +10 +60
+			
+			applyButton.setSize(100, 40);
+			int buttonY = getHeight() - 10 - 60 - 10 - 10;
+			buttonY += 40;
+			const int buttonYcentre = buttonY + (applyButton.getHeight() / 2);
+			applyButton.setCentrePosition(getWidth() / 2, buttonYcentre);
+//			const int buttonX = getWidth() / 2;
+//			const int buttonY = getHeight() - 10 - 60;
+//			applyButton.setBounds(buttonX, buttonY, 100, 60);
 		}
 	private:
 		juce::Slider silenceThresholdSlider;
+		juce::TextButton applyButton;
 		SettingsWindow &_owner;
 		void sliderValueChanged (juce::Slider* slider) override {
 			if (slider == &silenceThresholdSlider){
 				std::cout << "silence thresh: " << slider->getValue() << '\n';
+			}
+		}
+		void buttonClicked(juce::Button *button) override {
+			if (button == &applyButton){
+				std::cout << "Apply button clicked\n";
 			}
 		}
 	};

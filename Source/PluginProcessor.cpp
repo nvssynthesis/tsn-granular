@@ -173,10 +173,22 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f){
 	delete reader;
 }
 void TsaraGranularAudioProcessor::calculateOnsets(){
-	tsara_granular.getOnsets();
+	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
+	std::vector<float> wave(waveSpan.size());
+	wave.assign(waveSpan.begin(), waveSpan.end());
+	
+	_feat.onsetsInSeconds = _analyzer.calculateOnsets(wave);
+	
+	if (_feat.onsetsInSeconds){
+		tsara_granular.loadOnsets(std::span<float const>(*_feat.onsetsInSeconds));
+	}
 }
 void TsaraGranularAudioProcessor::writeEvents(){
-	tsara_granular.writeEventsToWav(currentFile);
+	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
+	std::vector<float> wave(waveSpan.size());
+	wave.assign(waveSpan.begin(), waveSpan.end());
+	
+	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.ess_hold.factory, _analyzer._splitSettings);
 }
 
 #if (STATIC_MAP | FROZEN_MAP)

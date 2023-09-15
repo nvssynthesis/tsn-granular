@@ -137,6 +137,7 @@
 		ED2974DE9EEE4A7F8A84AF39 /* EssentiaSetup.h */ /* EssentiaSetup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = EssentiaSetup.h; path = ../../../../slicer_granular/Source/EssentiaSetup.h; sourceTree = SOURCE_ROOT; };
 		EEEF04B161B323E4A82278D9 /* juce_audio_basics */ /* juce_audio_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_basics; path = /Applications/JUCE/modules/juce_audio_basics; sourceTree = "<absolute>"; };
 		F45B2FC7BEFACC5E3EC229C0 /* include_juce_gui_basics.mm */ /* include_juce_gui_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_basics.mm; path = ../../JuceLibraryCode/include_juce_gui_basics.mm; sourceTree = SOURCE_ROOT; };
+		F4C573111DAC02EF0BC7C6C6 /* Analyzer.h */ /* Analyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Analyzer.h; path = ../../Source/Analyzer.h; sourceTree = SOURCE_ROOT; };
 		F5F3C50A3AD0B9C313CCA82D /* include_juce_audio_processors_lv2_libs.cpp */ /* include_juce_audio_processors_lv2_libs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_lv2_libs.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_lv2_libs.cpp; sourceTree = SOURCE_ROOT; };
 		F67495FC3D9919495ED20493 /* include_juce_audio_processors_ara.cpp */ /* include_juce_audio_processors_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_ara.cpp; sourceTree = SOURCE_ROOT; };
 		F75C16CBDD85E787D5EFA8B8 /* include_juce_audio_plugin_client_AU_1.mm */ /* include_juce_audio_plugin_client_AU_1.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_AU_1.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_AU_1.mm; sourceTree = SOURCE_ROOT; };
@@ -234,21 +235,22 @@
 		523DCE9F4DBC1F44F76CC1D5 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				D4368A62091885C2FF5FFAD1,
+				9AC549939FBD12A3234BCC6D,
 				5839B3BC7CCAEFA7E9709F77,
 				7745CF5C4E7BB5F66EF98BB2,
 				9659DFA427F23F1D556F8644,
 				B460E7D6CB1BCDEC740B46BB,
 				D7A29DA0AAF18E61956F3CFC,
-				D4368A62091885C2FF5FFAD1,
-				9AC549939FBD12A3234BCC6D,
-				ED2974DE9EEE4A7F8A84AF39,
 				40A970EA0A4D6DFE9E5A83AE,
+				ED2974DE9EEE4A7F8A84AF39,
+				F4C573111DAC02EF0BC7C6C6,
+				5A0B46A55A4EDD13FBF50E31,
+				9761090E390EE6B794718038,
 				751FA403932866971CDA67DD,
 				44985F89CC9F878A08695F7D,
-				5A0B46A55A4EDD13FBF50E31,
 				3E6D870E7B1FEAF40F1AA281,
 				3BCD9CD85E04BFDA1779EF0C,
-				9761090E390EE6B794718038,
 				99BC8235EC306EEC73D55087,
 			);
 			name = Source;
@@ -615,8 +617,8 @@
 			files = (
 				DA93D80A100BF8888C8FE9AC,
 				81BBE8FCAE89B05288462636,
-				25862F9E13A4F00B2274294C,
 				1CA8D15CF3AEAA1F4F0CE448,
+				25862F9E13A4F00B2274294C,
 				3CB481704F73C871C83B0E28,
 				FD09703AAAD438698DBBE89E,
 				ACE0513CC8FB677ECC731ED8,
