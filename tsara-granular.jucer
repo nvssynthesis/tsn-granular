@@ -18,6 +18,7 @@
       <FILE id="NTDw21" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="y7FW2A" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="T9hDUN" name="SliderColumn.h" compile="0" resource="0" file="../../slicer_granular/Source/SliderColumn.h"/>
       <FILE id="pLbRIP" name="SettingsWindow.h" compile="0" resource="0"
             file="Source/SettingsWindow.h"/>
       <FILE id="M7N41c" name="FileSelectorComponent.h" compile="0" resource="0"

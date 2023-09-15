@@ -17,7 +17,7 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 #if USING_ESSENTIA
 , ess_hold(ess_init)
 #endif
-, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), 30)
+, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), 50)
 , logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {

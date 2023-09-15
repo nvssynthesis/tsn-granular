@@ -18,6 +18,14 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
 ,	audioProcessor (p)
+, 	attachedSliderColumnArray{
+		SliderColumn(audioProcessor.apvts, params_e::transpose),
+		SliderColumn(audioProcessor.apvts, params_e::position),
+		SliderColumn(audioProcessor.apvts, params_e::speed),
+		SliderColumn(audioProcessor.apvts, params_e::duration),
+		SliderColumn(audioProcessor.apvts, params_e::skew),
+		SliderColumn(audioProcessor.apvts, params_e::pan)
+	}
 {
 	addAndMakeVisible (fileComp);
 	fileComp.addListener (this);
@@ -39,6 +47,10 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	triggeringButton.onClick = [this, &p]{ updateToggleState(&triggeringButton, "Trigger", p.triggerValFromEditor);	};
 	triggeringButton.setClickingTogglesState(true);
 	
+	for (auto &s : attachedSliderColumnArray){
+		addAndMakeVisible( s );
+	}
+#if 0
 	for (size_t i = 0; i < static_cast<size_t>(params_e::count); ++i){
 		params_e param = static_cast<params_e>(i);
 		paramSliderAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (audioProcessor.apvts, getParamName(param), paramSliders[i]);
@@ -62,9 +74,9 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 			addAndMakeVisible(paramLabels[i]);
 		}
 	}
+#endif
 	
-	// Make sure that before the constructor has finished, you've set the
-	// editor's size to whatever you need it to be.
+	constrainer.setMinimumSize(620, 400);
 	setSize (800, 500);
 	setResizable(true, true);
 }
@@ -77,9 +89,12 @@ TsaraGranularAudioProcessorEditor::~TsaraGranularAudioProcessorEditor()
 	closeAllWindows();
 
 	fileComp.pushRecentFilesToFile();
+	
+#if 0
 	for (auto &a : paramSliderAttachments)
 		a = nullptr;
-	}
+#endif
+}
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::closeAllWindows()
 {
@@ -141,17 +156,27 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 
 void TsaraGranularAudioProcessorEditor::resized()
 {
-	std::cout << "resized\n";
+	
+	constrainer.checkComponentBounds(this);
+	
+	juce::Rectangle<int> localBounds = getLocalBounds();
+	
+//	std::cout << "x: " << localBounds.getX() << " y: " << localBounds.getY() <<
+//			" w: " << localBounds.getWidth() << " h: " << localBounds.getHeight() << '\n';
+
+	
+	int const smallPad = 10;
+	localBounds.reduce(smallPad, smallPad);
+	
 	int x(0), y(0);
 	{
-		int fileCompLeftPad = 10;
-		int fileCompTopPad = 10;
-		int fileCompWidth = getWidth() - (fileCompLeftPad * 2);
+		int fileCompWidth = localBounds.getWidth();
 		int fileCompHeight = 20;
-		x = fileCompLeftPad;
-		y = fileCompTopPad;
+		x = localBounds.getX();
+		y = localBounds.getY();
 		fileComp.setBounds(x, y, fileCompWidth, fileCompHeight);
-		y += fileCompHeight + fileCompTopPad;
+		y += fileCompHeight;
+		y += smallPad;
 	}
 	{
 		int buttonWidth = 90;
@@ -164,7 +189,19 @@ void TsaraGranularAudioProcessorEditor::resized()
 		x += buttonWidth;
 		buttonWidth = buttonHeight;
 		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
+		y += buttonHeight;
+		y += smallPad;
 	}
+	
+	int const alottedCompHeight = localBounds.getHeight() - y + smallPad;
+	int const alottedCompWidth = localBounds.getWidth() / attachedSliderColumnArray.size();
+	
+	for (int i = 0; i < attachedSliderColumnArray.size(); ++i){
+		int left = i * alottedCompWidth + localBounds.getX();
+		attachedSliderColumnArray[i].setBounds(left, y, alottedCompWidth, alottedCompHeight);
+	}
+	
+#if 0
 	int const numParams = static_cast<size_t>(params_e::count);
 	//=====get num main params, get num random params=======================
 	int numMainParams = 0;
@@ -188,7 +225,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 	int const widthAfterPadding = getWidth() - (2 * padHorizontal);
 	int const heightAfterPadding = heightAfterFileComp - (2 * padVertical);
 	
-	float sliderHeightToKnobHeightRatio = 5.f;
+	float const sliderHeightToKnobHeightRatio = 5.f;
 	
 	int const sliderToKnobLowerPadding = 12;
 	int const knobHeight = (heightAfterPadding - sliderToKnobLowerPadding) / sliderHeightToKnobHeightRatio;
@@ -229,6 +266,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 		auto const labelY = height + y ;
 		paramLabels[i].setBounds(x, labelY, width, 24);
 	}
+#endif
 }
 
 void TsaraGranularAudioProcessorEditor::sliderValueChanged(juce::Slider* sliderThatWasMoved)
