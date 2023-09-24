@@ -13,26 +13,34 @@
 TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor& p)
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
-,	triggeringButton("hi")
+,	mainParamsComp(p)
+,	waveformComponent(512, p.getAudioFormatManager())
+,	triggeringButton("Manual Trigger")	// unused
 ,	calculateOnsetsButton("Calculate Onsets")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
 ,	audioProcessor (p)
-, 	attachedSliderColumnArray{
-		SliderColumn(audioProcessor.apvts, params_e::transpose),
-		SliderColumn(audioProcessor.apvts, params_e::position),
-		SliderColumn(audioProcessor.apvts, params_e::speed),
-		SliderColumn(audioProcessor.apvts, params_e::duration),
-		SliderColumn(audioProcessor.apvts, params_e::skew),
-		SliderColumn(audioProcessor.apvts, params_e::pan)
-	}
 {
 	addAndMakeVisible (fileComp);
 	fileComp.addListener (this);
 	fileComp.getRecentFilesFromUserApplicationDataDirectory();
 	
 	addAndMakeVisible(calculateOnsetsButton);
-	calculateOnsetsButton.onClick = [&p]{p.calculateOnsets();};
+	calculateOnsetsButton.onClick = [&p, this]{
+		waveformComponent.removeMarkers();
+
+		std::optional<std::vector<float>> onsetsSeconds = p.calculateOnsets();
+		if (onsetsSeconds){
+			double const sr = p.getSampleRate();
+			size_t nSamps = p.getCurrentWaveSize();
+			for (auto onset : *onsetsSeconds){
+				onset *= sr;
+				onset /= static_cast<double>(nSamps);
+				waveformComponent.addMarker(onset);
+			}
+		}
+		repaint();
+	};
 	
 	addAndMakeVisible(writeWavsButton);
 	writeWavsButton.onClick = [&p]{p.writeEvents();};
@@ -47,20 +55,19 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	triggeringButton.onClick = [this, &p]{ updateToggleState(&triggeringButton, "Trigger", p.triggerValFromEditor);	};
 	triggeringButton.setClickingTogglesState(true);
 	
-	for (auto &s : attachedSliderColumnArray){
-		addAndMakeVisible( s );
-	}
+	addAndMakeVisible(mainParamsComp);
 	
-	constrainer.setMinimumSize(620, 400);
-	setSize (800, 500);
+	addAndMakeVisible(waveformComponent);
+	
+	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
+	
+	constrainer.setMinimumSize(620, 500);
+	setSize (800, 550);
 	setResizable(true, true);
 }
 
 TsaraGranularAudioProcessorEditor::~TsaraGranularAudioProcessorEditor()
 {
-	/*for (auto i = 0; i < windows.size(); ++i){
-		windows[i]->userTriedToCloseWindow();
-	}*/
 	closeAllWindows();
 
 	fileComp.pushRecentFilesToFile();
@@ -109,37 +116,60 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	juce::Graphics tg(image);
 
 	juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
-	juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + 4) % gradientColors.size()];
+	upperLeftColour = upperLeftColour.interpolatedWith(juce::Colours::darkred, 0.7f);
+	juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + gradientColors.size()-1) % gradientColors.size()];
+	lowerRightColour = lowerRightColour.interpolatedWith(juce::Colours::darkred, 0.7f);
 	juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
-	cg.addColour(0.3, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
-	cg.addColour(0.5, gradientColors[(colourOffsetIndex + 2) % gradientColors.size()]);
-	cg.addColour(0.7, gradientColors[(colourOffsetIndex + 3) % gradientColors.size()]);
+//	cg.addColour(0.3, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
+	cg.addColour(0.5, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
+//	cg.addColour(0.7, gradientColors[(colourOffsetIndex + 3) % gradientColors.size()]);
 	tg.setGradientFill(cg);
 	tg.fillAll();
 
 	g.drawImage(image, getLocalBounds().toFloat());
+	
+	{
+		auto bounds = getLocalBounds();
 
-	g.setColour (juce::Colours::white);
-	g.setFont (15.0f);
-	g.drawFittedText ("tsaaaarrraaaaa grrrraaaaaanuuuuuulaaaaaate", getLocalBounds(), juce::Justification::centred, 1);
+		juce::int64 seed = bounds.getWidth() + bounds.getHeight();
+		juce::Random rng(seed);
+		
+		const auto dotDim = 2;
+		for (auto i = 0; i < bounds.getWidth(); i += 2){
+			for (auto j = 0; j < bounds.getHeight(); j += 3){
+				
+				float val = rng.nextFloat();
+				if (val > 0.7f){
+					auto colour = juce::Colour(juce::uint8(rng.nextInt()), 0, 0,
+												   rng.nextFloat() * 0.3f);	// alpha
+					g.setColour(colour);
+					g.fillEllipse(i, j, dotDim, dotDim);
+//					g.drawEllipse(i, j, dotDim, dotDim, dotDim);
+				}
+				
+			}
+		}
+	}
+//	g.setColour (juce::Colours::white);
+//	g.setFont (15.0f);
+//	g.drawFittedText ("tsaaaarrraaaaa grrrraaaaaanuuuuuulaaaaaate", getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void TsaraGranularAudioProcessorEditor::resized()
 {
-	
 	constrainer.checkComponentBounds(this);
-	
 	juce::Rectangle<int> localBounds = getLocalBounds();
 	
 //	std::cout << "x: " << localBounds.getX() << " y: " << localBounds.getY() <<
 //			" w: " << localBounds.getWidth() << " h: " << localBounds.getHeight() << '\n';
+	
 
 	
 	int const smallPad = 10;
 	localBounds.reduce(smallPad, smallPad);
 	
 	int x(0), y(0);
-	{
+	{	// just some scopes for temporaries
 		int fileCompWidth = localBounds.getWidth();
 		int fileCompHeight = 20;
 		x = localBounds.getX();
@@ -162,20 +192,20 @@ void TsaraGranularAudioProcessorEditor::resized()
 		y += buttonHeight;
 		y += smallPad;
 	}
-	
-	int const alottedCompHeight = localBounds.getHeight() - y + smallPad;
-	int const alottedCompWidth = localBounds.getWidth() / attachedSliderColumnArray.size();
-	
-	for (int i = 0; i < attachedSliderColumnArray.size(); ++i){
-		int left = i * alottedCompWidth + localBounds.getX();
-		attachedSliderColumnArray[i].setBounds(left, y, alottedCompWidth, alottedCompHeight);
+	{
+		auto const mainParamsRemainingHeightRatio  = 0.8f * localBounds.getHeight();
+
+		int const alottedMainParamsHeight = mainParamsRemainingHeightRatio - y + smallPad;
+		int const alottedMainParamsWidth = localBounds.getWidth();
+		
+		mainParamsComp.setBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
+		y += mainParamsComp.getHeight();
+//		y += smallPad;
 	}
+	auto const remainingHeight = 0.2f * localBounds.getHeight();
+	waveformComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), remainingHeight);
 }
 
-//void TsaraGranularAudioProcessorEditor::sliderValueChanged(juce::Slider* sliderThatWasMoved)
-//{
-//	// nothing needed, everything changed is a parameter
-//}
 void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 {
 	if (! fileToRead.existsAsFile())
@@ -185,7 +215,7 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	std::string st_str = fn.toStdString();
 	
 	audioProcessor.writeToLog(st_str);
-	audioProcessor.loadAudioFile(fileToRead);
+	audioProcessor.loadAudioFile(fileToRead, waveformComponent.getThumbnail() );
 	
 	fileComp.setCurrentFile(fileToRead, true);
 }

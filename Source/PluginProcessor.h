@@ -72,9 +72,9 @@ public:
 	juce::AudioProcessorValueTreeState apvts;
 	
 	void writeToLog(std::string const s);
-	void loadAudioFile(juce::File const f);
+	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
-	void calculateOnsets();
+	std::optional<std::vector<float>> calculateOnsets();
 	void writeEvents();
 	
 	bool triggerValFromEditor {false};
@@ -85,7 +85,14 @@ public:
 	};
 	editorInformant<float> rmsInformant;
 	editorInformant<float> rmsWAinformant;
-		
+	
+	juce::AudioFormatManager &getAudioFormatManager(){
+		return formatManager;
+	}
+	
+	size_t getCurrentWaveSize(){
+		return audioBuffersChannels.getActiveSpanRef().size();
+	}
 private:
 	class AudioBuffersChannels{
 	private:
@@ -143,6 +150,7 @@ private:
 	float lastSpeed 		{getParamDefault(params_e::speed)};
 	float lastDuration 		{getParamDefault(params_e::duration)};
 	float lastSkew 			{getParamDefault(params_e::skew)};
+	float lastPlateau 		{getParamDefault(params_e::plateau)};
 	float lastPan 			{getParamDefault(params_e::pan)};
 
 	float lastTransposeRand {getParamDefault(params_e::transp_randomness)};
@@ -150,6 +158,7 @@ private:
 	float lastSpeedRand 	{getParamDefault(params_e::speed_randomness)};
 	float lastDurationRand 	{getParamDefault(params_e::dur_randomness)};
 	float lastSkewRand 		{getParamDefault(params_e::skew_randomness)};
+	float lastPlateauRand	{getParamDefault(params_e::plat_randomness)};
 	float lastPanRand 		{getParamDefault(params_e::pan_randomness)};
 	
 #if (STATIC_MAP | FROZEN_MAP)
@@ -162,12 +171,14 @@ private:
 		std::make_pair<params_e, granMembrSetFunc>(params_e::speed, 			&nvs::gran::genGranPoly1::setSpeed),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::duration, 			&nvs::gran::genGranPoly1::setDuration),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::skew, 				&nvs::gran::genGranPoly1::setSkew),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::plateau,			&nvs::gran::genGranPoly1::setPlateau),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::pan, 				&nvs::gran::genGranPoly1::setPan),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::transp_randomness, &nvs::gran::genGranPoly1::setTransposeRandomness),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::pos_randomness, 	&nvs::gran::genGranPoly1::setPositionRandomness),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::speed_randomness, 	&nvs::gran::genGranPoly1::setSpeedRandomness),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::dur_randomness, 	&nvs::gran::genGranPoly1::setDurationRandomness),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::skew_randomness, 	&nvs::gran::genGranPoly1::setSkewRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::plat_randomness,	&nvs::gran::genGranPoly1::setPlateauRandomness),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::pan_randomness, 	&nvs::gran::genGranPoly1::setPanRandomness)
 	};
 	template <auto Start, auto End>
@@ -180,12 +191,14 @@ private:
 		std::make_pair<params_e, float *>(params_e::speed, 		&lastSpeed),
 		std::make_pair<params_e, float *>(params_e::duration, 	&lastDuration),
 		std::make_pair<params_e, float *>(params_e::skew, 		&lastSkew),
+		std::make_pair<params_e, float *>(params_e::plateau,	&lastPlateau),
 		std::make_pair<params_e, float *>(params_e::pan, 		&lastPan),
 		std::make_pair<params_e, float *>(params_e::transp_randomness, 	&lastTransposeRand),
 		std::make_pair<params_e, float *>(params_e::pos_randomness, 	&lastPositionRand),
 		std::make_pair<params_e, float *>(params_e::speed_randomness, 	&lastSpeedRand),
 		std::make_pair<params_e, float *>(params_e::dur_randomness, 	&lastDurationRand),
 		std::make_pair<params_e, float *>(params_e::skew_randomness, 	&lastSkewRand),
+		std::make_pair<params_e, float *>(params_e::plat_randomness, 	&lastPlateauRand),
 		std::make_pair<params_e, float *>(params_e::pan_randomness, 	&lastPanRand)
 	};
 #endif

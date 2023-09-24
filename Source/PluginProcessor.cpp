@@ -99,7 +99,6 @@ void TsaraGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesP
 	// initialisation that you need..
 	lastSampleRate = static_cast<float>(sampleRate);
 	lastSamplesPerBlock = samplesPerBlock;
-//	gran_synth.loadOnsets();
 }
 
 void TsaraGranularAudioProcessor::releaseResources()
@@ -137,7 +136,7 @@ bool TsaraGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& lay
 void TsaraGranularAudioProcessor::writeToLog(std::string const s){
 	fileLogger.writeToLog (s);
 }
-void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f){
+void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail){
 	juce::AudioFormatReader *reader = formatManager.createReaderFor(f);
 	if (!reader){
 		std::cerr << "could not read file: " << f.getFileName() << "\n";
@@ -156,23 +155,26 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f){
 	if (normVal > 0.f){
 		normalizationValue = 1.f / normVal;
 	} else {
-		std::cerr << "either the sample is digital silence, or something's gone wrong\n";
+		std::cerr << "in loadAudioFile: either the sample is digital silence, or something's gone wrong\n";
 		normalizationValue = 1.f;
 	}
 	
 	std::array<float * const, 2> ptrsToWriteTo = audioBuffersChannels.prepareForWrite(newLength, reader->numChannels);
 	
 	reader->read(&ptrsToWriteTo[0],	// float *const *destChannels
-				 1, 	//reader->numChannels,		// int numDestChannels
-				 0,		// int64 startSampleInSource
+				 1, 			// int numDestChannels
+				 0,				// int64 startSampleInSource
 				 newLength);	// int numSamplesToRead
 	
 	audioBuffersChannels.updateActive();
 
+	if (thumbnail){
+		thumbnail->setSource (new juce::FileInputSource (f));	// owned by thumbnail, no worry about delete
+	}
 	currentFile = f.getFullPathName().toStdString();	// so far needed only for writeEvents()
 	delete reader;
 }
-void TsaraGranularAudioProcessor::calculateOnsets(){
+std::optional<std::vector<float>> TsaraGranularAudioProcessor::calculateOnsets(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -182,6 +184,7 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 	if (_feat.onsetsInSeconds){
 		tsara_granular.loadOnsets(std::span<float const>(*_feat.onsetsInSeconds));
 	}
+	return _feat.onsetsInSeconds;
 }
 void TsaraGranularAudioProcessor::writeEvents(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
@@ -221,7 +224,6 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 		buffer.clear (i, 0, buffer.getNumSamples());
 	
 	// normally we'd have the synth voice as a juce synth voice and have to dynamic cast before setting its params
-
 	paramSet<0, static_cast<int>(params_e::count)>();
 
 	float trigger = static_cast<float>(triggerValFromEditor);
@@ -246,6 +248,9 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 			}
 		}
 	}
+	if ( !(audioBuffersChannels.getActiveSpanRef().size()) )
+		return;
+	
 	tsara_granular.shuffleIndices();
 	for (auto samp = 0; samp < buffer.getNumSamples(); ++samp){
 		std::array<float, 2> output = tsara_granular(trigger);

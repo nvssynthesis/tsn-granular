@@ -17,6 +17,7 @@ public:
 	SettingsWindow(juce::Colour backgroundColour)	:	juce::DocumentWindow("Settings", backgroundColour, juce::DocumentWindow::allButtons)
 	, onsetSettingsComponent(*this)
 	{
+		setAlwaysOnTop(true);
 		constrainer.setMinimumSize(300, 300);
 		setContentOwned(&onsetSettingsComponent, false);
 //		setContentComponentSize(200, 200);

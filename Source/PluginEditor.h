@@ -5,17 +5,48 @@
 #include "params.h"
 #include "dsp_util.h"
 #include "FileSelectorComponent.h"
+#include "WaveformComponent.h"
 #include "SettingsWindow.h"
 #include "SliderColumn.h"
 
 //==============================================================================
 /** TODO:
-	-center param names
-	 -add button for onset calculate
-	 -add button for write events to wav
- 
- Instead of manually adding sliders, labels, and knobs in separate rows, make a component that contains all of them properly aligned.
 */
+
+struct MainParamsComponent	:	public juce::Component
+{
+	MainParamsComponent(TsaraGranularAudioProcessor& p)
+	:
+	attachedSliderColumnArray
+	{
+		SliderColumn(p.apvts, params_e::transpose),
+		SliderColumn(p.apvts, params_e::position),
+		SliderColumn(p.apvts, params_e::speed),
+		SliderColumn(p.apvts, params_e::duration),
+		SliderColumn(p.apvts, params_e::skew),
+		SliderColumn(p.apvts, params_e::plateau),
+		SliderColumn(p.apvts, params_e::pan)
+	}
+	{
+		for (auto &s : attachedSliderColumnArray){
+			addAndMakeVisible( s );
+		}
+	}
+	void resized() override
+	{
+		auto localBounds = getLocalBounds();
+		int const alottedCompHeight = localBounds.getHeight();// - y + smallPad;
+		int const alottedCompWidth = localBounds.getWidth() / attachedSliderColumnArray.size();
+		
+		for (int i = 0; i < attachedSliderColumnArray.size(); ++i){
+			int left = i * alottedCompWidth + localBounds.getX();
+			attachedSliderColumnArray[i].setBounds(left, 0, alottedCompWidth, alottedCompHeight);
+		}
+	}
+	
+private:
+	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
+};
 
 class TsaraGranularAudioProcessorEditor  : public juce::AudioProcessorEditor
 //,			                                 public juce::Slider::Listener
@@ -30,31 +61,26 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	
-//	void sliderValueChanged(juce::Slider*) override;
-	
 	//===============================================================================
 	void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override;
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
-#if 0
-	std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, static_cast<size_t>(params_e::count)> paramSliderAttachments;
-#endif
+
 private:
-#if 0
-	std::array<juce::Slider, static_cast<size_t>(params_e::count)> paramSliders;
-	std::array<juce::Label, static_cast<size_t>(params_e::count)> paramLabels;
-#endif
 	juce::ComponentBoundsConstrainer constrainer;
 
 	FileSelectorComponent fileComp;
+//	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
+	MainParamsComponent mainParamsComp;
+	WaveformComponent waveformComponent;
 
 	juce::ToggleButton triggeringButton;
-	std::array<juce::Colour, 5> gradientColors {
-		juce::Colours::transparentBlack,
+	std::array<juce::Colour, 3> gradientColors {
+		juce::Colours::darkgrey,
 		juce::Colours::darkred,
-		juce::Colours::red,
-		juce::Colours::darkred,
-		juce::Colours::black
+//		juce::Colours::red,
+//		juce::Colours::darkred,
+		juce::Colours::darkgrey
 	};
 	size_t colourOffsetIndex {0};
 	
@@ -91,10 +117,6 @@ private:
 	// sliders to change analysis settings
 	
 	TsaraGranularAudioProcessor& audioProcessor;
-
-	// must be initialized after audioProcessor
-	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
-
 	
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsaraGranularAudioProcessorEditor)
 };
