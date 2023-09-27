@@ -133,7 +133,7 @@ bool TsaraGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& lay
 }
 #endif
 
-void TsaraGranularAudioProcessor::writeToLog(std::string const s){
+void TsaraGranularAudioProcessor::writeToLog(std::string const &s){
 	fileLogger.writeToLog (s);
 }
 void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail){
@@ -143,7 +143,8 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 		return;
 	}
 	int newLength = static_cast<int>(reader->lengthInSamples);
-	
+	_analyzer._analysisSettings.sampleRate = reader->sampleRate;
+
 	std::array<juce::Range<float> , 1> normalizationRange;
 	reader->readMaxLevels(0, reader->lengthInSamples, &normalizationRange[0], 1);
 	
@@ -191,7 +192,7 @@ void TsaraGranularAudioProcessor::writeEvents(){
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.ess_hold.factory, _analyzer._splitSettings);
+	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.ess_hold.factory, _analyzer._analysisSettings, _analyzer._splitSettings);
 }
 
 #if (STATIC_MAP | FROZEN_MAP)

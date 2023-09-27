@@ -71,7 +71,7 @@ public:
 	
 	juce::AudioProcessorValueTreeState apvts;
 	
-	void writeToLog(std::string const s);
+	void writeToLog(std::string const &s);
 	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
 	std::optional<std::vector<float>> calculateOnsets();
@@ -92,6 +92,15 @@ public:
 	
 	size_t getCurrentWaveSize(){
 		return audioBuffersChannels.getActiveSpanRef().size();
+	}
+	void setOnsetSettings(nvs::analysis::onsetSettings settings){
+		_analyzer._onsetSettings = settings;
+		/*
+											 Object of type 'analysis::onsetSettings' cannot be assigned because its copy assignment operator is implicitly deleted ...???*/
+//		_analyzer._onsetSettings.silenceThreshold = settings.silenceThreshold;
+	}
+	nvs::analysis::analysisSettings getAnalysisSettings(){
+		return _analyzer._analysisSettings;
 	}
 private:
 	class AudioBuffersChannels{

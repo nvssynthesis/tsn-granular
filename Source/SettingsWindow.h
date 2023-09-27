@@ -9,18 +9,20 @@
 */
 
 #pragma once
+#include "PluginEditor.h"
+#include "onsetAnalysis/OnsetAnalysis.h"
 
 class SettingsWindow	:	public juce::DocumentWindow
 {
 	juce::ComponentBoundsConstrainer constrainer;
 public:
-	SettingsWindow(juce::Colour backgroundColour)	:	juce::DocumentWindow("Settings", backgroundColour, juce::DocumentWindow::allButtons)
-	, onsetSettingsComponent(*this)
+	SettingsWindow(TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed, juce::Colour backgroundColour)
+	:	juce::DocumentWindow("Settings", backgroundColour, juce::DocumentWindow::allButtons)
+	, 	onsetSettingsComponent(*this, p, ed)
 	{
 		setAlwaysOnTop(true);
 		constrainer.setMinimumSize(300, 300);
 		setContentOwned(&onsetSettingsComponent, false);
-//		setContentComponentSize(200, 200);
 		setConstrainer(&constrainer);
 	}
 	~SettingsWindow(){
@@ -36,8 +38,12 @@ private:
 										private juce::Slider::Listener
 	{
 	public:
-		OnsetSettingsComponent(SettingsWindow &owner)
-		:	applyButton("Apply"), _owner(owner)
+		OnsetSettingsComponent(SettingsWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed)
+		:	proc(p),
+			editor(ed),
+			applyButton("Apply"),
+			recalculateOnsetsButton("Recalculate Onsets"),
+			_owner(owner)
 		{
 			silenceThresholdSlider.addListener(this);
 			silenceThresholdSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
@@ -48,6 +54,9 @@ private:
 			
 			applyButton.addListener(this);
 			addAndMakeVisible(&applyButton);
+			
+			recalculateOnsetsButton.addListener(this);
+			addAndMakeVisible(&recalculateOnsetsButton);
 			
 			setSize (100, 100);
 		}
@@ -73,32 +82,41 @@ private:
 			int const sliderHeight = getHeight() - topPad - bottomPad;
 			silenceThresholdSlider.setBounds(topPad, leftPad, sliderWidth, sliderHeight);
 		}
-//		void placeButton(
 		void resized() override{
 			placeMe(10, 10);			// top now +10 +10
 			placeSlider(10, 10, 60);	// top now +10 +60
 			
 			applyButton.setSize(100, 40);
+			recalculateOnsetsButton.setSize(100, 40);
 			int buttonY = getHeight() - 10 - 60 - 10 - 10;
 			buttonY += 40;
 			const int buttonYcentre = buttonY + (applyButton.getHeight() / 2);
-			applyButton.setCentrePosition(getWidth() / 2, buttonYcentre);
-//			const int buttonX = getWidth() / 2;
-//			const int buttonY = getHeight() - 10 - 60;
-//			applyButton.setBounds(buttonX, buttonY, 100, 60);
+			applyButton.			setCentrePosition	((getWidth() / 3) * 1, buttonYcentre);
+			recalculateOnsetsButton.setCentrePosition	((getWidth() / 3) * 2, buttonYcentre);
 		}
 	private:
+		TsaraGranularAudioProcessor& proc;
+		TsaraGranularAudioProcessorEditor& editor;
+		nvs::analysis::analysisSettings _analysisSettings;
+		nvs::analysis::onsetSettings _onsetSettings;
+		
 		juce::Slider silenceThresholdSlider;
 		juce::TextButton applyButton;
+		juce::TextButton recalculateOnsetsButton;
+
 		SettingsWindow &_owner;
 		void sliderValueChanged (juce::Slider* slider) override {
 			if (slider == &silenceThresholdSlider){
-				std::cout << "silence thresh: " << slider->getValue() << '\n';
+				_onsetSettings.silenceThreshold = slider->getValue();
 			}
 		}
 		void buttonClicked(juce::Button *button) override {
 			if (button == &applyButton){
-				std::cout << "Apply button clicked\n";
+				proc.setOnsetSettings(_onsetSettings);
+			}
+			else if (button == &recalculateOnsetsButton){
+				proc.setOnsetSettings(_onsetSettings);
+				editor.doOnsetAnalysisAndPaintMarkers();
 			}
 		}
 	};

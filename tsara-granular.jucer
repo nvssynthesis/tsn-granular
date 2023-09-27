@@ -27,6 +27,7 @@
             file="../../slicer_granular/Source/WaveformComponent.h"/>
       <FILE id="JTkmm4" name="EssentiaSetup.h" compile="0" resource="0" file="../../slicer_granular/Source/EssentiaSetup.h"/>
       <FILE id="XBwtTT" name="Analyzer.h" compile="0" resource="0" file="Source/Analyzer.h"/>
+      <FILE id="voCZqa" name="Analyzer.cpp" compile="1" resource="0" file="Source/Analyzer.cpp"/>
       <GROUP id="{F86C79D6-A13E-2158-4EA1-11331F91F403}" name="onsetAnalysis">
         <FILE id="ejDdXe" name="OnsetAnalysis.cpp" compile="1" resource="0"
               file="../onsetAnalysis/OnsetAnalysis.cpp"/>

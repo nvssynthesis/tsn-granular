@@ -6,12 +6,12 @@
 #include "dsp_util.h"
 #include "FileSelectorComponent.h"
 #include "WaveformComponent.h"
-#include "SettingsWindow.h"
 #include "SliderColumn.h"
 
 //==============================================================================
 /** TODO:
 */
+
 
 struct MainParamsComponent	:	public juce::Component
 {
@@ -48,9 +48,8 @@ private:
 	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
 };
 
-class TsaraGranularAudioProcessorEditor  : public juce::AudioProcessorEditor
-//,			                                 public juce::Slider::Listener
-,											 public juce::FilenameComponentListener
+class TsaraGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
+,											public juce::FilenameComponentListener
 {
 public:
 	TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor&);
@@ -65,7 +64,7 @@ public:
 	void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override;
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
-
+	void doOnsetAnalysisAndPaintMarkers();
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 

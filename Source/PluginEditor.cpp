@@ -8,6 +8,8 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "SettingsWindow.h"
+
 //==============================================================================
 
 TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor& p)
@@ -26,21 +28,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	fileComp.getRecentFilesFromUserApplicationDataDirectory();
 	
 	addAndMakeVisible(calculateOnsetsButton);
-	calculateOnsetsButton.onClick = [&p, this]{
-		waveformComponent.removeMarkers();
-
-		std::optional<std::vector<float>> onsetsSeconds = p.calculateOnsets();
-		if (onsetsSeconds){
-			double const sr = p.getSampleRate();
-			size_t nSamps = p.getCurrentWaveSize();
-			for (auto onset : *onsetsSeconds){
-				onset *= sr;
-				onset /= static_cast<double>(nSamps);
-				waveformComponent.addMarker(onset);
-			}
-		}
-		repaint();
-	};
+	calculateOnsetsButton.onClick = [this]{doOnsetAnalysisAndPaintMarkers();};
 	
 	addAndMakeVisible(writeWavsButton);
 	writeWavsButton.onClick = [&p]{p.writeEvents();};
@@ -90,9 +78,8 @@ void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button,
 	juce::Logger::outputDebugString (name + " Button changed to " + stateString);
 }
 void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
-//std::make_unique<SettingsWindow>(juce::Colours::darkmagenta)
 	int const intensity = 70;
-	auto* settingsWindow = new SettingsWindow (juce::Colour(intensity, intensity, intensity));
+	auto* settingsWindow = new SettingsWindow (audioProcessor, *this, juce::Colour(intensity, intensity, intensity));
 	windows.add (settingsWindow);
 
 	juce::Rectangle<int> area (0, 0, 500, 400);
@@ -108,6 +95,21 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setResizable (true, ! native);
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
+}
+void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
+	waveformComponent.removeMarkers();
+
+	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.calculateOnsets();
+	if (onsetsSeconds){
+		double const sr = audioProcessor.getAnalysisSettings().sampleRate;		//audioProcessor.getSampleRate();
+		size_t nSamps = audioProcessor.getCurrentWaveSize();
+		for (auto onset : *onsetsSeconds){
+			onset *= sr;
+			onset /= static_cast<double>(nSamps);
+			waveformComponent.addMarker(onset);
+		}
+	}
+	repaint();
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
@@ -224,5 +226,6 @@ void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::Filename
 {
 	if (fileComponentThatHasChanged == &fileComp){
 		readFile (fileComp.getCurrentFile());
+		doOnsetAnalysisAndPaintMarkers();
 	}
 }
