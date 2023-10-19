@@ -1,6 +1,7 @@
 /** TODO:
 	-output gain
 	-snap position to onsets
+	-i have to move around 'duration' knob for it to init duration?
 */
 #pragma once
 

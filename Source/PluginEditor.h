@@ -10,6 +10,8 @@
 
 //==============================================================================
 /** TODO:
+	-slider below waveform view to select broad position
+		-needs to be 'locking' to points eventually
 */
 
 
@@ -69,16 +71,13 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 
 	FileSelectorComponent fileComp;
-//	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
 	MainParamsComponent mainParamsComp;
-	WaveformComponent waveformComponent;
+	WaveformAndPositionComponent waveformAndPositionComponent;
 
 	juce::ToggleButton triggeringButton;
 	std::array<juce::Colour, 3> gradientColors {
 		juce::Colours::darkgrey,
 		juce::Colours::darkred,
-//		juce::Colours::red,
-//		juce::Colours::darkred,
 		juce::Colours::darkgrey
 	};
 	size_t colourOffsetIndex {0};

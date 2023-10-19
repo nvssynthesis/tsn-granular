@@ -16,7 +16,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
 ,	mainParamsComp(p)
-,	waveformComponent(512, p.getAudioFormatManager())
+,	waveformAndPositionComponent(512, p.getAudioFormatManager())
 ,	triggeringButton("Manual Trigger")	// unused
 ,	calculateOnsetsButton("Calculate Onsets")
 ,	writeWavsButton("Write Wavs")
@@ -45,7 +45,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	
 	addAndMakeVisible(mainParamsComp);
 	
-	addAndMakeVisible(waveformComponent);
+	addAndMakeVisible(waveformAndPositionComponent);
 	
 	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
 	
@@ -97,7 +97,7 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setVisible (true);
 }
 void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
-	waveformComponent.removeMarkers();
+	waveformAndPositionComponent.wc.removeMarkers();
 
 	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.calculateOnsets();
 	if (onsetsSeconds){
@@ -106,7 +106,7 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 		for (auto onset : *onsetsSeconds){
 			onset *= sr;
 			onset /= static_cast<double>(nSamps);
-			waveformComponent.addMarker(onset);
+			waveformAndPositionComponent.wc.addMarker(onset);
 		}
 	}
 	repaint();
@@ -122,9 +122,7 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + gradientColors.size()-1) % gradientColors.size()];
 	lowerRightColour = lowerRightColour.interpolatedWith(juce::Colours::darkred, 0.7f);
 	juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
-//	cg.addColour(0.3, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
 	cg.addColour(0.5, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
-//	cg.addColour(0.7, gradientColors[(colourOffsetIndex + 3) % gradientColors.size()]);
 	tg.setGradientFill(cg);
 	tg.fillAll();
 
@@ -205,7 +203,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 //		y += smallPad;
 	}
 	auto const remainingHeight = 0.2f * localBounds.getHeight();
-	waveformComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), remainingHeight);
+	waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), remainingHeight);
 }
 
 void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
@@ -217,7 +215,7 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	std::string st_str = fn.toStdString();
 	
 	audioProcessor.writeToLog(st_str);
-	audioProcessor.loadAudioFile(fileToRead, waveformComponent.getThumbnail() );
+	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail() );
 	
 	fileComp.setCurrentFile(fileToRead, true);
 }
