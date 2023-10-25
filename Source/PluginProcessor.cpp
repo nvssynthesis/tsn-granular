@@ -97,7 +97,7 @@ void TsaraGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesP
 {
 	// Use this method as the place to do any pre-playback
 	// initialisation that you need..
-	lastSampleRate = static_cast<float>(sampleRate);
+	lastSampleRate = sampleRate;
 	lastSamplesPerBlock = samplesPerBlock;
 }
 
@@ -224,6 +224,10 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
 		buffer.clear (i, 0, buffer.getNumSamples());
 	
+	if ( !(audioBuffersChannels.getActiveSpanRef().size()) ){
+		return;
+	}
+	
 	// normally we'd have the synth voice as a juce synth voice and have to dynamic cast before setting its params
 	paramSet<0, static_cast<int>(params_e::count)>();
 
@@ -249,8 +253,6 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 			}
 		}
 	}
-	if ( !(audioBuffersChannels.getActiveSpanRef().size()) )
-		return;
 	
 	tsara_granular.shuffleIndices();
 	for (auto samp = 0; samp < buffer.getNumSamples(); ++samp){

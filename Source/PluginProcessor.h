@@ -212,7 +212,7 @@ private:
 		std::make_pair<params_e, float *>(params_e::pan_randomness, 	&lastPanRand)
 	};
 #endif
-	float lastSampleRate 	{ 0.f };
+	double lastSampleRate 	{ 0.f };
 	int lastSamplesPerBlock { 0 };
 	
 	float normalizationValue {1.f};	// a MULTIPLIER for the overall output, based on the inverse of the absolute max value for the current sample

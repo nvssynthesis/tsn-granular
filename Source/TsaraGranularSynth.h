@@ -27,7 +27,7 @@ namespace gran	{
 class TsaraGranular		:	public genGranPoly1
 {
 public:
-	TsaraGranular(float const &sampleRate, std::span<float> const &wavespan, size_t nGrains);
+	TsaraGranular(double const &sampleRate, std::span<float> const &wavespan, size_t nGrains);
 
 	void loadOnsets(std::span<float const> const onsetsInSeconds){
 		_onsetsInSeconds = onsetsInSeconds;

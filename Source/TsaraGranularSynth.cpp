@@ -12,7 +12,7 @@
 namespace nvs	{
 namespace gran	{
 
-	TsaraGranular::TsaraGranular(float const &sampleRate, std::span<float> const &wavespan, size_t nGrains)
+	TsaraGranular::TsaraGranular(double const &sampleRate, std::span<float> const &wavespan, size_t nGrains)
 	:	genGranPoly1(sampleRate, wavespan, nGrains)
 	{}
 
