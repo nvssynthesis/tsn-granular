@@ -16,7 +16,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
 ,	mainParamsComp(p)
-,	waveformAndPositionComponent(512, p.getAudioFormatManager())
+,	waveformAndPositionComponent(512, p.getAudioFormatManager(), p.apvts)
 ,	triggeringButton("Manual Trigger")	// unused
 ,	calculateOnsetsButton("Calculate Onsets")
 ,	writeWavsButton("Write Wavs")
@@ -159,11 +159,6 @@ void TsaraGranularAudioProcessorEditor::resized()
 {
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
-	
-//	std::cout << "x: " << localBounds.getX() << " y: " << localBounds.getY() <<
-//			" w: " << localBounds.getWidth() << " h: " << localBounds.getHeight() << '\n';
-	
-
 	
 	int const smallPad = 10;
 	localBounds.reduce(smallPad, smallPad);

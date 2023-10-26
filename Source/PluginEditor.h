@@ -14,7 +14,6 @@
 		-needs to be 'locking' to points eventually
 */
 
-
 struct MainParamsComponent	:	public juce::Component
 {
 	MainParamsComponent(TsaraGranularAudioProcessor& p)
