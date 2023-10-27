@@ -26,8 +26,9 @@ namespace nvs	{
 namespace gran	{
 class TsaraGranular		:	public genGranPoly1
 {
-public:
+public: 
 	TsaraGranular(double const &sampleRate, std::span<float> const &wavespan, size_t nGrains);
+	virtual ~TsaraGranular() = default;
 
 	void loadOnsets(std::span<float const> const onsetsInSeconds){
 		_onsetsInSeconds = onsetsInSeconds;
@@ -48,6 +49,11 @@ public:
 #endif
 private:
 	std::span<float const> _onsetsInSeconds;
+	
+	void doSetPosition(double position) override;
+	void doSetPositionRandomness(double rand) override;
+	void doSetDuration(double dur) override;
+	void doSetDurationRandomness(double rand) override;
 };
 
 }	// namespace gran

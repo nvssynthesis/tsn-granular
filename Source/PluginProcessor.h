@@ -176,20 +176,20 @@ private:
 
 	static constexpr inline MAP<params_e, granMembrSetFunc, static_cast<size_t>(params_e::count)>
 	paramSetterMap {
-		std::make_pair<params_e, granMembrSetFunc>(params_e::transpose, 		&nvs::gran::genGranPoly1::setTranspose),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::position, 			&nvs::gran::genGranPoly1::setPosition),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::speed, 			&nvs::gran::genGranPoly1::setSpeed),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::duration, 			&nvs::gran::genGranPoly1::setDuration),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::skew, 				&nvs::gran::genGranPoly1::setSkew),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::plateau,			&nvs::gran::genGranPoly1::setPlateau),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::pan, 				&nvs::gran::genGranPoly1::setPan),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::transp_randomness, &nvs::gran::genGranPoly1::setTransposeRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::pos_randomness, 	&nvs::gran::genGranPoly1::setPositionRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::speed_randomness, 	&nvs::gran::genGranPoly1::setSpeedRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::dur_randomness, 	&nvs::gran::genGranPoly1::setDurationRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::skew_randomness, 	&nvs::gran::genGranPoly1::setSkewRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::plat_randomness,	&nvs::gran::genGranPoly1::setPlateauRandomness),
-		std::make_pair<params_e, granMembrSetFunc>(params_e::pan_randomness, 	&nvs::gran::genGranPoly1::setPanRandomness)
+		std::make_pair<params_e, granMembrSetFunc>(params_e::transpose, 		&nvs::gran::TsaraGranular::setTranspose),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::position, 			&nvs::gran::TsaraGranular::setPosition),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::speed, 			&nvs::gran::TsaraGranular::setSpeed),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::duration, 			&nvs::gran::TsaraGranular::setDuration),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::skew, 				&nvs::gran::TsaraGranular::setSkew),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::plateau,			&nvs::gran::TsaraGranular::setPlateau),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::pan, 				&nvs::gran::TsaraGranular::setPan),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::transp_randomness, &nvs::gran::TsaraGranular::setTransposeRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::pos_randomness, 	&nvs::gran::TsaraGranular::setPositionRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::speed_randomness, 	&nvs::gran::TsaraGranular::setSpeedRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::dur_randomness, 	&nvs::gran::TsaraGranular::setDurationRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::skew_randomness, 	&nvs::gran::TsaraGranular::setSkewRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::plat_randomness,	&nvs::gran::TsaraGranular::setPlateauRandomness),
+		std::make_pair<params_e, granMembrSetFunc>(params_e::pan_randomness, 	&nvs::gran::TsaraGranular::setPanRandomness)
 	};
 	template <auto Start, auto End>
 	constexpr void paramSet();
