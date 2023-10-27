@@ -31,6 +31,20 @@ public:
 	splitSettings _splitSettings;
 };
 
+inline void cleanOnsets (std::vector<float> &onsetsInSeconds, float maxLengthInSeconds){
+//	float const lengthInSeconds = static_cast<float>(_wavespan.size()) / _fileSampleRate;
+	size_t properOnsets = onsetsInSeconds.size();
+	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
+		if (*it > maxLengthInSeconds){
+			--properOnsets;
+		}
+		else {	// since the vector is sorted, we know that there are no more exceeding the proper length
+			break;
+		}
+	}
+	assert(properOnsets <= onsetsInSeconds.size());
+	onsetsInSeconds.resize(properOnsets);
+}
 
 inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, essentia::streaming::AlgorithmFactory const &factory, nvs::analysis::analysisSettings anSettings, nvs::analysis::splitSettings spSettings)
 {

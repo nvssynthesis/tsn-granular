@@ -25,7 +25,13 @@ std::optional<std::vector<float>> Analyzer::calculateOnsets(std::vector<float> w
 	analysis::array2dReal onsets2d = onsetAnalysis(wave, ess_hold.factory, _analysisSettings);
 	essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 	
-	return analysis::onsetsInSeconds(onsets2d, tmpStFac, _analysisSettings, _onsetSettings);
+	std::vector<float> onsetsInSeconds = analysis::onsetsInSeconds(onsets2d, tmpStFac, _analysisSettings, _onsetSettings);
+	
+	float const sr = _analysisSettings.sampleRate;
+	assert(sr > 0.f);
+	float const lengthInSeconds = wave.size() / sr;
+	cleanOnsets(onsetsInSeconds, lengthInSeconds);
+	return onsetsInSeconds;
 }
 
 }	// namespace analysis

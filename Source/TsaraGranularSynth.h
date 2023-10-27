@@ -27,12 +27,11 @@ namespace gran	{
 class TsaraGranular		:	public genGranPoly1
 {
 public: 
-	TsaraGranular(double const &sampleRate, std::span<float> const &wavespan, size_t nGrains);
+	TsaraGranular(double const &sampleRate, std::span<float> const &wavespan,
+											double const&fileSampleRate, size_t nGrains);
 	virtual ~TsaraGranular() = default;
 
-	void loadOnsets(std::span<float const> const onsetsInSeconds){
-		_onsetsInSeconds = onsetsInSeconds;
-	}
+	void loadOnsets(std::span<float> const onsetsInSeconds);
 #if 0
 	void writeEventsToWav(std::string_view ogPath, nvs::analysis::Analyzer &analyzer) {
 		if (!_wavespan.data() | !_onsetsInSeconds.data()){
@@ -48,7 +47,7 @@ public:
 	}
 #endif
 private:
-	std::span<float const> _onsetsInSeconds;
+	std::vector<float> _onsetsNormalized;
 	
 	void doSetPosition(double position) override;
 	void doSetPositionRandomness(double rand) override;

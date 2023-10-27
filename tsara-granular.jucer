@@ -11,6 +11,9 @@
       <FILE id="NrTZFc" name="DataStructures.h" compile="0" resource="0"
             file="../../slicer_granular/Source/DataStructures.h"/>
       <FILE id="uA6vVB" name="dsp_util.h" compile="0" resource="0" file="../../slicer_granular/Source/dsp_util.h"/>
+      <FILE id="H0CZkd" name="algo_util.h" compile="0" resource="0" file="../../slicer_granular/Source/algo_util.h"/>
+      <FILE id="WdXGBW" name="AudioBuffersChannels.h" compile="0" resource="0"
+            file="../../slicer_granular/Source/AudioBuffersChannels.h"/>
       <FILE id="sgpa6o" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="OfXFiO" name="PluginProcessor.h" compile="0" resource="0"

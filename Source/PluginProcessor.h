@@ -11,6 +11,7 @@
 
 #include <JuceHeader.h>
 #include "TsaraGranularSynth.h"
+#include "AudioBuffersChannels.h"
 #include "dsp_util.h"
 #include "params.h"
 
@@ -104,47 +105,7 @@ public:
 		return _analyzer._analysisSettings;
 	}
 private:
-	class AudioBuffersChannels{
-	private:
-		typedef std::array<std::vector<float>, 2> stereoVector_t;
-		
-		std::array<stereoVector_t, 2> stereoBuffers;
-		std::span<float> activeSpan;
-		
-		unsigned int activeBufferIdx { 0 };
-		inline void updateActiveBufferIndex(){
-			activeBufferIdx = !activeBufferIdx;
-			jassert((activeBufferIdx == 0) | (activeBufferIdx == 1));
-		}
-
-	public:
-		AudioBuffersChannels(){
-			activeSpan = std::span<float>(stereoBuffers[activeBufferIdx][0]);
-		}
-		std::span<float> const &getActiveSpanRef(){
-			return activeSpan;
-		}
-		[[nodiscard]]
-		std::array<float *const, 2> prepareForWrite(size_t length, size_t numChannels){
-			auto inactiveBufferIdx = !activeBufferIdx;
-			
-			numChannels = std::min(numChannels, stereoBuffers[inactiveBufferIdx].size());
-			for (int i = 0; i < numChannels; ++i){
-				stereoBuffers[inactiveBufferIdx][i].resize(length);
-			}
-			std::array<float *const, 2> ptrsToWriteTo = {
-				stereoBuffers[inactiveBufferIdx][0].data(),
-				stereoBuffers[inactiveBufferIdx][1].data()
-			};
-			return ptrsToWriteTo;
-		}
-
-		inline void updateActive(){
-			updateActiveBufferIndex();
-			activeSpan = std::span<float>(stereoBuffers[activeBufferIdx][0]);
-		}
-
-	};
+	
 	AudioBuffersChannels audioBuffersChannels;
 	
 	nvs::gran::TsaraGranular tsara_granular;
@@ -212,13 +173,20 @@ private:
 		std::make_pair<params_e, float *>(params_e::pan_randomness, 	&lastPanRand)
 	};
 #endif
-	double lastSampleRate 	{ 0.f };
+	double lastSampleRate 	{ 0.0 };
 	int lastSamplesPerBlock { 0 };
+	
+	static constexpr int N_GRAINS =
+#if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
+									50;
+#else
+									100;
+#endif
 	
 	float normalizationValue {1.f};	// a MULTIPLIER for the overall output, based on the inverse of the absolute max value for the current sample
 
-	RMS<float> rms;
-	WeightedAveragingBuffer<float, 3> weightAvg;
+	nvs::util::RMS<float> rms;
+	nvs::util::WeightedAveragingBuffer<float, 3> weightAvg;
 	
 	juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 	juce::AudioFormatManager formatManager;

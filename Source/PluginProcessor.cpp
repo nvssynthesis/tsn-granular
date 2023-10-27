@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "fmt/core.h"
 
 //==============================================================================
 TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
@@ -17,12 +18,20 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 #if USING_ESSENTIA
 , ess_hold(ess_init)
 #endif
-, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), 50)
+, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(),
+								audioBuffersChannels.getFileSampleRateRef(), N_GRAINS)
 , logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
+#if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
+	fmt::print("TsaraGranularAudioProcessor DEBUG MODE\n");
+	logFile.appendText("debug\n");
+#else
+	fmt::print("TsaraGranularAudioProcessor RELEASE MODE\n");
+	logFile.appendText("release\n");
+#endif
 }
 
 TsaraGranularAudioProcessor::~TsaraGranularAudioProcessor()
@@ -143,8 +152,10 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 		return;
 	}
 	int newLength = static_cast<int>(reader->lengthInSamples);
-	_analyzer._analysisSettings.sampleRate = reader->sampleRate;
-
+	double const sr = reader->sampleRate;
+	_analyzer._analysisSettings.sampleRate = static_cast<float>(sr);	// analysis uses single-precision, being explicit here
+	audioBuffersChannels.setFileSampleRate(sr);	// use double precision; this is the reference that is shared with the synth
+	
 	std::array<juce::Range<float> , 1> normalizationRange;
 	reader->readMaxLevels(0, reader->lengthInSamples, &normalizationRange[0], 1);
 	
@@ -183,7 +194,7 @@ std::optional<std::vector<float>> TsaraGranularAudioProcessor::calculateOnsets()
 	_feat.onsetsInSeconds = _analyzer.calculateOnsets(wave);
 	
 	if (_feat.onsetsInSeconds){
-		tsara_granular.loadOnsets(std::span<float const>(*_feat.onsetsInSeconds));
+		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
 	}
 	return _feat.onsetsInSeconds;
 }
