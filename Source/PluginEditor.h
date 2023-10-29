@@ -7,6 +7,7 @@
 #include "FileSelectorComponent.h"
 #include "WaveformComponent.h"
 #include "SliderColumn.h"
+#include "TimbreSpaceComponent.h"
 
 //==============================================================================
 /** TODO:
@@ -72,6 +73,7 @@ private:
 	FileSelectorComponent fileComp;
 	MainParamsComponent mainParamsComp;
 	WaveformAndPositionComponent waveformAndPositionComponent;
+	TimbreSpaceComponent timbreSpaceComponent;
 
 	juce::ToggleButton triggeringButton;
 	std::array<juce::Colour, 3> gradientColors {
@@ -108,10 +110,6 @@ private:
 		}
 	}
 	juce::VBlankAttachment vbAttachment { this, [this] { update(); } };
-	
-	// button to recompute analysis
-	
-	// sliders to change analysis settings
 	
 	TsaraGranularAudioProcessor& audioProcessor;
 	

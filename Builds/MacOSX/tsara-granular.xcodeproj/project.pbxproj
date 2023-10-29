@@ -147,6 +147,7 @@
 		F67495FC3D9919495ED20493 /* include_juce_audio_processors_ara.cpp */ /* include_juce_audio_processors_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_ara.cpp; sourceTree = SOURCE_ROOT; };
 		F75C16CBDD85E787D5EFA8B8 /* include_juce_audio_plugin_client_AU_1.mm */ /* include_juce_audio_plugin_client_AU_1.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_AU_1.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_AU_1.mm; sourceTree = SOURCE_ROOT; };
 		FB7414B940F33C7B936E4207 /* algo_util.h */ /* algo_util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = algo_util.h; path = ../../../../slicer_granular/Source/algo_util.h; sourceTree = SOURCE_ROOT; };
+		FC742C19132B89C2B4D2B013 /* TimbreSpaceComponent.h */ /* TimbreSpaceComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TimbreSpaceComponent.h; path = ../../Source/TimbreSpaceComponent.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -208,6 +209,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		224E99912ED7519236DE2EF6 /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				ED2974DE9EEE4A7F8A84AF39,
+				F4C573111DAC02EF0BC7C6C6,
+				B5CD03D9E4BE12FD6A2C7633,
+				5A0B46A55A4EDD13FBF50E31,
+			);
+			name = Analysis;
+			sourceTree = "<group>";
+		};
 		2C806521EEDEF855CDCD2508 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -241,6 +253,9 @@
 		523DCE9F4DBC1F44F76CC1D5 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				D469421EDBC8BC20A6CB7F86,
+				224E99912ED7519236DE2EF6,
+				7033C5964EC83AFB22F8E9E5,
 				D4368A62091885C2FF5FFAD1,
 				9AC549939FBD12A3234BCC6D,
 				FB7414B940F33C7B936E4207,
@@ -249,19 +264,7 @@
 				7745CF5C4E7BB5F66EF98BB2,
 				9659DFA427F23F1D556F8644,
 				B460E7D6CB1BCDEC740B46BB,
-				B969FF42D626BDABB3EA130F,
-				D7A29DA0AAF18E61956F3CFC,
-				40A970EA0A4D6DFE9E5A83AE,
-				2DFC24828E7F2F447A336262,
-				ED2974DE9EEE4A7F8A84AF39,
-				F4C573111DAC02EF0BC7C6C6,
-				B5CD03D9E4BE12FD6A2C7633,
-				5A0B46A55A4EDD13FBF50E31,
 				9761090E390EE6B794718038,
-				751FA403932866971CDA67DD,
-				44985F89CC9F878A08695F7D,
-				3E6D870E7B1FEAF40F1AA281,
-				3BCD9CD85E04BFDA1779EF0C,
 				99BC8235EC306EEC73D55087,
 			);
 			name = Source;
@@ -274,6 +277,17 @@
 				B33996971C83814E9842D919,
 			);
 			name = onsetAnalysis;
+			sourceTree = "<group>";
+		};
+		7033C5964EC83AFB22F8E9E5 /* Synthesis */ = {
+			isa = PBXGroup;
+			children = (
+				751FA403932866971CDA67DD,
+				44985F89CC9F878A08695F7D,
+				3E6D870E7B1FEAF40F1AA281,
+				3BCD9CD85E04BFDA1779EF0C,
+			);
+			name = Synthesis;
 			sourceTree = "<group>";
 		};
 		851673BF7D4D78DC291985DC /* Source */ = {
@@ -335,6 +349,18 @@
 				B091DD03512C5E9001C4A56C,
 			);
 			name = "JUCE Library Code";
+			sourceTree = "<group>";
+		};
+		D469421EDBC8BC20A6CB7F86 /* Gui */ = {
+			isa = PBXGroup;
+			children = (
+				B969FF42D626BDABB3EA130F,
+				D7A29DA0AAF18E61956F3CFC,
+				40A970EA0A4D6DFE9E5A83AE,
+				2DFC24828E7F2F447A336262,
+				FC742C19132B89C2B4D2B013,
+			);
+			name = Gui;
 			sourceTree = "<group>";
 		};
 		D5A1DBE896C60398552ACBDF /* tsara-granular */ = {
@@ -626,12 +652,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DA93D80A100BF8888C8FE9AC,
-				81BBE8FCAE89B05288462636,
 				37439BD5CD2E5653682AFE63,
 				1CA8D15CF3AEAA1F4F0CE448,
 				25862F9E13A4F00B2274294C,
 				3CB481704F73C871C83B0E28,
+				DA93D80A100BF8888C8FE9AC,
+				81BBE8FCAE89B05288462636,
 				FD09703AAAD438698DBBE89E,
 				ACE0513CC8FB677ECC731ED8,
 				B584873FD57CE2C44E10763F,

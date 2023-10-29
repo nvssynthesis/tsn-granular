@@ -52,7 +52,7 @@ void TsaraGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 //====================================================================================
 void TsaraGranular::doSetPosition(double positionNormalized) {
 	if (_onsetsNormalized.size()){
-		auto res = nvs::util::get_closest(static_cast<float>(positionNormalized), _onsetsNormalized);
+		auto res = nvs::util::get_left(static_cast<float>(positionNormalized), _onsetsNormalized);
 		if (res){
 			positionNormalized = static_cast<double>(res.value().second);
 		}

@@ -47,6 +47,8 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	
 	addAndMakeVisible(waveformAndPositionComponent);
 	
+	addAndMakeVisible(timbreSpaceComponent);
+	
 	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
 	
 	constrainer.setMinimumSize(620, 500);
@@ -185,20 +187,33 @@ void TsaraGranularAudioProcessorEditor::resized()
 		buttonWidth = buttonHeight;
 		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
 		y += buttonHeight;
-		y += smallPad;
-	}
-	{
-		auto const mainParamsRemainingHeightRatio  = 0.8f * localBounds.getHeight();
-
-		int const alottedMainParamsHeight = mainParamsRemainingHeightRatio - y + smallPad;
-		int const alottedMainParamsWidth = localBounds.getWidth();
-		
-		mainParamsComp.setBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
-		y += mainParamsComp.getHeight();
 //		y += smallPad;
 	}
-	auto const remainingHeight = 0.2f * localBounds.getHeight();
-	waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), remainingHeight);
+	auto const mainParamsRemainingHeightRatio  = 0.6f;
+	auto const waveformCompRemainingHeightRatio = 0.15f;
+	auto const timbreSpaceRemainingHeightRatio = 0.25f;
+	auto const totalRemainingHeightRatiosSummed = (mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio) ;
+	assert(totalRemainingHeightRatiosSummed >= 0.999f);
+	assert(totalRemainingHeightRatiosSummed <= 1.001f);
+	{
+		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.getHeight();
+
+		int const alottedMainParamsHeight = mainParamsRemainingHeight - y + smallPad;
+		int const alottedMainParamsWidth = localBounds.getWidth();
+		juce::Rectangle<int> mainParamsBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
+		mainParamsComp.setBounds(mainParamsBounds);
+		y += mainParamsComp.getHeight();
+	}
+	{
+		auto const waveformComponentHeight = waveformCompRemainingHeightRatio * localBounds.getHeight();
+		waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), waveformComponentHeight);
+		y += waveformAndPositionComponent.getHeight();
+	}
+	{
+		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.getHeight();
+		timbreSpaceComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), timbreSpaceComponentHeight);
+		y += timbreSpaceComponent.getHeight();
+	}
 }
 
 void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
