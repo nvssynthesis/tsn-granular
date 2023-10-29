@@ -152,9 +152,8 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 			}
 		}
 	}
-//	g.setColour (juce::Colours::white);
-//	g.setFont (15.0f);
-//	g.drawFittedText ("tsaaaarrraaaaa grrrraaaaaanuuuuuulaaaaaate", getLocalBounds(), juce::Justification::centred, 1);
+	// fixes bug where dots drawn within range of juce logo would disappear:
+	timbreSpaceComponent.repaint();
 }
 
 void TsaraGranularAudioProcessorEditor::resized()
