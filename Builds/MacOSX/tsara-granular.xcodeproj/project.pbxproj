@@ -84,6 +84,7 @@
 		2C17D2CE792282FF08099ABA /* include_juce_audio_formats.mm */ /* include_juce_audio_formats.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_formats.mm; path = ../../JuceLibraryCode/include_juce_audio_formats.mm; sourceTree = SOURCE_ROOT; };
 		2DFC24828E7F2F447A336262 /* WaveformComponent.h */ /* WaveformComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WaveformComponent.h; path = ../../../../slicer_granular/Source/WaveformComponent.h; sourceTree = SOURCE_ROOT; };
 		3345067674AFA9388B99C004 /* DiscRecording.framework */ /* DiscRecording.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DiscRecording.framework; path = System/Library/Frameworks/DiscRecording.framework; sourceTree = SDKROOT; };
+		386F6E521399AABE91B13184 /* AnalysisUsing.h */ /* AnalysisUsing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AnalysisUsing.h; path = ../../../../slicer_granular/Source/AnalysisUsing.h; sourceTree = SOURCE_ROOT; };
 		3BCD9CD85E04BFDA1779EF0C /* TsaraGranularSynth.h */ /* TsaraGranularSynth.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TsaraGranularSynth.h; path = ../../Source/TsaraGranularSynth.h; sourceTree = SOURCE_ROOT; };
 		3E6D870E7B1FEAF40F1AA281 /* TsaraGranularSynth.cpp */ /* TsaraGranularSynth.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TsaraGranularSynth.cpp; path = ../../Source/TsaraGranularSynth.cpp; sourceTree = SOURCE_ROOT; };
 		3FFED65C6838AFE0F51F5B49 /* include_juce_gui_extra.mm */ /* include_juce_gui_extra.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_extra.mm; path = ../../JuceLibraryCode/include_juce_gui_extra.mm; sourceTree = SOURCE_ROOT; };
@@ -216,6 +217,7 @@
 		224E99912ED7519236DE2EF6 /* Analysis */ = {
 			isa = PBXGroup;
 			children = (
+				386F6E521399AABE91B13184,
 				ED2974DE9EEE4A7F8A84AF39,
 				6D7CECD5D3F6AB49BC4C5DCA,
 				F4C573111DAC02EF0BC7C6C6,

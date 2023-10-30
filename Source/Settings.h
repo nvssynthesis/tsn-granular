@@ -9,8 +9,6 @@
 */
 
 #pragma once
-#include <map>
-#include <string>
 #include "essentia/types.h"
 
 namespace nvs {
