@@ -5,7 +5,7 @@
               version="0.0.1" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
-              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/nvs_maps&#10;/Users/nicholassolem/development/nvs_libraries&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;/Users/nicholassolem/development/TSARA&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source">
+              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/nvs_maps&#10;/Users/nicholassolem/development/nvs_libraries&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;/Users/nicholassolem/development/TSARA&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;/Users/nicholassolem/development/TSARA/tsara-granular/Source">
   <MAINGROUP id="HJxsOe" name="tsara-granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
@@ -21,8 +21,15 @@
       </GROUP>
       <GROUP id="{4D89421A-9B73-C464-6F0A-912A784F3BFA}" name="Analysis">
         <FILE id="JTkmm4" name="EssentiaSetup.h" compile="0" resource="0" file="../../slicer_granular/Source/EssentiaSetup.h"/>
+        <FILE id="NCQlAE" name="Settings.h" compile="0" resource="0" file="Source/Settings.h"/>
         <FILE id="XBwtTT" name="Analyzer.h" compile="0" resource="0" file="Source/Analyzer.h"/>
         <FILE id="voCZqa" name="Analyzer.cpp" compile="1" resource="0" file="Source/Analyzer.cpp"/>
+        <GROUP id="{1C077E8F-D9FC-EDC1-F658-1EF495057DE0}" name="TimbreAnalysis">
+          <FILE id="u66xPo" name="TimbreAnalysis.cpp" compile="1" resource="0"
+                file="Source/TimbreAnalysis.cpp"/>
+          <FILE id="QxslXK" name="TimbreAnalysis.h" compile="0" resource="0"
+                file="Source/TimbreAnalysis.h"/>
+        </GROUP>
         <GROUP id="{F86C79D6-A13E-2158-4EA1-11331F91F403}" name="onsetAnalysis">
           <FILE id="ejDdXe" name="OnsetAnalysis.cpp" compile="1" resource="0"
                 file="../onsetAnalysis/OnsetAnalysis.cpp"/>

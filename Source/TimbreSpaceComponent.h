@@ -57,6 +57,7 @@ public:
 	TimbreSpaceComponent(){
 		timbres5D.add({.p2D{juce::Point(0.f, 0.f)}, .p3D{1.f, 0.5f, 0.2f}});
 		timbres5D.add({.p2D{0.5f, 0.5f}, .p3D{0.f, 0.8f, 0.9f}});
+		add5DPoint({-0.8f, 0.2f}, {0.1f, 0.2f, 0.3f});
 	}
 	void add2DPoint(float x, float y){
 		point_t p(x, y);
@@ -82,6 +83,9 @@ public:
 		point_t p2D(x,y);
 		std::array<float, 3> p3D{z, w, v};
 		add5DPoint(p2D, p3D);
+	}
+	void clear() {
+		timbres5D.clear();
 	}
 	void paint(juce::Graphics &g) override {
 		g.setOpacity(0.75f);
@@ -129,26 +133,50 @@ public:
 			if (tmp < diff){
 				diff = tmp;
 				idx = i;
+				if (diff == 0.f){
+					goto findNearestPointDone;
+				}
 			}
 		}
+		findNearestPointDone:
 		return idx;
 	}
+	
 	void mouseDown (const juce::MouseEvent &event) override {
-		[[maybe_unused]] float x = static_cast<float>(event.getMouseDownX());
-		[[maybe_unused]] float y = static_cast<float>(event.getMouseDownY());
+		juce::Point<float> pNorm = normalizePosition_M1_1(event.getMouseDownPosition());
+		float x = pNorm.getX();
+		float y = pNorm.getY();
+//		fmt::print("in mouseDown at {}, {}\n", x, y);
+		int nearestIdx = findNearestPoint(x, y);
+		[[maybe_unused]] auto nearestPoint = timbres5D[nearestIdx].get2D();
+		currentPoint = nearestIdx;
+	}
+	void mouseDrag(const juce::MouseEvent &event) override {
+		juce::Point<float> pNorm = normalizePosition_M1_1(event.getPosition());
+		auto x = pNorm.getX();
+		auto y = pNorm.getY();
+//		fmt::print("in mouseDrag at {},{}\n", x, y);
+		int nearestIdx = findNearestPoint(x, y);
+		[[maybe_unused]] auto nearestPoint = timbres5D[nearestIdx].get2D();
+		currentPoint = nearestIdx;
+	}
+	int getCurrentPoint() const {
+		return currentPoint;
+	}
+private:
+	int currentPoint {0};
+	juce::Point<float> normalizePosition_M1_1(juce::Point<int> pos){
+		float x = static_cast<float>(pos.getX());
+		float y = static_cast<float>(pos.getY());
 		auto bounds = getLocalBounds().toFloat();
 		x /= bounds.getWidth();
 		y /= bounds.getHeight();
 		using namespace nvs::memoryless;
 		x = unibi(x);
 		y = unibi(y);
-		fmt::print("in mouseDown at {}, {}\n", x, y);
-		int nearestIdx = findNearestPoint(x, y);
-		auto nearestPoint = timbres5D[nearestIdx].get2D();
-		fmt::print("nearestIdx: {}, point x,y: {},{}\n",
-				   nearestIdx, nearestPoint.getX(), nearestPoint.getY());
+		return juce::Point<float>(x,y);
 	}
-private:
+	
 	
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimbreSpaceComponent);
 };

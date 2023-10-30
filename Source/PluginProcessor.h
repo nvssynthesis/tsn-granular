@@ -1,8 +1,7 @@
 /** TODO:
 	-output gain
-	-snap position to onsets
-	-i have to move around 'duration' knob for it to init duration?
-*/
+
+ */
 #pragma once
 
 #ifndef FROZEN_MAP
@@ -77,6 +76,7 @@ public:
 	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
 	std::optional<std::vector<float>> calculateOnsets();
+	std::optional<std::vector<float>> getOnsets() const;
 	void writeEvents();
 	
 	bool triggerValFromEditor {false};
@@ -92,14 +92,14 @@ public:
 		return formatManager;
 	}
 	
-	size_t getCurrentWaveSize(){
+	size_t getCurrentWaveSize()  {
 		return audioBuffersChannels.getActiveSpanRef().size();
+	}
+	std::span<float> const &getActiveSpanRef()  {
+		return audioBuffersChannels.getActiveSpanRef();
 	}
 	void setOnsetSettings(nvs::analysis::onsetSettings settings){
 		_analyzer._onsetSettings = settings;
-		/*
-											 Object of type 'analysis::onsetSettings' cannot be assigned because its copy assignment operator is implicitly deleted ...???*/
-//		_analyzer._onsetSettings.silenceThreshold = settings.silenceThreshold;
 	}
 	nvs::analysis::analysisSettings getAnalysisSettings(){
 		return _analyzer._analysisSettings;

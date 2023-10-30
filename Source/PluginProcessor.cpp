@@ -198,6 +198,10 @@ std::optional<std::vector<float>> TsaraGranularAudioProcessor::calculateOnsets()
 	}
 	return _feat.onsetsInSeconds;
 }
+std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
+	return _feat.onsetsInSeconds;
+}
+
 void TsaraGranularAudioProcessor::writeEvents(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpan.size());

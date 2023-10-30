@@ -66,6 +66,7 @@
 		DE90FCED5CA342170ACEF6BD /* VST3 */ = {isa = PBXBuildFile; fileRef = 5E408151DD7D65EFD5D2DED7; };
 		DEBF07A14A31648A558680A6 /* include_juce_audio_plugin_client_utils.cpp */ = {isa = PBXBuildFile; fileRef = 95D6B15A5076441B7638D296; };
 		E5AAA0A7EFDCB3661BE18C37 /* include_juce_gui_extra.mm */ = {isa = PBXBuildFile; fileRef = 3FFED65C6838AFE0F51F5B49; };
+		F19DBFFA4932E4FBD3321464 /* TimbreAnalysis.cpp */ = {isa = PBXBuildFile; fileRef = 673652DB862D651AF42CC1B8; };
 		FD09703AAAD438698DBBE89E /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = B7674A712A0A319707E28A68; };
 /* End PBXBuildFile section */
 
@@ -99,12 +100,15 @@
 		5E8CF8B80D8D9790E196335C /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		607ADEE30D0108E3CDBDF4DD /* juce_graphics */ /* juce_graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_graphics; path = /Applications/JUCE/modules/juce_graphics; sourceTree = "<absolute>"; };
 		64C05B5DE7D939A51A5CC109 /* OnsetAnalysis.cpp */ /* OnsetAnalysis.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OnsetAnalysis.cpp; path = ../../../onsetAnalysis/OnsetAnalysis.cpp; sourceTree = SOURCE_ROOT; };
+		673652DB862D651AF42CC1B8 /* TimbreAnalysis.cpp */ /* TimbreAnalysis.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TimbreAnalysis.cpp; path = ../../Source/TimbreAnalysis.cpp; sourceTree = SOURCE_ROOT; };
 		6908D2AD3EE3813D3F10CD0A /* include_juce_audio_plugin_client_VST3.cpp */ /* include_juce_audio_plugin_client_VST3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_plugin_client_VST3.cpp; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_VST3.cpp; sourceTree = SOURCE_ROOT; };
+		6D7CECD5D3F6AB49BC4C5DCA /* Settings.h */ /* Settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Settings.h; path = ../../Source/Settings.h; sourceTree = SOURCE_ROOT; };
 		6F8EA69C8B71A80AB2A04A07 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		751FA403932866971CDA67DD /* GranularSynthesis.cpp */ /* GranularSynthesis.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = GranularSynthesis.cpp; path = ../../../../slicer_granular/Source/GranularSynthesis.cpp; sourceTree = SOURCE_ROOT; };
 		754BB71FB896AA6551C327B8 /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		7745CF5C4E7BB5F66EF98BB2 /* PluginProcessor.h */ /* PluginProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PluginProcessor.h; path = ../../Source/PluginProcessor.h; sourceTree = SOURCE_ROOT; };
 		781C68D6AC9CF99D7FF7186F /* IOKit.framework */ /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		7AC345DEF8BE2373F506FF98 /* TimbreAnalysis.h */ /* TimbreAnalysis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TimbreAnalysis.h; path = ../../Source/TimbreAnalysis.h; sourceTree = SOURCE_ROOT; };
 		7D32AFAEED1E71B66DBF3BA8 /* include_juce_audio_plugin_client_VST_utils.mm */ /* include_juce_audio_plugin_client_VST_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_VST_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_VST_utils.mm; sourceTree = SOURCE_ROOT; };
 		8D2B696D6AAF9FCA4BD8C523 /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		9035301434F7412373E774EA /* include_juce_core.mm */ /* include_juce_core.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_core.mm; path = ../../JuceLibraryCode/include_juce_core.mm; sourceTree = SOURCE_ROOT; };
@@ -213,11 +217,22 @@
 			isa = PBXGroup;
 			children = (
 				ED2974DE9EEE4A7F8A84AF39,
+				6D7CECD5D3F6AB49BC4C5DCA,
 				F4C573111DAC02EF0BC7C6C6,
 				B5CD03D9E4BE12FD6A2C7633,
+				2AFC83AD4618CD8B59ECE63D,
 				5A0B46A55A4EDD13FBF50E31,
 			);
 			name = Analysis;
+			sourceTree = "<group>";
+		};
+		2AFC83AD4618CD8B59ECE63D /* TimbreAnalysis */ = {
+			isa = PBXGroup;
+			children = (
+				673652DB862D651AF42CC1B8,
+				7AC345DEF8BE2373F506FF98,
+			);
+			name = TimbreAnalysis;
 			sourceTree = "<group>";
 		};
 		2C806521EEDEF855CDCD2508 /* Products */ = {
@@ -653,6 +668,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				37439BD5CD2E5653682AFE63,
+				F19DBFFA4932E4FBD3321464,
 				1CA8D15CF3AEAA1F4F0CE448,
 				25862F9E13A4F00B2274294C,
 				3CB481704F73C871C83B0E28,
@@ -865,13 +881,14 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "/opt/homebrew/Cellar/sdl2/2.28.1/lib";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -989,13 +1006,14 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1115,6 +1133,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1124,7 +1143,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1244,6 +1263,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1253,7 +1273,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "/opt/homebrew/Cellar/sdl2/2.28.1/lib";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1370,6 +1390,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1377,7 +1398,7 @@
 				INFOPLIST_PREPROCESS = NO;
 				LD_RUNPATH_SEARCH_PATHS = "/opt/homebrew/Cellar/sdl2/2.28.1/lib";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1556,6 +1577,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1563,7 +1585,7 @@
 				INFOPLIST_PREPROCESS = NO;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1682,6 +1704,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1691,7 +1714,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";
@@ -1812,6 +1835,7 @@
 					"/Users/nicholassolem/development/thirdparty/Xoshiro-cpp",
 					"/Users/nicholassolem/development/thirdparty/Sprout",
 					"/Users/nicholassolem/development/slicer_granular/Source",
+					"/Users/nicholassolem/development/TSARA/tsara-granular/Source",
 					"/Applications/JUCE/modules/juce_audio_plugin_client/AU",
 					"$(inherited)",
 				);
@@ -1821,7 +1845,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "/opt/homebrew/Cellar/sdl2/2.28.1/lib";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "/Applications/JUCE/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode /Applications/JUCE/modules /Users/nicholassolem/development/boost_1_80_0 /Users/nicholassolem/development/eigen-3.4.0 /Users/nicholassolem/development/nvs_maps /Users/nicholassolem/development/nvs_libraries /Users/nicholassolem/development/thirdparty/Signalsmith /Users/nicholassolem/development/thirdparty/fmt/include /Users/nicholassolem/development/thirdparty/frozen/include /Users/nicholassolem/development/TSARA /Users/nicholassolem/development/thirdparty/Xoshiro-cpp /Users/nicholassolem/development/thirdparty/Sprout /Users/nicholassolem/development/slicer_granular/Source /Users/nicholassolem/development/TSARA/tsara-granular/Source /Applications/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_CPLUSPLUSFLAGS = "-I/opt/homebrew/Cellar -I/opt/homebrew/Cellar/mlpack/4.2.0/include -I/opt/homebrew/Cellar/eigen/3.4.0_1/include -I/opt/homebrew/Cellar/armadillo/12.6.1/include -v";
 				OTHER_LDFLAGS = "-bundle -ltsara-granular -lessentia -ltensorflow -ltag -lavcodec -lavdevice -lavfilter -lavformat -lavresample -lavutil -lpostproc -lswresample -lswscale -lsamplerate -lchromaprint -lyaml -lfmt -L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib -L/opt/homebrew/lib -L/opt/homebrew/Cellar/fmt/10.1.1/lib/static -weak_framework Metal -weak_framework MetalKit";

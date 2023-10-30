@@ -48,6 +48,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	addAndMakeVisible(waveformAndPositionComponent);
 	
 	addAndMakeVisible(timbreSpaceComponent);
+	timbreSpaceComponent.addMouseListener(this, false);
 	
 	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
 	
@@ -110,8 +111,42 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 			onset /= static_cast<double>(nSamps);
 			waveformAndPositionComponent.wc.addMarker(onset);
 		}
+		timbreSpaceComponent.clear();
+		std::span<float> const &span = audioProcessor.getActiveSpanRef();
+		
+		for (float o : *onsetsSeconds){
+			juce::Point<float> p;
+			size_t sampIdx = static_cast<size_t>(o * sr);
+			
+			// just some bull as a placeholder for actual timbral analysis
+			float val = span[sampIdx];
+			float val2 = span[sampIdx + 10];
+			p.setX((val + val2) * 0.5f);
+			p.setY((val - val2) * 0.5f);
+			// with this method, there is the gaurantee that
+			// the Nth member of timbreSpaceComponent.timbres5D corresponds to
+			// the Nth member of onsetsSeconds.
+			timbreSpaceComponent.add2DPoint(p);
+		}
 	}
 	repaint();
+}
+void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
+	auto pIdx = timbreSpaceComponent.getCurrentPoint();
+
+	if ( auto const onsetsInSeconds = audioProcessor.getOnsets() ){
+		float const onsetSeconds = onsetsInSeconds.value()[pIdx];
+		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
+		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
+		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
+		double const onsetNormalized = onsetSamps / lengthSamps;
+		mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
+	}
+	fmt::print("editor mouse down: {}\n", pIdx);
+}
+void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
+	auto pIdx = timbreSpaceComponent.getCurrentPoint();
+	fmt::print("editor mouse drag: {}\n", pIdx);
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)

@@ -45,7 +45,10 @@ struct MainParamsComponent	:	public juce::Component
 			attachedSliderColumnArray[i].setBounds(left, 0, alottedCompWidth, alottedCompHeight);
 		}
 	}
-	
+	void setSliderParam(params_e param, double val){
+		assert(static_cast<size_t>(param) < (static_cast<size_t>(params_e::count) / 2) );
+		attachedSliderColumnArray[static_cast<size_t>(param)].setVal(val);
+	}
 private:
 	std::array<SliderColumn, static_cast<size_t>(params_e::count) / 2> attachedSliderColumnArray;
 };
@@ -67,6 +70,9 @@ public:
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
 	void doOnsetAnalysisAndPaintMarkers();
+	
+	void mouseDown(const juce::MouseEvent &event) override;
+	void mouseDrag(const juce::MouseEvent &event) override;
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 
