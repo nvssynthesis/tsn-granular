@@ -11,6 +11,7 @@
 #pragma once
 #include <optional>
 #include "onsetAnalysis/OnsetAnalysis.h"
+#include "TimbreAnalysis.h"
 #include <JuceHeader.h>
 
 namespace nvs {
@@ -24,11 +25,16 @@ public:
 	
 	std::optional<std::vector<float>> calculateOnsets(std::vector<float> wave);
 	
+	std::optional<std::vector<std::vector<float>>> calculateOnsetwiseBFCCs(std::vector<float> wave, std::vector<float> onsetsInSeconds);
+	
+	vecVecReal PCA(vecVecReal const &V);
+
 	nvs::ess::EssentiaHolder ess_hold;
 	
 	analysisSettings _analysisSettings;
 	onsetSettings _onsetSettings;
 	splitSettings _splitSettings;
+	bfccSettings _bfccSettings;
 };
 
 inline void cleanOnsets (std::vector<float> &onsetsInSeconds, float maxLengthInSeconds){
@@ -46,6 +52,14 @@ inline void cleanOnsets (std::vector<float> &onsetsInSeconds, float maxLengthInS
 	onsetsInSeconds.resize(properOnsets);
 }
 
+
+Real mean(vecReal const &V);
+vecVecReal truncate(vecVecReal const &V, size_t trunc);
+vecVecReal transpose(vecVecReal const &V);
+vecReal binwiseMean(vecVecReal const &V);
+
+
+
 inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, essentia::streaming::AlgorithmFactory const &factory, nvs::analysis::analysisSettings anSettings, nvs::analysis::splitSettings spSettings)
 {
 	if ( !wave.size() | !onsetsInSeconds.size() ){
@@ -55,7 +69,7 @@ inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsI
 	juce::String name(ogPath.data());
 	name.dropLastCharacters(4);
 	
-	nvs::analysis::vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, factory, anSettings, spSettings);
+	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, factory, anSettings, spSettings);
 	juce::WavAudioFormat format;
 	std::unique_ptr<juce::AudioFormatWriter> writer;
 
@@ -87,8 +101,6 @@ inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsI
 		}
 	}
 }
-
-
 }	// namespace analysis
 }	// namespace nvs
 

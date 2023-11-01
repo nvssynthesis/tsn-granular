@@ -58,18 +58,23 @@ struct bfccSettings
 		unit_sum = 0,
 		unit_max
 	};
+	normalize_e normType {normalize_e::unit_sum};
 	enum spectrumType_e {
 		magnitude = 0,
 		power
 	};
+	spectrumType_e specType {spectrumType_e::power};
 	enum weightingType_e {
 		warping = 0,
 		linear
 	};
+	weightingType_e weightType {weightingType_e::warping};
 	enum dctType_e {
 		typeII = 2,
 		typeIII = 3
 	};
+	int dctType {dctType_e::typeII};
+
 	const static inline std::map<normalize_e, std::string>
 	normMap {
 		{unit_sum, "unit_sum"},
@@ -86,11 +91,9 @@ struct bfccSettings
 		{linear, "linear"}
 	};
 	
-	std::string normalizeType {normMap.at(normalize_e::unit_sum)};
-	std::string spectrumType {spectrumTypeMap.at(spectrumType_e::power)};
-	std::string weightingType {weightingTypeMap.at(weightingType_e::warping)};
-	
-	int dctType {dctType_e::typeII};
+	std::string normalizeTypeAsString {normMap.at(normType)};
+	std::string spectrumTypeAsString {spectrumTypeMap.at(specType)};
+	std::string weightingType {weightingTypeMap.at(weightType)};
 };
 struct sBicSettings
 {

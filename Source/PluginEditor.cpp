@@ -102,7 +102,11 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 	waveformAndPositionComponent.wc.removeMarkers();
 
-	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.calculateOnsets();
+	audioProcessor.calculateOnsets();
+	audioProcessor.calculateOnsetwiseBFCCs();
+	audioProcessor.calculatePCA();
+
+	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.getOnsets();
 	if (onsetsSeconds){
 		double const sr = audioProcessor.getAnalysisSettings().sampleRate;		//audioProcessor.getSampleRate();
 		size_t nSamps = audioProcessor.getCurrentWaveSize();
@@ -112,22 +116,51 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 			waveformAndPositionComponent.wc.addMarker(onset);
 		}
 		timbreSpaceComponent.clear();
-		std::span<float> const &span = audioProcessor.getActiveSpanRef();
 		
-		for (float o : *onsetsSeconds){
-			juce::Point<float> p;
-			size_t sampIdx = static_cast<size_t>(o * sr);
+		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs = audioProcessor.getOnsetwiseBFCCs();
+		if (onsetwiseBFCCs.has_value()){
+			std::vector<std::vector<float>> bfccs = onsetwiseBFCCs.value();
 			
-			// just some bull as a placeholder for actual timbral analysis
-			float val = span[sampIdx];
-			float val2 = span[sampIdx + 10];
-			p.setX((val + val2) * 0.5f);
-			p.setY((val - val2) * 0.5f);
-			// with this method, there is the gaurantee that
-			// the Nth member of timbreSpaceComponent.timbres5D corresponds to
-			// the Nth member of onsetsSeconds.
-			timbreSpaceComponent.add2DPoint(p);
+			std::optional<std::vector<std::vector<float>>> pca = audioProcessor.getPCA();
+			size_t constexpr nDim {5};
+			std::array<size_t, nDim> constexpr dimensions {
+				0,
+				1,
+				2,
+				3,
+				4
+			};
+			if (pca.has_value())
+			{
+				std::array<float, nDim> normalizers;
+				for (int i = 0; i < nDim; ++i){
+					auto const range = nvs::analysis::getRangeOfDimension(pca.value(), dimensions[i]);
+					normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
+				}
+				for (std::vector<float> const &pcaFrame : pca.value()){
+					juce::Point<float> p;
+	//				size_t sampIdx = static_cast<size_t>(o * sr);
+					
+					// just some bull as a placeholder for actual timbral analysis
+					float val = pcaFrame[dimensions[0]];
+					float val2 = pcaFrame[dimensions[1]];
+	#pragma message("need proper normalization")
+					p.setX(val * normalizers[0]);
+					p.setY(val2 * normalizers[1]);
+					std::array<float, 3> color;
+					color = {
+						( pcaFrame[dimensions[2]] * normalizers[2]),
+						( pcaFrame[dimensions[3]] * normalizers[3]),
+						( pcaFrame[dimensions[4]] * normalizers[4])
+					};
+					// with this method, there is the gaurantee that
+					// the Nth member of timbreSpaceComponent.timbres5D corresponds to
+					// the Nth member of onsetsSeconds.
+					timbreSpaceComponent.add5DPoint(p, color);
+				}
+			}
 		}
+
 	}
 	repaint();
 }
@@ -142,11 +175,15 @@ void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event)
 		double const onsetNormalized = onsetSamps / lengthSamps;
 		mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
 	}
-	fmt::print("editor mouse down: {}\n", pIdx);
+	if ( auto const bfcc = audioProcessor.getOnsetwiseBFCCs() ){
+		std::vector<float> thisBfccSet = bfcc.value()[pIdx];
+		
+		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
+	}
 }
 void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
 	auto pIdx = timbreSpaceComponent.getCurrentPoint();
-	fmt::print("editor mouse drag: {}\n", pIdx);
+//	fmt::print("editor mouse drag: {}\n", pIdx);
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)

@@ -112,8 +112,9 @@ public:
 		};
 		for (auto p5 : timbres5D){
 			point_t p = p5.get2D();
-			auto const p3 = p5.toUnsigned();
-			g.setColour(juce::Colour(p3[0], p3[1], p3[2], 1.f));
+			auto const p3 = p5.get3D();
+			using nvs::memoryless::biuni;
+			g.setColour(juce::Colour(biuni(p3[0]), biuni(p3[1]), biuni(p3[2]), 1.f));
 			p = transformFromZeroOrigin(p);
 			p *= point_t(w,h);
 			auto rect = pointToRect(p);

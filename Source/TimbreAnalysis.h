@@ -18,7 +18,15 @@
 namespace nvs {
 namespace analysis {
 
-vecReal getBFCCs(std::span<Real> waveSpan, streamingFactory const &factory, bfccSettings const settings);
+vecVecReal
+getBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory,
+		 analysisSettings const anSettings, bfccSettings const bfSettings);
+
+vecVecReal PCA(vecVecReal const &V, standardFactory const &factory);
+
+
+std::pair<Real, Real> getRangeOfDimension(vecVecReal const &V, size_t dim);
+Real getNormalizationMultiplier(std::pair<Real, Real> range);
 
 }	// namespace analysis
 }	// namespace nvs

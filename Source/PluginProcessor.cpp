@@ -23,6 +23,8 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 , logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
+	_analyzer._bfccSettings.specType = nvs::analysis::bfccSettings::spectrumType_e::magnitude;
+	
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
@@ -186,7 +188,7 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 	currentFile = f.getFullPathName().toStdString();	// so far needed only for writeEvents()
 	delete reader;
 }
-std::optional<std::vector<float>> TsaraGranularAudioProcessor::calculateOnsets(){
+void TsaraGranularAudioProcessor::calculateOnsets(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -196,10 +198,33 @@ std::optional<std::vector<float>> TsaraGranularAudioProcessor::calculateOnsets()
 	if (_feat.onsetsInSeconds){
 		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
 	}
-	return _feat.onsetsInSeconds;
 }
 std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
 	return _feat.onsetsInSeconds;
+}
+void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
+	std::span<float> const &waveSpanRef = audioBuffersChannels.getActiveSpanRef();
+	std::vector<float> wave(waveSpanRef.size());
+	wave.assign(waveSpanRef.begin(), waveSpanRef.end());
+	
+	if (auto onsetsOpt = getOnsets(); onsetsOpt.has_value()){
+		_feat.onsetwiseBFCCs = _analyzer.calculateOnsetwiseBFCCs(wave, onsetsOpt.value());
+	}
+}
+std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
+	return _feat.onsetwiseBFCCs;
+}
+void TsaraGranularAudioProcessor::calculatePCA() {
+	if (_feat.onsetwiseBFCCs.has_value()){
+		std::vector<std::vector<float>> pca = _analyzer.PCA(_feat.onsetwiseBFCCs.value());
+		_feat.PCA = pca;
+	}
+	else {
+		_feat.PCA = std::nullopt;
+	}
+}
+std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getPCA() const {
+	return _feat.PCA;
 }
 
 void TsaraGranularAudioProcessor::writeEvents(){

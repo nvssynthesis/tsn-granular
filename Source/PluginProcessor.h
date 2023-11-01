@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "TsaraGranularSynth.h"
+#include "ThreadedAnalyzer.h"
 #include "AudioBuffersChannels.h"
 #include "dsp_util.h"
 #include "params.h"
@@ -75,8 +76,12 @@ public:
 	void writeToLog(std::string const &s);
 	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
-	std::optional<std::vector<float>> calculateOnsets();
+	void calculateOnsets();
 	std::optional<std::vector<float>> getOnsets() const;
+	void calculateOnsetwiseBFCCs();
+	std::optional<std::vector<std::vector<float>>> getOnsetwiseBFCCs() const;
+	void calculatePCA();
+	std::optional<std::vector<std::vector<float>>> getPCA() const;
 	void writeEvents();
 	
 	bool triggerValFromEditor {false};
@@ -109,10 +114,12 @@ private:
 	AudioBuffersChannels audioBuffersChannels;
 	
 	nvs::gran::TsaraGranular tsara_granular;
-	nvs::analysis::Analyzer _analyzer;
+	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
 	struct Features {
 		std::optional<std::vector<float>> onsetsInSeconds;
+		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs;
+		std::optional<std::vector<std::vector<float>>> PCA;
 	};
 	Features _feat;
 	
