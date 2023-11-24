@@ -71,7 +71,7 @@
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" extraCompilerFlags="-I/opt/homebrew/Cellar&#10;-I/opt/homebrew/Cellar/mlpack/4.2.0/include&#10;-I/opt/homebrew/Cellar/eigen/3.4.0_1/include&#10;-I/opt/homebrew/Cellar/armadillo/12.6.1/include&#10;-v"
-               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.21_2/lib&#10;-L/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static"
+               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.22/lib&#10;-L/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static"
                externalLibraries="essentia&#10;tensorflow&#10;tag&#10;avcodec&#10;avdevice&#10;avfilter&#10;avformat&#10;avresample&#10;avutil&#10;postproc&#10;swresample&#10;swscale&#10;samplerate&#10;chromaprint&#10;yaml&#10;fmt"
                appSandboxInheritance="1" xcodeValidArchs="arm64" extraDefs="_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS">
       <CONFIGURATIONS>

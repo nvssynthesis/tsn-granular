@@ -12,6 +12,7 @@
 #include "Analyzer.h"
 #include <JuceHeader.h>
 
+#if 0
 namespace nvs {
 namespace analysis {
 
@@ -38,3 +39,4 @@ private:
 
 }	// namespace analysis
 }	// namespace nvs
+#endif

@@ -10,7 +10,7 @@
 
 #include "ThreadedAnalyzer.h"
 #include "fmt/core.h"
-
+#if 0
 namespace nvs {
 namespace analysis {
 
@@ -32,6 +32,6 @@ void ThreadedAnalyzer::run() {
 			break;
 	}
 }
-
 }	// namespace analysis
 }	// namespace nvs
+#endif

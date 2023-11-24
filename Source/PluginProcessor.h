@@ -114,7 +114,7 @@ private:
 	AudioBuffersChannels audioBuffersChannels;
 	
 	nvs::gran::TsaraGranular tsara_granular;
-	nvs::analysis::ThreadedAnalyzer _analyzer;
+	nvs::analysis::Analyzer _analyzer;
 	
 	struct Features {
 		std::optional<std::vector<float>> onsetsInSeconds;
