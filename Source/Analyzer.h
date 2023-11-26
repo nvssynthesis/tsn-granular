@@ -23,11 +23,11 @@ private:
 public:
 	Analyzer();
 	
-	std::optional<std::vector<float>> calculateOnsets(std::vector<float> wave);
+	std::optional<vecReal> calculateOnsets(vecReal wave);
 	
-	std::optional<std::vector<std::vector<float>>> calculateOnsetwiseBFCCs(std::vector<float> wave, std::vector<float> onsetsInSeconds);
+	std::optional<vecVecReal> calculateOnsetwiseBFCCs(vecReal wave, vecReal onsetsInSeconds);
 	
-	vecVecReal PCA(vecVecReal const &V);
+	std::optional<vecVecReal> PCA(vecVecReal const &V);
 
 	nvs::ess::EssentiaHolder ess_hold;
 	
@@ -37,7 +37,7 @@ public:
 	bfccSettings _bfccSettings;
 };
 
-inline void cleanOnsets (std::vector<float> &onsetsInSeconds, float maxLengthInSeconds){
+inline void cleanOnsets (vecReal &onsetsInSeconds, float maxLengthInSeconds){
 //	float const lengthInSeconds = static_cast<float>(_wavespan.size()) / _fileSampleRate;
 	size_t properOnsets = onsetsInSeconds.size();
 	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
@@ -59,8 +59,9 @@ vecVecReal transpose(vecVecReal const &V);
 vecReal binwiseMean(vecVecReal const &V);
 
 
-
-inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, essentia::streaming::AlgorithmFactory const &factory, nvs::analysis::analysisSettings anSettings, nvs::analysis::splitSettings spSettings)
+inline void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, essentia::streaming::AlgorithmFactory const &factory,
+							 nvs::analysis::analysisSettings anSettings,
+							 nvs::analysis::splitSettings spSettings)
 {
 	if ( !wave.size() | !onsetsInSeconds.size() ){
 		std::cerr << "unsuccessful write; wave or onsets of size 0\n";
@@ -101,6 +102,7 @@ inline void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsI
 		}
 	}
 }
+
 }	// namespace analysis
 }	// namespace nvs
 

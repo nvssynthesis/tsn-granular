@@ -216,8 +216,7 @@ std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getO
 }
 void TsaraGranularAudioProcessor::calculatePCA() {
 	if (_feat.onsetwiseBFCCs.has_value()){
-		std::vector<std::vector<float>> pca = _analyzer.PCA(_feat.onsetwiseBFCCs.value());
-		_feat.PCA = pca;
+		_feat.PCA = _analyzer.PCA(_feat.onsetwiseBFCCs.value());
 	}
 	else {
 		_feat.PCA = std::nullopt;

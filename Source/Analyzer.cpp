@@ -53,7 +53,10 @@ std::optional<std::vector<std::vector<float>>> Analyzer::calculateOnsetwiseBFCCs
 	return bfccs;
 }
 
-vecVecReal Analyzer::PCA(vecVecReal const &V){
+std::optional<vecVecReal> Analyzer::PCA(vecVecReal const &V){
+	if (!V.size()){
+		return std::nullopt;
+	}
 	vecVecReal pca = nvs::analysis::PCA(V, ess_hold.standardFactory);
 	return pca;
 }
