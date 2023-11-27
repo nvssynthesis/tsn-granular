@@ -27,7 +27,7 @@ public:
 	
 	std::optional<vecVecReal> calculateOnsetwiseBFCCs(vecReal wave, vecReal onsetsInSeconds);
 	
-	std::optional<vecVecReal> PCA(vecVecReal const &V);
+	std::optional<vecVecReal> calculatePCA(vecVecReal const &V);
 
 	nvs::ess::EssentiaHolder ess_hold;
 	

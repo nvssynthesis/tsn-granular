@@ -12,12 +12,10 @@
 #include "Analyzer.h"
 #include <JuceHeader.h>
 
-#if 0
 namespace nvs {
 namespace analysis {
 
-class ThreadedAnalyzer	:	public Analyzer
-,							public juce::Thread
+class ThreadedAnalyzer	:	public juce::Thread
 {
 public:
 	ThreadedAnalyzer();
@@ -25,18 +23,43 @@ public:
 	
 	enum analysisType_e {
 		onset,
-		bfcc,
+		onsetwise_bfcc,
 		pca
 	};
 	void setAnalysisType(analysisType_e a) {
 		_analysisType = a;
 	}
+	void updateWave(vecReal &wave){
+		inputWave = &wave;
+	}
+	void updateOnsets(std::vector<float> &onsetsInSeconds){
+		inputOnsetsInSeconds = &onsetsInSeconds;
+	}
+	void updateOnsetwiseBFCCs(vecVecReal &onsetwiseBFCCs){
+		inputOnsetwiseBFCCs = &onsetwiseBFCCs;
+	}
 	
+	inline std::vector<float> getOnsetsInSeconds() const {
+		return outputOnsetsInSeconds;
+	}
+	inline vecVecReal getOnsetwiseBFCCs() const {
+		return outputOnsetwiseBFCCs;
+	}
+	inline vecVecReal getPCA() const {
+		return outputPCA;
+	}
 private:
+	Analyzer _analyzer;
 	analysisType_e _analysisType { analysisType_e::onset };
 	
+	vecReal *inputWave {nullptr};
+	std::vector<float> *inputOnsetsInSeconds {nullptr};
+	vecVecReal *inputOnsetwiseBFCCs {nullptr};
+	
+	std::vector<float> outputOnsetsInSeconds;
+	vecVecReal outputOnsetwiseBFCCs;
+	vecVecReal outputPCA;
 };
 
 }	// namespace analysis
 }	// namespace nvs
-#endif

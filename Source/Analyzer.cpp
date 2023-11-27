@@ -17,7 +17,7 @@ Analyzer::Analyzer()
 :	ess_hold(ess_init)
 {}
 	
-std::optional<std::vector<float>> Analyzer::calculateOnsets(std::vector<float> wave){
+std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave){
 	if (!wave.size()){
 		return std::nullopt;
 	}
@@ -34,7 +34,7 @@ std::optional<std::vector<float>> Analyzer::calculateOnsets(std::vector<float> w
 	return onsetsInSeconds;
 }
 
-std::optional<std::vector<std::vector<float>>> Analyzer::calculateOnsetwiseBFCCs(std::vector<float> wave, std::vector<float> onsetsInSeconds){
+std::optional<vecVecReal> Analyzer::calculateOnsetwiseBFCCs(vecReal wave, std::vector<float> onsetsInSeconds){
 	if ((!wave.size()) || (!onsetsInSeconds.size())){
 		return std::nullopt;
 	}
@@ -42,7 +42,7 @@ std::optional<std::vector<std::vector<float>>> Analyzer::calculateOnsetwiseBFCCs
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, _analysisSettings, _splitSettings);
 #pragma message("probably need some normalization, possibly based on variance")
 	
-	std::vector<std::vector<float>> bfccs;
+	vecVecReal bfccs;
 	for (vecReal const &e : events){
 		std::span<float const > waveSpan(e);
 		vecVecReal b_tmp = getBFCCs(waveSpan, ess_hold.factory, _analysisSettings, _bfccSettings);
@@ -53,7 +53,7 @@ std::optional<std::vector<std::vector<float>>> Analyzer::calculateOnsetwiseBFCCs
 	return bfccs;
 }
 
-std::optional<vecVecReal> Analyzer::PCA(vecVecReal const &V){
+std::optional<vecVecReal> Analyzer::calculatePCA(vecVecReal const &V){
 	if (!V.size()){
 		return std::nullopt;
 	}

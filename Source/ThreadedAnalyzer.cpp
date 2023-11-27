@@ -10,7 +10,7 @@
 
 #include "ThreadedAnalyzer.h"
 #include "fmt/core.h"
-#if 0
+
 namespace nvs {
 namespace analysis {
 
@@ -22,16 +22,33 @@ void ThreadedAnalyzer::run() {
 	switch (_analysisType) {
 		case (analysisType_e::onset):
 			fmt::print("onset analysis\n");
-			calculateOnsets(<#std::vector<float> wave#>)
+			if (inputWave){
+				auto onsetOpt = _analyzer.calculateOnsets(*inputWave);
+				if (onsetOpt.has_value()){
+					outputOnsetsInSeconds = onsetOpt.value();
+				}
+			}
 			break;
-		case (analysisType_e::bfcc):
+		case (analysisType_e::onsetwise_bfcc):
 			fmt::print("bfcc analysis\n");
+			if (inputWave && inputOnsetsInSeconds){
+				auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(*inputWave, *inputOnsetsInSeconds);
+				if (bfccOpt.has_value()){
+					outputOnsetwiseBFCCs = bfccOpt.value();
+				}
+			}
 			break;
 		case (analysisType_e::pca):
 			fmt::print("pca analysis\n");
+			if (inputOnsetwiseBFCCs){
+				auto PCAopt = _analyzer.calculatePCA(*inputOnsetwiseBFCCs);
+				if (PCAopt.has_value()){
+					outputPCA = PCAopt.value();
+				}
+			}
 			break;
 	}
+	
 }
 }	// namespace analysis
 }	// namespace nvs
-#endif
