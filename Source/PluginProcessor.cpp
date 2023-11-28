@@ -23,7 +23,7 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 , logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
-	_analyzer._bfccSettings.specType = nvs::analysis::bfccSettings::spectrumType_e::magnitude;
+//	_analyzer._bfccSettings.specType = nvs::analysis::bfccSettings::spectrumType_e::magnitude;
 	
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
@@ -155,7 +155,11 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 	}
 	int newLength = static_cast<int>(reader->lengthInSamples);
 	double const sr = reader->sampleRate;
-	_analyzer._analysisSettings.sampleRate = static_cast<float>(sr);	// analysis uses single-precision, being explicit here
+	{	// limit tmp scope
+		auto anSettingsTmp = _analyzer.getAnalysisSettings();
+		anSettingsTmp.sampleRate = static_cast<float>(sr);
+		_analyzer.setAnalysisSettings(anSettingsTmp);
+	}
 	audioBuffersChannels.setFileSampleRate(sr);	// use double precision; this is the reference that is shared with the synth
 	
 	std::array<juce::Range<float> , 1> normalizationRange;
@@ -193,7 +197,10 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	_feat.onsetsInSeconds = _analyzer.calculateOnsets(wave);
+	_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onset);
+	_analyzer.updateWave(wave);
+	_analyzer.run();
+	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
 	
 	if (_feat.onsetsInSeconds){
 		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
@@ -208,7 +215,11 @@ void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 	wave.assign(waveSpanRef.begin(), waveSpanRef.end());
 	
 	if (auto onsetsOpt = getOnsets(); onsetsOpt.has_value()){
-		_feat.onsetwiseBFCCs = _analyzer.calculateOnsetwiseBFCCs(wave, onsetsOpt.value());
+		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onsetwise_bfcc);
+		_analyzer.updateWave(wave);
+		_analyzer.updateOnsets(onsetsOpt.value());
+		_analyzer.run();
+		_feat.onsetwiseBFCCs = _analyzer.getOnsetwiseBFCCs();
 	}
 }
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
@@ -216,7 +227,10 @@ std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getO
 }
 void TsaraGranularAudioProcessor::calculatePCA() {
 	if (_feat.onsetwiseBFCCs.has_value()){
-		_feat.PCA = _analyzer.calculatePCA(_feat.onsetwiseBFCCs.value());
+		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
+		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
+		_analyzer.run();
+		_feat.PCA = _analyzer.getPCA();
 	}
 	else {
 		_feat.PCA = std::nullopt;
@@ -231,7 +245,7 @@ void TsaraGranularAudioProcessor::writeEvents(){
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.ess_hold.factory, _analyzer._analysisSettings, _analyzer._splitSettings);
+	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.getAnalyzer());
 }
 
 #if (STATIC_MAP | FROZEN_MAP)

@@ -104,17 +104,17 @@ public:
 		return audioBuffersChannels.getActiveSpanRef();
 	}
 	void setOnsetSettings(nvs::analysis::onsetSettings settings){
-		_analyzer._onsetSettings = settings;
+		_analyzer.setOnsetSettings(settings);
 	}
-	nvs::analysis::analysisSettings getAnalysisSettings(){
-		return _analyzer._analysisSettings;
+	nvs::analysis::analysisSettings getAnalysisSettings() const {
+		return _analyzer.getAnalysisSettings();
 	}
 private:
 	
 	AudioBuffersChannels audioBuffersChannels;
 	
 	nvs::gran::TsaraGranular tsara_granular;
-	nvs::analysis::Analyzer _analyzer;
+	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
 	struct Features {
 		std::optional<std::vector<float>> onsetsInSeconds;
