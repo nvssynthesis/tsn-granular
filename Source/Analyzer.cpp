@@ -17,16 +17,20 @@ Analyzer::Analyzer()
 :	ess_hold(ess_init)
 {}
 	
-std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave){
+std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave, std::function<bool(void)> runLoopCallback){
 	if (!wave.size()){
 		return std::nullopt;
 	}
 	
-	analysis::array2dReal onsets2d = onsetAnalysis(wave, ess_hold.factory, _analysisSettings);
+	analysis::array2dReal onsets2d = onsetAnalysis(wave, ess_hold.factory, _analysisSettings, runLoopCallback);
+	std::cout << "analyzed onsets\n";
 	essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 	
-	std::vector<float> onsetsInSeconds = analysis::onsetsInSeconds(onsets2d, tmpStFac, _analysisSettings, _onsetSettings);
+#pragma message("it is a problem that we have not the ability to inject a runLoopCallback here, since onsetsInSeconds uses StandardFactory instead of StreamingFactory")
 	
+	std::vector<float> onsetsInSeconds = analysis::onsetsInSeconds(onsets2d, tmpStFac, _analysisSettings, _onsetSettings);
+	std::cout << "calculated onsets in seconds\n";
+
 	float const sr = _analysisSettings.sampleRate;
 	assert(sr > 0.f);
 	float const lengthInSeconds = wave.size() / sr;
@@ -49,7 +53,9 @@ std::optional<vecVecReal> Analyzer::calculateOnsetwiseBFCCs(vecReal wave, std::v
 		b_tmp = truncate(b_tmp, 5);
 		vecReal binwiseMeans = binwiseMean(b_tmp);
 		bfccs.push_back(binwiseMeans);
+		std::cout << "got BFCCs for event\n";
 	}
+	std::cout << "calculated all BFCCs\n";
 	return bfccs;
 }
 
@@ -58,6 +64,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(vecVecReal const &V){
 		return std::nullopt;
 	}
 	vecVecReal pca = nvs::analysis::PCA(V, ess_hold.standardFactory);
+	std::cout << "calculated PCAs\n";
 	return pca;
 }
 

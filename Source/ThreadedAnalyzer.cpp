@@ -14,18 +14,28 @@
 namespace nvs {
 namespace analysis {
 
-ThreadedAnalyzer::ThreadedAnalyzer()
+ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 :	juce::Thread("Analyzer")
-{}
+{
+	addChangeListener(listener);
+}
 
 void ThreadedAnalyzer::run() {
 	switch (_analysisType) {
 		case (analysisType_e::onset):
 			fmt::print("onset analysis\n");
 			if (inputWave){
-				auto onsetOpt = _analyzer.calculateOnsets(*inputWave);
+				auto onsetOpt = _analyzer.calculateOnsets(*inputWave, [&](){
+					fmt::print("calculating onsets!\n");
+					if (threadShouldExit()){
+						return false;
+					}
+					return true;
+				});
+				
 				if (onsetOpt.has_value()){
 					outputOnsetsInSeconds = onsetOpt.value();
+					sendChangeMessage();
 				}
 			}
 			break;
@@ -35,6 +45,7 @@ void ThreadedAnalyzer::run() {
 				auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(*inputWave, *inputOnsetsInSeconds);
 				if (bfccOpt.has_value()){
 					outputOnsetwiseBFCCs = bfccOpt.value();
+					sendChangeMessage();
 				}
 			}
 			break;
@@ -44,6 +55,7 @@ void ThreadedAnalyzer::run() {
 				auto PCAopt = _analyzer.calculatePCA(*inputOnsetwiseBFCCs);
 				if (PCAopt.has_value()){
 					outputPCA = PCAopt.value();
+					sendChangeMessage();
 				}
 			}
 			break;

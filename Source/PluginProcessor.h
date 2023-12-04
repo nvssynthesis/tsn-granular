@@ -32,6 +32,7 @@ class TsaraGranularAudioProcessor  : public juce::AudioProcessor
 							#if JucePlugin_Enable_ARA
 							 , public juce::AudioProcessorARAExtension
 							#endif
+,									private juce::ChangeListener
 {
 public:
 	//==============================================================================
@@ -109,6 +110,7 @@ public:
 	nvs::analysis::analysisSettings getAnalysisSettings() const {
 		return _analyzer.getAnalysisSettings();
 	}
+	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 private:
 	
 	AudioBuffersChannels audioBuffersChannels;

@@ -16,9 +16,13 @@ namespace nvs {
 namespace analysis {
 
 class ThreadedAnalyzer	:	public juce::Thread
+,							private juce::ChangeBroadcaster 
 {
 public:
-	ThreadedAnalyzer();
+	ThreadedAnalyzer(juce::ChangeListener *listener);
+	~ThreadedAnalyzer(){
+		stopThread(100);
+	}
 	void run() override;
 	
 	enum analysisType_e {

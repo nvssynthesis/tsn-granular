@@ -23,7 +23,7 @@ private:
 public:
 	Analyzer();
 	
-	std::optional<vecReal> calculateOnsets(vecReal wave);
+	std::optional<vecReal> calculateOnsets(vecReal wave, std::function<bool(void)> runLoopCallback=[](){return true;});
 	std::optional<vecVecReal> calculateOnsetwiseBFCCs(vecReal wave, vecReal onsetsInSeconds);
 	std::optional<vecVecReal> calculatePCA(vecVecReal const &V);
 

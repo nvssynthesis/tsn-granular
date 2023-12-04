@@ -15,12 +15,12 @@ TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
 					   ),
 #endif
 apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
-#if USING_ESSENTIA
-, ess_hold(ess_init)
-#endif
 , tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(),
 								audioBuffersChannels.getFileSampleRateRef(), N_GRAINS)
-, logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
+, _analyzer(this)
+, logFile(juce::File::getSpecialLocation
+		  (juce::File::SpecialLocationType::currentApplicationFile)
+		  .getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
 //	_analyzer._bfccSettings.specType = nvs::analysis::bfccSettings::spectrumType_e::magnitude;
@@ -199,7 +199,9 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 	
 	_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onset);
 	_analyzer.updateWave(wave);
-	_analyzer.run();
+	if (_analyzer.startThread(juce::Thread::Priority::normal)){
+		fmt::print("analyzer onset thread started\n");
+	}
 	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
 	
 	if (_feat.onsetsInSeconds){
@@ -218,8 +220,11 @@ void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onsetwise_bfcc);
 		_analyzer.updateWave(wave);
 		_analyzer.updateOnsets(onsetsOpt.value());
-		_analyzer.run();
+		if (_analyzer.startThread(juce::Thread::Priority::normal)){
+			fmt::print("analyzer onsetwise BFCC thread started\n");
+		}
 		_feat.onsetwiseBFCCs = _analyzer.getOnsetwiseBFCCs();
+
 	}
 }
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
@@ -229,8 +234,11 @@ void TsaraGranularAudioProcessor::calculatePCA() {
 	if (_feat.onsetwiseBFCCs.has_value()){
 		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
 		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
-		_analyzer.run();
+		if (_analyzer.startThread(juce::Thread::Priority::normal)){
+			fmt::print("analyzer PCA thread started\n");
+		}
 		_feat.PCA = _analyzer.getPCA();
+
 	}
 	else {
 		_feat.PCA = std::nullopt;
@@ -348,6 +356,10 @@ void TsaraGranularAudioProcessor::setStateInformation (const void* data, int siz
 {
 	// You should use this method to restore your parameters from this memory block,
 	// whose contents will have been created by the getStateInformation() call.
+}
+
+void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
+	fmt::print("change message received\n");
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor::createParameterLayout(){
