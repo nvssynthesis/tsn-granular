@@ -55,6 +55,7 @@ private:
 
 class TsaraGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
 ,											public juce::FilenameComponentListener
+,											public juce::ChangeListener
 {
 public:
 	TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor&);
@@ -98,6 +99,8 @@ private:
 	//=================================================================
 	void closeAllWindows();
 	//=================================================================
+
+	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 
 	void update()
 	{

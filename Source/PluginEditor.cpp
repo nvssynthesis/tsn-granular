@@ -308,3 +308,23 @@ void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::Filename
 		doOnsetAnalysisAndPaintMarkers();
 	}
 }
+void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster*  source) {
+	fmt::print("editor: change message received\n");
+	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+		fmt::print("editor: dynamic cast to threaded analyzer ptr successful\n");
+		// now we can simply check on our own analyzer, don't even need to use source qua source
+		using namespace nvs::analysis;
+		switch (a->getAnalysisType()) {
+			case ThreadedAnalyzer::analysisType_e::onset:
+				// update onsets
+				fmt::print("editor: i want the onsets\n");
+				break;
+			case ThreadedAnalyzer::analysisType_e::onsetwise_bfcc:
+				fmt::print("editor: i want the onsetwise bfccs\n");
+				break;
+			case ThreadedAnalyzer::analysisType_e::pca:
+				fmt::print("editor: i want the pca\n");
+				break;
+		}
+	}
+}

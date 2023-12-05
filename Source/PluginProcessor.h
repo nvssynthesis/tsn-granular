@@ -110,7 +110,6 @@ public:
 	nvs::analysis::analysisSettings getAnalysisSettings() const {
 		return _analyzer.getAnalysisSettings();
 	}
-	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 private:
 	
 	AudioBuffersChannels audioBuffersChannels;
@@ -124,6 +123,8 @@ private:
 		std::optional<std::vector<std::vector<float>>> PCA;
 	};
 	Features _feat;
+	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
+	void loadOnsetsIntoSynth();
 	
 	float lastTranspose 	{getParamDefault(params_e::transpose)};
 	float lastPosition 		{getParamDefault(params_e::position)};

@@ -23,8 +23,6 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 		  .getSiblingFile("log.txt"))
 , fileLogger(logFile, "hello")
 {
-//	_analyzer._bfccSettings.specType = nvs::analysis::bfccSettings::spectrumType_e::magnitude;
-	
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
@@ -202,15 +200,19 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 	if (_analyzer.startThread(juce::Thread::Priority::normal)){
 		fmt::print("analyzer onset thread started\n");
 	}
+	loadOnsetsIntoSynth();
+}
+std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
+	return _feat.onsetsInSeconds;
+}
+void TsaraGranularAudioProcessor::loadOnsetsIntoSynth() {
 	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
 	
 	if (_feat.onsetsInSeconds){
 		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
 	}
 }
-std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
-	return _feat.onsetsInSeconds;
-}
+
 void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 	std::span<float> const &waveSpanRef = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpanRef.size());
@@ -341,7 +343,9 @@ bool TsaraGranularAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* TsaraGranularAudioProcessor::createEditor()
 {
-	return new TsaraGranularAudioProcessorEditor (*this);
+	TsaraGranularAudioProcessorEditor* ed = new TsaraGranularAudioProcessorEditor (*this);
+	_analyzer.addChangeListener(ed);
+	return ed;
 }
 
 //==============================================================================
@@ -359,7 +363,22 @@ void TsaraGranularAudioProcessor::setStateInformation (const void* data, int siz
 }
 
 void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	fmt::print("change message received\n");
+	fmt::print("processor: change message received\n");
+	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
+		// now we can simply check on our own analyzer, don't even need to use source qua source
+		using namespace nvs::analysis;
+		switch (_analyzer.getAnalysisType()) {
+			case ThreadedAnalyzer::analysisType_e::onset:
+				// update onsets
+				loadOnsetsIntoSynth();
+				break;
+			case ThreadedAnalyzer::analysisType_e::onsetwise_bfcc:
+				break;
+			case ThreadedAnalyzer::analysisType_e::pca:
+				break;
+		}
+	}
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor::createParameterLayout(){

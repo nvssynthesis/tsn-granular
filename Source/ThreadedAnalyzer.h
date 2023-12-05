@@ -16,7 +16,7 @@ namespace nvs {
 namespace analysis {
 
 class ThreadedAnalyzer	:	public juce::Thread
-,							private juce::ChangeBroadcaster 
+,							public juce::ChangeBroadcaster
 {
 public:
 	ThreadedAnalyzer(juce::ChangeListener *listener);
@@ -32,6 +32,9 @@ public:
 	};
 	void setAnalysisType(analysisType_e a) {
 		_analysisType = a;
+	}
+	analysisType_e getAnalysisType() const {
+		return _analysisType;
 	}
 	void updateWave(vecReal &wave){
 		inputWave = &wave;
