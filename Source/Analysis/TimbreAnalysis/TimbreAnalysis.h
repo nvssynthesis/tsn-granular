@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include "EssentiaSetup.h"
-#include "AnalysisUsing.h"
-#include "Settings.h"
+#include "Analysis/EssentiaSetup.h"
+#include "Analysis/AnalysisUsing.h"
+#include "Analysis/Settings.h"
 #include <span>
 
 namespace nvs {

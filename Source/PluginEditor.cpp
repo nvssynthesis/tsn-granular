@@ -8,7 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "SettingsWindow.h"
+#include "Gui/SettingsWindow.h"
 
 //==============================================================================
 

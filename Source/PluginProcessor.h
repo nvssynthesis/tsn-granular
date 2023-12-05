@@ -9,8 +9,8 @@
 #endif
 
 #include <JuceHeader.h>
-#include "TsaraGranularSynth.h"
-#include "ThreadedAnalyzer.h"
+#include "Synthesis/TsaraGranularSynth.h"
+#include "Analysis/ThreadedAnalyzer.h"
 #include "AudioBuffersChannels.h"
 #include "dsp_util.h"
 #include "params.h"

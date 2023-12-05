@@ -9,7 +9,7 @@
 */
 
 #pragma once
-#include "Analyzer.h"
+#include "Analysis/Analyzer.h"
 #include <JuceHeader.h>
 
 namespace nvs {

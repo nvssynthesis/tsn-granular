@@ -8,7 +8,7 @@
   ==============================================================================
 */
 
-#include "ThreadedAnalyzer.h"
+#include "Analysis/ThreadedAnalyzer.h"
 #include "fmt/core.h"
 
 namespace nvs {
