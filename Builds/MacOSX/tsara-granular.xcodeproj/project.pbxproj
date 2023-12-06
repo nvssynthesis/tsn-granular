@@ -123,7 +123,6 @@
 		9AC549939FBD12A3234BCC6D /* dsp_util.h */ /* dsp_util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dsp_util.h; path = ../../../../slicer_granular/Source/dsp_util.h; sourceTree = SOURCE_ROOT; };
 		9BCC44AF6961742A0EEAC04C /* AnalysisUsing.h */ /* AnalysisUsing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AnalysisUsing.h; path = ../../Source/Analysis/AnalysisUsing.h; sourceTree = SOURCE_ROOT; };
 		9CDBEEC6E261B7F34B40D407 /* TsaraGranularSynth.cpp */ /* TsaraGranularSynth.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TsaraGranularSynth.cpp; path = ../../Source/Synthesis/TsaraGranularSynth.cpp; sourceTree = SOURCE_ROOT; };
-		9CE57BF04D6E3C8FA4D575EB /* MainParamsComponent.h */ /* MainParamsComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainParamsComponent.h; path = ../../Source/Gui/MainParamsComponent.h; sourceTree = SOURCE_ROOT; };
 		A38CBB9493A4990740940329 /* Standalone Plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "tsara-granular.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A80D1EC288677E3868AC46D2 /* WebKit.framework */ /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		AA60CE66CEB9862291FBBCF9 /* WaveformComponent.h */ /* WaveformComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WaveformComponent.h; path = ../../../../slicer_granular/Source/Gui/WaveformComponent.h; sourceTree = SOURCE_ROOT; };
@@ -377,7 +376,6 @@
 		D469421EDBC8BC20A6CB7F86 /* Gui */ = {
 			isa = PBXGroup;
 			children = (
-				9CE57BF04D6E3C8FA4D575EB,
 				314ADF99B7A604D0B664F9E4,
 				EDB36C344427D215D5822A2D,
 				C1F28777154464D5EBD4400E,

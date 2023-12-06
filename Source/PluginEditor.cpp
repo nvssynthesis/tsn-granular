@@ -15,7 +15,7 @@
 TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor& p)
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
-,	mainParamsComp(p)
+,	mainParamsComp(p.apvts)
 ,	waveformAndPositionComponent(512, p.getAudioFormatManager(), p.apvts)
 ,	triggeringButton("Manual Trigger")	// unused
 ,	calculateOnsetsButton("Calculate Onsets")

@@ -9,8 +9,6 @@
   <MAINGROUP id="HJxsOe" name="tsara-granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
-        <FILE id="KupGgI" name="MainParamsComponent.h" compile="0" resource="0"
-              file="Source/Gui/MainParamsComponent.h"/>
         <FILE id="vZIjRO" name="SliderColumn.h" compile="0" resource="0" file="../../slicer_granular/Source/Gui/SliderColumn.h"/>
         <FILE id="EnbI2m" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/Gui/SettingsWindow.h"/>
