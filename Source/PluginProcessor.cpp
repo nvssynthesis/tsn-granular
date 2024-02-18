@@ -17,7 +17,7 @@ TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
 apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 , tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(),
 								audioBuffersChannels.getFileSampleRateRef(), N_GRAINS)
-, _analyzer(this)
+, _analyzer(this)	// effectively adding this as listener to the analyzer
 , logFile(juce::File::getSpecialLocation
 		  (juce::File::SpecialLocationType::currentApplicationFile)
 		  .getSiblingFile("log.txt"))
@@ -190,7 +190,17 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 	currentFile = f.getFullPathName().toStdString();	// so far needed only for writeEvents()
 	delete reader;
 }
-void TsaraGranularAudioProcessor::calculateOnsets(){
+void TsaraGranularAudioProcessor::askForAnalysis(){
+	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
+	std::vector<float> wave(waveSpan.size());
+	wave.assign(waveSpan.begin(), waveSpan.end());
+	
+	_analyzer.updateWave(wave);
+	if (_analyzer.startThread(juce::Thread::Priority::normal)){
+		fmt::print("analyzer onset thread started\n");
+	}
+}
+/*void TsaraGranularAudioProcessor::calculateOnsets(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -201,7 +211,7 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 		fmt::print("analyzer onset thread started\n");
 	}
 	loadOnsetsIntoSynth();
-}
+}*/
 std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
 	return _feat.onsetsInSeconds;
 }
@@ -213,7 +223,7 @@ void TsaraGranularAudioProcessor::loadOnsetsIntoSynth() {
 	}
 }
 
-void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
+/*void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 	std::span<float> const &waveSpanRef = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpanRef.size());
 	wave.assign(waveSpanRef.begin(), waveSpanRef.end());
@@ -228,11 +238,11 @@ void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 		_feat.onsetwiseBFCCs = _analyzer.getOnsetwiseBFCCs();
 
 	}
-}
+}*/
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
 	return _feat.onsetwiseBFCCs;
 }
-void TsaraGranularAudioProcessor::calculatePCA() {
+/*void TsaraGranularAudioProcessor::calculatePCA() {
 	if (_feat.onsetwiseBFCCs.has_value()){
 //		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
 //		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
@@ -245,7 +255,7 @@ void TsaraGranularAudioProcessor::calculatePCA() {
 	else {
 		_feat.PCA = std::nullopt;
 	}
-}
+}*/
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getPCA() const {
 	return _feat.PCA;
 }
@@ -368,18 +378,11 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		using namespace nvs::analysis;
-		/*
-		switch (_analyzer.getAnalysisType()) {
-			case ThreadedAnalyzer::analysisType_e::onset:
-				// update onsets
-				loadOnsetsIntoSynth();
-				break;
-			case ThreadedAnalyzer::analysisType_e::onsetwise_bfcc:
-				break;
-			case ThreadedAnalyzer::analysisType_e::pca:
-				break;
-		}
-		*/
+		auto thing1 = _analyzer.getOnsetsInSeconds();
+		// then load onsets into synth
+		auto thing2 = _analyzer.getOnsetwiseBFCCs();
+		auto thing3 = _analyzer.getPCA();
+		fmt::print("processor: change listener callback: got things\n");
 	}
 }
 

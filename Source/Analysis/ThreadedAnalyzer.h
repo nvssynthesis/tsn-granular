@@ -25,9 +25,7 @@ public:
 	}
 	void run() override;
 
-	void updateWave(vecReal &wave){
-		inputWave = &wave;
-	}
+	void updateWave(std::span<float> const wave);
 //	void updateOnsets(std::vector<float> &onsetsInSeconds){
 //		inputOnsetsInSeconds = &onsetsInSeconds;
 //	}
@@ -74,7 +72,7 @@ public:
 private:
 	Analyzer _analyzer;
 	
-	vecReal *inputWave {nullptr};
+	std::span<float> inputWave;
 //	std::vector<float> *inputOnsetsInSeconds {nullptr};
 //	vecVecReal *inputOnsetwiseBFCCs {nullptr};
 	

@@ -33,7 +33,8 @@ public:
 	void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override;
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
-	void doOnsetAnalysisAndPaintMarkers();
+	void askForAnalysis();
+	void paintMarkers();
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
@@ -53,7 +54,7 @@ private:
 	};
 	size_t colourOffsetIndex {0};
 	
-	juce::TextButton calculateOnsetsButton;
+	juce::TextButton askForAnalysisButton;
 	juce::TextButton writeWavsButton;
 	juce::TextButton settingsButton;
 	//=================================================================

@@ -116,7 +116,7 @@ private:
 			}
 			else if (button == &recalculateOnsetsButton){
 				proc.setOnsetSettings(_onsetSettings);
-				editor.doOnsetAnalysisAndPaintMarkers();
+				editor.askForAnalysis();
 			}
 		}
 	};

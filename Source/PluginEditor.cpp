@@ -18,7 +18,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 ,	mainParamsComp(p.apvts)
 ,	waveformAndPositionComponent(512, p.getAudioFormatManager(), p.apvts)
 ,	triggeringButton("Manual Trigger")	// unused
-,	calculateOnsetsButton("Calculate Onsets")
+,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
 ,	audioProcessor (p)
@@ -27,8 +27,10 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	fileComp.addListener (this);
 	fileComp.getRecentFilesFromUserApplicationDataDirectory();
 	
-	addAndMakeVisible(calculateOnsetsButton);
-	calculateOnsetsButton.onClick = [this]{doOnsetAnalysisAndPaintMarkers();};
+	addAndMakeVisible(askForAnalysisButton);
+	askForAnalysisButton.onClick = [this]{
+		askForAnalysis();
+	};
 	
 	addAndMakeVisible(writeWavsButton);
 	writeWavsButton.onClick = [&p]{p.writeEvents();};
@@ -99,9 +101,17 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
 }
-void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
+void TsaraGranularAudioProcessorEditor::askForAnalysis(){
+	if (TsaraGranularAudioProcessor* a = dynamic_cast<TsaraGranularAudioProcessor*>(&processor)){
+		fmt::print("success dynamic casting");
+		a->askForAnalysis();
+	}
+}
+void TsaraGranularAudioProcessorEditor::paintMarkers(){
 	waveformAndPositionComponent.wc.removeMarkers();
 
+//	jassert (fileComp.getCurrentFile().existsAsFile());
+	
 	// DON'T CALL THESE IN SERIES! SIMPLY COMBINE THESE INTO 1 FUNCTION, 'analyze' or something/
 	// then we can avoid the complexity of having ThreadedAnalyzer having analysis modes.
 	// IN FACT, THESE SHOULDN'T EVEN BE BEING CALLED DIRECTLY!
@@ -257,7 +267,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 	{
 		int buttonWidth = 90;
 		int buttonHeight = 25;
-		calculateOnsetsButton.setBounds(x, y, buttonWidth, buttonHeight);
+		askForAnalysisButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		writeWavsButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
@@ -297,8 +307,9 @@ void TsaraGranularAudioProcessorEditor::resized()
 
 void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 {
-	if (! fileToRead.existsAsFile())
+	if (! fileToRead.existsAsFile()){
 		return;
+	}
 
 	juce::String fn = fileToRead.getFullPathName();
 	std::string st_str = fn.toStdString();
@@ -306,14 +317,16 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	audioProcessor.writeToLog(st_str);
 	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail() );
 	
-	fileComp.setCurrentFile(fileToRead, true);
+	// redundant:
+	// fileComp.setCurrentFile(fileToRead, true);
 }
 
 void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged)
 {
 	if (fileComponentThatHasChanged == &fileComp){
 		readFile (fileComp.getCurrentFile());
-		doOnsetAnalysisAndPaintMarkers();
+//		doOnsetAnalysisAndPaintMarkers();
+		
 	}
 }
 void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster*  source) {
@@ -325,6 +338,7 @@ void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroad
 		auto thing1 = a->getOnsetsInSeconds();
 		auto thing2 = a->getOnsetwiseBFCCs();
 		auto thing3 = a->getPCA();
-		fmt::print("change listener callback: got things\n");
+		fmt::print("editor: change listener callback: got things\n");
+		// paint markers (replace function doOnsetAnalysisAndPaintMarkers() with just paintMarkers()?)
 	}
 }
