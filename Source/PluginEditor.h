@@ -34,7 +34,8 @@ public:
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
 	void askForAnalysis();
-	void paintMarkers();
+	void paintMarkers(std::vector<float> onsetsInSeconds,
+					  std::vector<std::vector<float>> PCA);
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;

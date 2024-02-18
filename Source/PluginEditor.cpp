@@ -107,79 +107,57 @@ void TsaraGranularAudioProcessorEditor::askForAnalysis(){
 		a->askForAnalysis();
 	}
 }
-void TsaraGranularAudioProcessorEditor::paintMarkers(){
+void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
+													 std::vector<std::vector<float>> PCA){
 	waveformAndPositionComponent.wc.removeMarkers();
-
-//	jassert (fileComp.getCurrentFile().existsAsFile());
+	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 	
-	// DON'T CALL THESE IN SERIES! SIMPLY COMBINE THESE INTO 1 FUNCTION, 'analyze' or something/
-	// then we can avoid the complexity of having ThreadedAnalyzer having analysis modes.
-	// IN FACT, THESE SHOULDN'T EVEN BE BEING CALLED DIRECTLY!
-	
-//	audioProcessor.calculateOnsets();
-//	audioProcessor.calculateOnsetwiseBFCCs();
-//	audioProcessor.calculatePCA();
-/*
-	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.getOnsets();
-	if (onsetsSeconds){
-		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
-		size_t nSamps = audioProcessor.getCurrentWaveSize();
-		for (auto onset : *onsetsSeconds){
-			onset *= sr;
-			onset /= static_cast<double>(nSamps);
-			waveformAndPositionComponent.wc.addMarker(onset);
-		}
-		timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
-		  
-		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs = audioProcessor.getOnsetwiseBFCCs();
-		if (onsetwiseBFCCs.has_value()){
-			fmt::print("getting onsetwise BFCCs\n");
-			std::vector<std::vector<float>> bfccs = onsetwiseBFCCs.value();
-			
-			std::optional<std::vector<std::vector<float>>> pca = audioProcessor.getPCA();
-			size_t constexpr nDim {5};
-			std::array<size_t, nDim> constexpr dimensions {
-				0,
-				1,
-				2,
-				3,
-				4
-			};
-			if (pca.has_value())
-			{
-				fmt::print("drawing PCA\n");
-				std::array<float, nDim> normalizers;
-				for (int i = 0; i < nDim; ++i){
-					auto const range = nvs::analysis::getRangeOfDimension(pca.value(), dimensions[i]);
-					normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
-				}
-				for (std::vector<float> const &pcaFrame : pca.value()){
-					juce::Point<float> p;
-	//				size_t sampIdx = static_cast<size_t>(o * sr);
-					
-					// just some bull as a placeholder for actual timbral analysis
-					float val = pcaFrame[dimensions[0]];
-					float val2 = pcaFrame[dimensions[1]];
-	#pragma message("need proper normalization")
-					p.setX(val * normalizers[0]);
-					p.setY(val2 * normalizers[1]);
-					std::array<float, 3> color;
-					color = {
-						( pcaFrame[dimensions[2]] * normalizers[2]),
-						( pcaFrame[dimensions[3]] * normalizers[3]),
-						( pcaFrame[dimensions[4]] * normalizers[4])
-					};
-					// with this method, there is the gaurantee that
-					// the Nth member of timbreSpaceComponent.timbres5D corresponds to
-					// the Nth member of onsetsSeconds.
-					timbreSpaceComponent.add5DPoint(p, color);
-					fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
-				}
-			}
-		}
-
+	//=========================draw waveform markers====================
+	fmt::print("Editor: Drawing waveform markers\n");
+	double const sr = audioProcessor.getAnalysisSettings().sampleRate;
+	size_t nSamps = audioProcessor.getCurrentWaveSize();
+	for (auto onset : onsetsInSeconds){
+		onset *= sr;
+		onset /= static_cast<double>(nSamps);
+		waveformAndPositionComponent.wc.addMarker(onset);
 	}
- */
+	  
+	//=====================draw PCA timbre space points=================
+	fmt::print("Editor: Drawing PCA points\n");
+	size_t constexpr nDim {5};
+	std::array<size_t, nDim> constexpr dimensions {
+		0,
+		1,
+		2,
+		3,
+		4
+	};
+	std::array<float, nDim> normalizers;
+	for (int i = 0; i < nDim; ++i){
+		auto const range = nvs::analysis::getRangeOfDimension(PCA, dimensions[i]);
+		normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
+	}
+	for (std::vector<float> const &pcaFrame : PCA){
+		juce::Point<float> p;
+		
+		// just some bull as a placeholder for actual timbral analysis
+		float val = pcaFrame[dimensions[0]];
+		float val2 = pcaFrame[dimensions[1]];
+#pragma message("need proper normalization")
+		p.setX(val * normalizers[0]);
+		p.setY(val2 * normalizers[1]);
+		std::array<float, 3> color;
+		color = {
+			( pcaFrame[dimensions[2]] * normalizers[2]),
+			( pcaFrame[dimensions[3]] * normalizers[3]),
+			( pcaFrame[dimensions[4]] * normalizers[4])
+		};
+		// with this method, there is the gaurantee that
+		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
+		// the Nth member of onsetsSeconds.
+		timbreSpaceComponent.add5DPoint(p, color);
+		fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
+	}
 	repaint();
 }
 void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
@@ -194,7 +172,7 @@ void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event)
 		mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
 	}
 	if ( auto const bfcc = audioProcessor.getOnsetwiseBFCCs() ){
-		std::vector<float> thisBfccSet = bfcc.value()[pIdx];
+		std::vector<float> thisBfccSet = bfcc.value()[pIdx]; 
 		
 		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
 	}
@@ -315,7 +293,8 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	std::string st_str = fn.toStdString();
 	
 	audioProcessor.writeToLog(st_str);
-	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail() );
+	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail());
+	askForAnalysis();
 	
 	// redundant:
 	// fileComp.setCurrentFile(fileToRead, true);
@@ -334,10 +313,10 @@ void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroad
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		fmt::print("editor: dynamic cast to threaded analyzer ptr successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		using namespace nvs::analysis;
-		auto thing1 = a->getOnsetsInSeconds();
-		auto thing2 = a->getOnsetwiseBFCCs();
-		auto thing3 = a->getPCA();
+		std::vector<float> onsetsInSeconds = a->getOnsetsInSeconds();
+		std::vector<std::vector<float>> PCA = a->getPCA();
+		
+		paintMarkers(onsetsInSeconds, PCA);
 		fmt::print("editor: change listener callback: got things\n");
 		// paint markers (replace function doOnsetAnalysisAndPaintMarkers() with just paintMarkers()?)
 	}

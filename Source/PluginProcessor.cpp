@@ -192,10 +192,8 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 }
 void TsaraGranularAudioProcessor::askForAnalysis(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
-	std::vector<float> wave(waveSpan.size());
-	wave.assign(waveSpan.begin(), waveSpan.end());
-	
-	_analyzer.updateWave(wave);
+
+	_analyzer.updateWave(waveSpan);
 	if (_analyzer.startThread(juce::Thread::Priority::normal)){
 		fmt::print("analyzer onset thread started\n");
 	}
@@ -213,15 +211,15 @@ void TsaraGranularAudioProcessor::askForAnalysis(){
 	loadOnsetsIntoSynth();
 }*/
 std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
-	return _feat.onsetsInSeconds;
+	return _analyzer.getOnsetsInSeconds();
 }
-void TsaraGranularAudioProcessor::loadOnsetsIntoSynth() {
-	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
-	
-	if (_feat.onsetsInSeconds){
-		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
-	}
-}
+//void TsaraGranularAudioProcessor::loadOnsetsIntoSynth() {
+//	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
+//
+//	if (_feat.onsetsInSeconds){
+//		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
+//	}
+//}
 
 /*void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 	std::span<float> const &waveSpanRef = audioBuffersChannels.getActiveSpanRef();
@@ -377,11 +375,11 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		using namespace nvs::analysis;
-		auto thing1 = _analyzer.getOnsetsInSeconds();
 		// then load onsets into synth
-		auto thing2 = _analyzer.getOnsetwiseBFCCs();
-		auto thing3 = _analyzer.getPCA();
+		auto onsets = _analyzer.getOnsetsInSeconds();
+		if (onsets.size()){
+			tsara_granular.loadOnsets(onsets);
+		}
 		fmt::print("processor: change listener callback: got things\n");
 	}
 }

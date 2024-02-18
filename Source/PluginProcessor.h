@@ -125,7 +125,7 @@ private:
 	};
 	Features _feat;
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
-	void loadOnsetsIntoSynth();
+//	void loadOnsetsIntoSynth();
 	
 	float lastTranspose 	{getParamDefault(params_e::transpose)};
 	float lastPosition 		{getParamDefault(params_e::position)};
