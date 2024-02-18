@@ -195,7 +195,7 @@ void TsaraGranularAudioProcessor::calculateOnsets(){
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onset);
+//	_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onset);
 	_analyzer.updateWave(wave);
 	if (_analyzer.startThread(juce::Thread::Priority::normal)){
 		fmt::print("analyzer onset thread started\n");
@@ -219,9 +219,9 @@ void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
 	wave.assign(waveSpanRef.begin(), waveSpanRef.end());
 	
 	if (auto onsetsOpt = getOnsets(); onsetsOpt.has_value()){
-		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onsetwise_bfcc);
+//		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onsetwise_bfcc);
 		_analyzer.updateWave(wave);
-		_analyzer.updateOnsets(onsetsOpt.value());
+//		_analyzer.updateOnsets(onsetsOpt.value());
 		if (_analyzer.startThread(juce::Thread::Priority::normal)){
 			fmt::print("analyzer onsetwise BFCC thread started\n");
 		}
@@ -234,8 +234,8 @@ std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getO
 }
 void TsaraGranularAudioProcessor::calculatePCA() {
 	if (_feat.onsetwiseBFCCs.has_value()){
-		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
-		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
+//		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
+//		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
 		if (_analyzer.startThread(juce::Thread::Priority::normal)){
 			fmt::print("analyzer PCA thread started\n");
 		}
@@ -368,6 +368,7 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		using namespace nvs::analysis;
+		/*
 		switch (_analyzer.getAnalysisType()) {
 			case ThreadedAnalyzer::analysisType_e::onset:
 				// update onsets
@@ -378,6 +379,7 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 			case ThreadedAnalyzer::analysisType_e::pca:
 				break;
 		}
+		*/
 	}
 }
 

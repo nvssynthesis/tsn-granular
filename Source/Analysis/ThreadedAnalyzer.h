@@ -24,27 +24,16 @@ public:
 		stopThread(100);
 	}
 	void run() override;
-	
-	enum analysisType_e {
-		onset,
-		onsetwise_bfcc,
-		pca
-	};
-	void setAnalysisType(analysisType_e a) {
-		_analysisType = a;
-	}
-	analysisType_e getAnalysisType() const {
-		return _analysisType;
-	}
+
 	void updateWave(vecReal &wave){
 		inputWave = &wave;
 	}
-	void updateOnsets(std::vector<float> &onsetsInSeconds){
-		inputOnsetsInSeconds = &onsetsInSeconds;
-	}
-	void updateOnsetwiseBFCCs(vecVecReal &onsetwiseBFCCs){
-		inputOnsetwiseBFCCs = &onsetwiseBFCCs;
-	}
+//	void updateOnsets(std::vector<float> &onsetsInSeconds){
+//		inputOnsetsInSeconds = &onsetsInSeconds;
+//	}
+//	void updateOnsetwiseBFCCs(vecVecReal &onsetwiseBFCCs){
+//		inputOnsetwiseBFCCs = &onsetwiseBFCCs;
+//	}
 	
 	inline std::vector<float> getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
@@ -84,11 +73,10 @@ public:
 	}
 private:
 	Analyzer _analyzer;
-	analysisType_e _analysisType { analysisType_e::onset };
 	
 	vecReal *inputWave {nullptr};
-	std::vector<float> *inputOnsetsInSeconds {nullptr};
-	vecVecReal *inputOnsetwiseBFCCs {nullptr};
+//	std::vector<float> *inputOnsetsInSeconds {nullptr};
+//	vecVecReal *inputOnsetwiseBFCCs {nullptr};
 	
 	std::vector<float> outputOnsetsInSeconds;
 	vecVecReal outputOnsetwiseBFCCs;

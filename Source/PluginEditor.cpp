@@ -103,24 +103,27 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 	waveformAndPositionComponent.wc.removeMarkers();
 
 	// DON'T CALL THESE IN SERIES! SIMPLY COMBINE THESE INTO 1 FUNCTION, 'analyze' or something/
-	// then we can avoid the complexity of having ThreadedAnalyzer having analysis modes. 
-	audioProcessor.calculateOnsets();
-	audioProcessor.calculateOnsetwiseBFCCs();
-	audioProcessor.calculatePCA();
-
+	// then we can avoid the complexity of having ThreadedAnalyzer having analysis modes.
+	// IN FACT, THESE SHOULDN'T EVEN BE BEING CALLED DIRECTLY!
+	
+//	audioProcessor.calculateOnsets();
+//	audioProcessor.calculateOnsetwiseBFCCs();
+//	audioProcessor.calculatePCA();
+/*
 	std::optional<std::vector<float>> onsetsSeconds = audioProcessor.getOnsets();
 	if (onsetsSeconds){
-		double const sr = audioProcessor.getAnalysisSettings().sampleRate;		//audioProcessor.getSampleRate();
+		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
 		size_t nSamps = audioProcessor.getCurrentWaveSize();
 		for (auto onset : *onsetsSeconds){
 			onset *= sr;
 			onset /= static_cast<double>(nSamps);
 			waveformAndPositionComponent.wc.addMarker(onset);
 		}
-		timbreSpaceComponent.clear();
+		timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 		  
 		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs = audioProcessor.getOnsetwiseBFCCs();
 		if (onsetwiseBFCCs.has_value()){
+			fmt::print("getting onsetwise BFCCs\n");
 			std::vector<std::vector<float>> bfccs = onsetwiseBFCCs.value();
 			
 			std::optional<std::vector<std::vector<float>>> pca = audioProcessor.getPCA();
@@ -134,6 +137,7 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 			};
 			if (pca.has_value())
 			{
+				fmt::print("drawing PCA\n");
 				std::array<float, nDim> normalizers;
 				for (int i = 0; i < nDim; ++i){
 					auto const range = nvs::analysis::getRangeOfDimension(pca.value(), dimensions[i]);
@@ -159,11 +163,13 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 					// the Nth member of timbreSpaceComponent.timbres5D corresponds to
 					// the Nth member of onsetsSeconds.
 					timbreSpaceComponent.add5DPoint(p, color);
+					fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 				}
 			}
 		}
 
 	}
+ */
 	repaint();
 }
 void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
@@ -316,17 +322,9 @@ void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroad
 		fmt::print("editor: dynamic cast to threaded analyzer ptr successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		using namespace nvs::analysis;
-		switch (a->getAnalysisType()) {
-			case ThreadedAnalyzer::analysisType_e::onset:
-				// update onsets
-				fmt::print("editor: i want the onsets\n");
-				break;
-			case ThreadedAnalyzer::analysisType_e::onsetwise_bfcc:
-				fmt::print("editor: i want the onsetwise bfccs\n");
-				break;
-			case ThreadedAnalyzer::analysisType_e::pca:
-				fmt::print("editor: i want the pca\n");
-				break;
-		}
+		auto thing1 = a->getOnsetsInSeconds();
+		auto thing2 = a->getOnsetwiseBFCCs();
+		auto thing3 = a->getPCA();
+		fmt::print("change listener callback: got things\n");
 	}
 }

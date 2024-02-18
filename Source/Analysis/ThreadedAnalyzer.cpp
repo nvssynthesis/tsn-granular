@@ -21,46 +21,41 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 }
 
 void ThreadedAnalyzer::run() {
-	switch (_analysisType) {
-		case (analysisType_e::onset):
-			fmt::print("onset analysis\n");
-			if (inputWave){
-				auto onsetOpt = _analyzer.calculateOnsets(*inputWave, [&](){
-					fmt::print("calculating onsets!\n");
-					if (threadShouldExit()){
-						return false;
-					}
-					return true;
-				});
-				
-				if (onsetOpt.has_value()){
-					outputOnsetsInSeconds = onsetOpt.value();
-					sendChangeMessage();
-				}
-			}
-			break;
-		case (analysisType_e::onsetwise_bfcc):
-			fmt::print("bfcc analysis\n");
-			if (inputWave && inputOnsetsInSeconds){
-				auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(*inputWave, *inputOnsetsInSeconds);
-				if (bfccOpt.has_value()){
-					outputOnsetwiseBFCCs = bfccOpt.value();
-					sendChangeMessage();
-				}
-			}
-			break;
-		case (analysisType_e::pca):
-			fmt::print("pca analysis\n");
-			if (inputOnsetwiseBFCCs){
-				auto PCAopt = _analyzer.calculatePCA(*inputOnsetwiseBFCCs);
-				if (PCAopt.has_value()){
-					outputPCA = PCAopt.value();
-					sendChangeMessage();
-				}
-			}
-			break;
+	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
+	outputOnsetsInSeconds.clear();
+	outputOnsetwiseBFCCs.clear();
+	outputPCA.clear();
+	if (!inputWave){
+		return;
 	}
 	
+	// perform onset analysis
+	fmt::print("ThreadedAnalyzer: performing onset analysis\n");
+	auto onsetOpt = _analyzer.calculateOnsets(*inputWave, [&](){
+		fmt::print("calculating onsets!\n");
+		if (threadShouldExit()){
+			return false;
+		}
+		return true;
+	});
+	jassert (onsetOpt.has_value());
+
+	// perform onsetwise BFCC analysis
+	fmt::print("ThreadedAnalyzer: performing bfcc analysis\n");
+	auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(*inputWave, *onsetOpt);
+	jassert (bfccOpt.has_value());
+	
+	// perform PCA analysis
+	fmt::print("ThreadedAnalyzer: performing pca analysis\n");
+	auto PCAopt = _analyzer.calculatePCA(*bfccOpt);
+	jassert(PCAopt.has_value());
+	
+	outputOnsetsInSeconds = onsetOpt.value();
+	outputOnsetwiseBFCCs = bfccOpt.value();
+	outputPCA = PCAopt.value();
+	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
+	sendChangeMessage();
 }
+	
 }	// namespace analysis
 }	// namespace nvs
