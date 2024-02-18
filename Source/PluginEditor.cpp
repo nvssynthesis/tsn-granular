@@ -102,6 +102,8 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 	waveformAndPositionComponent.wc.removeMarkers();
 
+	// DON'T CALL THESE IN SERIES! SIMPLY COMBINE THESE INTO 1 FUNCTION, 'analyze' or something/
+	// then we can avoid the complexity of having ThreadedAnalyzer having analysis modes. 
 	audioProcessor.calculateOnsets();
 	audioProcessor.calculateOnsetwiseBFCCs();
 	audioProcessor.calculatePCA();
@@ -116,7 +118,7 @@ void TsaraGranularAudioProcessorEditor::doOnsetAnalysisAndPaintMarkers(){
 			waveformAndPositionComponent.wc.addMarker(onset);
 		}
 		timbreSpaceComponent.clear();
-		
+		  
 		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs = audioProcessor.getOnsetwiseBFCCs();
 		if (onsetwiseBFCCs.has_value()){
 			std::vector<std::vector<float>> bfccs = onsetwiseBFCCs.value();
