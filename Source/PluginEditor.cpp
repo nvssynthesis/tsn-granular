@@ -179,24 +179,27 @@ void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event)
 }
 void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
 	auto pIdx = timbreSpaceComponent.getCurrentPoint();
-//	fmt::print("editor mouse drag: {}\n", pIdx);
+	fmt::print("editor mouse drag (doing nothing): {}\n", pIdx);
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
-	juce::Image image(juce::Image::ARGB, getWidth(), getHeight(), true);
-	juce::Graphics tg(image);
+	fmt::print("paint called\n");
+//	juce::Image image(juce::Image::ARGB, getWidth(), getHeight(), true);
+	if (false){
+		juce::Graphics tg(backgroundImage);
+		
+		juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
+		upperLeftColour = upperLeftColour.interpolatedWith(juce::Colours::darkred, 0.7f);
+		juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + gradientColors.size()-1) % gradientColors.size()];
+		lowerRightColour = lowerRightColour.interpolatedWith(juce::Colours::darkred, 0.7f);
+		juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
+		cg.addColour(0.5, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
+		tg.setGradientFill(cg);
+		tg.fillAll();
+	}
 
-	juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
-	upperLeftColour = upperLeftColour.interpolatedWith(juce::Colours::darkred, 0.7f);
-	juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + gradientColors.size()-1) % gradientColors.size()];
-	lowerRightColour = lowerRightColour.interpolatedWith(juce::Colours::darkred, 0.7f);
-	juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
-	cg.addColour(0.5, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
-	tg.setGradientFill(cg);
-	tg.fillAll();
-
-	g.drawImage(image, getLocalBounds().toFloat());
+	g.drawImage(backgroundImage, getLocalBounds().toFloat());
 	
 	{
 		auto bounds = getLocalBounds();
@@ -213,7 +216,7 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 					auto colour = juce::Colour(juce::uint8(rng.nextInt()), 0, 0,
 												   rng.nextFloat() * 0.3f);	// alpha
 					g.setColour(colour);
-					g.fillEllipse(i, j, dotDim, dotDim);
+//					g.fillEllipse(i, j, dotDim, dotDim);
 //					g.drawEllipse(i, j, dotDim, dotDim, dotDim);
 				}
 				
@@ -221,13 +224,20 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 		}
 	}
 	// fixes bug where dots drawn within range of juce logo would disappear:
-	timbreSpaceComponent.repaint();
+//	timbreSpaceComponent.repaint();
 }
 
 void TsaraGranularAudioProcessorEditor::resized()
 {
+	fmt::print("resize called\n");
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
+	
+	juce::Image toBeBackground(juce::Image::PixelFormat::RGB,
+							   localBounds.getWidth(),
+							   localBounds.getHeight(),
+							   false);
+	backgroundImage = toBeBackground;
 	
 	int const smallPad = 10;
 	localBounds.reduce(smallPad, smallPad);

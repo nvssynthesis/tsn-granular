@@ -41,7 +41,8 @@ public:
 	void mouseDrag(const juce::MouseEvent &event) override;
 private:
 	juce::ComponentBoundsConstrainer constrainer;
-
+	juce::Image backgroundImage;
+	
 	FileSelectorComponent fileComp;
 	MainParamsComponent mainParamsComp;
 	WaveformAndPositionComponent waveformAndPositionComponent;
