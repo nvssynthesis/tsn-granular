@@ -37,8 +37,8 @@ void ThreadedAnalyzer::run() {
 	std::vector<float> v;
 	v.assign(inputWave.begin(), inputWave.end());
 	auto onsetOpt = _analyzer.calculateOnsets(v, [&](){
-		fmt::print("calculating onsets!\n");
 		if (threadShouldExit()){
+			fmt::print("ONSET CALCULATION EXITED EARLY\n");
 			return false;
 		}
 		return true;
