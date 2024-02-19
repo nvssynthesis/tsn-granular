@@ -26,12 +26,6 @@ public:
 	void run() override;
 
 	void updateWave(std::span<float> const wave);
-//	void updateOnsets(std::vector<float> &onsetsInSeconds){
-//		inputOnsetsInSeconds = &onsetsInSeconds;
-//	}
-//	void updateOnsetwiseBFCCs(vecVecReal &onsetwiseBFCCs){
-//		inputOnsetwiseBFCCs = &onsetwiseBFCCs;
-//	}
 	
 	inline std::vector<float> getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
@@ -73,8 +67,6 @@ private:
 	Analyzer _analyzer;
 	
 	std::span<float> inputWave;
-//	std::vector<float> *inputOnsetsInSeconds {nullptr};
-//	vecVecReal *inputOnsetwiseBFCCs {nullptr};
 	
 	std::vector<float> outputOnsetsInSeconds;
 	vecVecReal outputOnsetwiseBFCCs;

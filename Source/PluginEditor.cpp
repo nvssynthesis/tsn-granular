@@ -185,7 +185,6 @@ void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event)
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
 	fmt::print("paint called\n");
-//	juce::Image image(juce::Image::ARGB, getWidth(), getHeight(), true);
 	if (false){
 		juce::Graphics tg(backgroundImage);
 		
@@ -223,8 +222,6 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 			}
 		}
 	}
-	// fixes bug where dots drawn within range of juce logo would disappear:
-//	timbreSpaceComponent.repaint();
 }
 
 void TsaraGranularAudioProcessorEditor::resized()
@@ -305,17 +302,12 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	audioProcessor.writeToLog(st_str);
 	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail());
 	askForAnalysis();
-	
-	// redundant:
-	// fileComp.setCurrentFile(fileToRead, true);
 }
 
 void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged)
 {
 	if (fileComponentThatHasChanged == &fileComp){
 		readFile (fileComp.getCurrentFile());
-//		doOnsetAnalysisAndPaintMarkers();
-		
 	}
 }
 void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster*  source) {
@@ -328,6 +320,5 @@ void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroad
 		
 		paintMarkers(onsetsInSeconds, PCA);
 		fmt::print("editor: change listener callback: got things\n");
-		// paint markers (replace function doOnsetAnalysisAndPaintMarkers() with just paintMarkers()?)
 	}
 }

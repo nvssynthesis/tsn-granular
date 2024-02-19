@@ -20,8 +20,6 @@
 	-bake in some way to be sure that the currently held onsets match the current span
 	
  */
-//void writeEventsToWav(std::vector<float> wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, essentia::streaming::AlgorithmFactory const &factory, nvs::analysis::splitSettings settings);
-
 namespace nvs	{
 namespace gran	{
 class TsaraGranular		:	public genGranPoly1

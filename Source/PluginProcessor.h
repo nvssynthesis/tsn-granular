@@ -78,11 +78,8 @@ public:
 	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
 	void askForAnalysis();
-//	void calculateOnsets();
 	std::optional<std::vector<float>> getOnsets() const;
-//	void calculateOnsetwiseBFCCs();
 	std::optional<std::vector<std::vector<float>>> getOnsetwiseBFCCs() const;
-//	void calculatePCA();
 	std::optional<std::vector<std::vector<float>>> getPCA() const;
 	void writeEvents();
 	

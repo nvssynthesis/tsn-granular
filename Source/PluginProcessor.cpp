@@ -104,17 +104,11 @@ void TsaraGranularAudioProcessor::changeProgramName (int index, const juce::Stri
 //==============================================================================
 void TsaraGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-	// Use this method as the place to do any pre-playback
-	// initialisation that you need..
 	lastSampleRate = sampleRate;
 	lastSamplesPerBlock = samplesPerBlock;
 }
 
-void TsaraGranularAudioProcessor::releaseResources()
-{
-	// When playback stops, you can use this as an opportunity to free up any
-	// spare memory, etc.
-}
+void TsaraGranularAudioProcessor::releaseResources(){}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
 bool TsaraGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -198,62 +192,15 @@ void TsaraGranularAudioProcessor::askForAnalysis(){
 		fmt::print("analyzer onset thread started\n");
 	}
 }
-/*void TsaraGranularAudioProcessor::calculateOnsets(){
-	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
-	std::vector<float> wave(waveSpan.size());
-	wave.assign(waveSpan.begin(), waveSpan.end());
-	
-//	_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onset);
-	_analyzer.updateWave(wave);
-	if (_analyzer.startThread(juce::Thread::Priority::normal)){
-		fmt::print("analyzer onset thread started\n");
-	}
-	loadOnsetsIntoSynth();
-}*/
+
 std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
 	return _analyzer.getOnsetsInSeconds();
 }
-//void TsaraGranularAudioProcessor::loadOnsetsIntoSynth() {
-//	_feat.onsetsInSeconds = _analyzer.getOnsetsInSeconds();
-//
-//	if (_feat.onsetsInSeconds){
-//		tsara_granular.loadOnsets((*_feat.onsetsInSeconds));
-//	}
-//}
 
-/*void TsaraGranularAudioProcessor::calculateOnsetwiseBFCCs() {
-	std::span<float> const &waveSpanRef = audioBuffersChannels.getActiveSpanRef();
-	std::vector<float> wave(waveSpanRef.size());
-	wave.assign(waveSpanRef.begin(), waveSpanRef.end());
-	
-	if (auto onsetsOpt = getOnsets(); onsetsOpt.has_value()){
-//		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::onsetwise_bfcc);
-		_analyzer.updateWave(wave);
-//		_analyzer.updateOnsets(onsetsOpt.value());
-		if (_analyzer.startThread(juce::Thread::Priority::normal)){
-			fmt::print("analyzer onsetwise BFCC thread started\n");
-		}
-		_feat.onsetwiseBFCCs = _analyzer.getOnsetwiseBFCCs();
-
-	}
-}*/
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
 	return _feat.onsetwiseBFCCs;
 }
-/*void TsaraGranularAudioProcessor::calculatePCA() {
-	if (_feat.onsetwiseBFCCs.has_value()){
-//		_analyzer.setAnalysisType(decltype(_analyzer)::analysisType_e::pca);
-//		_analyzer.updateOnsetwiseBFCCs(_feat.onsetwiseBFCCs.value());
-		if (_analyzer.startThread(juce::Thread::Priority::normal)){
-			fmt::print("analyzer PCA thread started\n");
-		}
-		_feat.PCA = _analyzer.getPCA();
 
-	}
-	else {
-		_feat.PCA = std::nullopt;
-	}
-}*/
 std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getPCA() const {
 	return _feat.PCA;
 }

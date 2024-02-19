@@ -71,7 +71,6 @@ private:
 	void update()
 	{
 		return;
-//		const auto needsToRepaint = updateState();
 	   
 		const float level = audioProcessor.rmsInformant.val;
 		const float recentLevel = audioProcessor.rmsWAinformant.val;
