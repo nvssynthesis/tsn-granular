@@ -193,16 +193,16 @@ void TsaraGranularAudioProcessor::askForAnalysis(){
 	}
 }
 
-std::optional<std::vector<float>> TsaraGranularAudioProcessor::getOnsets() const {
+std::vector<float> TsaraGranularAudioProcessor::getOnsets() const {
 	return _analyzer.getOnsetsInSeconds();
 }
 
-std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
-	return _feat.onsetwiseBFCCs;
+std::vector<std::vector<float>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
+	return _analyzer.getOnsetwiseBFCCs();
 }
 
-std::optional<std::vector<std::vector<float>>> TsaraGranularAudioProcessor::getPCA() const {
-	return _feat.PCA;
+std::vector<std::vector<float>> TsaraGranularAudioProcessor::getPCA() const {
+	return _analyzer.getPCA();
 }
 
 void TsaraGranularAudioProcessor::writeEvents(){
@@ -210,7 +210,7 @@ void TsaraGranularAudioProcessor::writeEvents(){
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	nvs::analysis::writeEventsToWav(wave, *_feat.onsetsInSeconds, currentFile, _analyzer.getAnalyzer());
+	nvs::analysis::writeEventsToWav(wave, _analyzer.getOnsetsInSeconds(), currentFile, _analyzer.getAnalyzer());
 }
 
 #if (STATIC_MAP | FROZEN_MAP)

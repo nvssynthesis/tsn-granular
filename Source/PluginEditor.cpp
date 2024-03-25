@@ -163,16 +163,16 @@ void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsIn
 void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
 	auto pIdx = timbreSpaceComponent.getCurrentPoint();
 
-	if ( auto const onsetsInSeconds = audioProcessor.getOnsets() ){
-		float const onsetSeconds = onsetsInSeconds.value()[pIdx];
+	if (audioProcessor.getOnsets().size()){
+		float const onsetSeconds = audioProcessor.getOnsets()[pIdx];
 		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
 		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
 		double const onsetNormalized = onsetSamps / lengthSamps;
-		mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
+			mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
 	}
-	if ( auto const bfcc = audioProcessor.getOnsetwiseBFCCs() ){
-		std::vector<float> thisBfccSet = bfcc.value()[pIdx]; 
+	if (audioProcessor.getOnsetwiseBFCCs().size()){
+		std::vector<float> thisBfccSet = audioProcessor.getOnsetwiseBFCCs()[pIdx];
 		
 		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
 	}
@@ -263,9 +263,9 @@ void TsaraGranularAudioProcessorEditor::resized()
 		y += buttonHeight;
 //		y += smallPad;
 	}
-	auto const mainParamsRemainingHeightRatio  = 0.6f;
-	auto const waveformCompRemainingHeightRatio = 0.15f;
-	auto const timbreSpaceRemainingHeightRatio = 0.25f;
+	auto const mainParamsRemainingHeightRatio  = 0.55f;
+	auto const waveformCompRemainingHeightRatio = 0.10f;
+	auto const timbreSpaceRemainingHeightRatio = 0.35f;
 	auto const totalRemainingHeightRatiosSummed = (mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio) ;
 	assert(totalRemainingHeightRatiosSummed >= 0.999f);
 	assert(totalRemainingHeightRatiosSummed <= 1.001f);

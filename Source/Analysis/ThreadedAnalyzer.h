@@ -27,7 +27,7 @@ public:
 
 	void updateWave(std::span<float> const wave);
 	
-	inline std::vector<float> getOnsetsInSeconds() const {
+	inline vecReal getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
 	}
 	inline vecVecReal getOnsetwiseBFCCs() const {

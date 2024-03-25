@@ -78,9 +78,9 @@ public:
 	void loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail);
 	
 	void askForAnalysis();
-	std::optional<std::vector<float>> getOnsets() const;
-	std::optional<std::vector<std::vector<float>>> getOnsetwiseBFCCs() const;
-	std::optional<std::vector<std::vector<float>>> getPCA() const;
+	std::vector<float> getOnsets() const;
+	std::vector<std::vector<float>> getOnsetwiseBFCCs() const;
+	std::vector<std::vector<float>> getPCA() const;
 	void writeEvents();
 	
 	bool triggerValFromEditor {false};

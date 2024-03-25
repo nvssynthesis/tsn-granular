@@ -45,11 +45,21 @@ void ThreadedAnalyzer::run() {
 	});
 	jassert (onsetOpt.has_value());
 
+	if (!onsetOpt.value().size()){
+		fmt::print("Threaded Analyzer: zero onsets... returning\n");
+		sendChangeMessage();
+		return;
+	}
 	// perform onsetwise BFCC analysis
 	fmt::print("ThreadedAnalyzer: performing bfcc analysis\n");
 	auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(v, *onsetOpt);
 	jassert (bfccOpt.has_value());
 	
+	if (bfccOpt.value().size() <= 1){
+		fmt::print("Threaded Analyzer: too few onsetwise BFCCs to calculate PCA... returning\n");
+		sendChangeMessage();
+		return;
+	}
 	// perform PCA analysis
 	fmt::print("ThreadedAnalyzer: performing pca analysis\n");
 	auto PCAopt = _analyzer.calculatePCA(*bfccOpt);
