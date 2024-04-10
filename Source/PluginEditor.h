@@ -69,6 +69,8 @@ private:
 
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 
+	void setPositionSliderFromChosenPoint();	// gets called by mouseDown, mouseDrag
+	
 	void update()
 	{
 		return;

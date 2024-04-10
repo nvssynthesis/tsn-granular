@@ -142,23 +142,21 @@ public:
 		return idx;
 	}
 	
-	void mouseDown (const juce::MouseEvent &event) override {
-		juce::Point<float> pNorm = normalizePosition_M1_1(event.getMouseDownPosition());
-		float x = pNorm.getX();
-		float y = pNorm.getY();
-//		fmt::print("in mouseDown at {}, {}\n", x, y);
+	void setCurrentPointFromNearest(juce::Point<float> point, bool verbose=false) {
+		float x = point.getX();
+		float y = point.getY();
+		if (verbose) {fmt::print("incoming point x: {}, y: {}\n", x, y);}
 		int nearestIdx = findNearestPoint(x, y);
 		[[maybe_unused]] auto nearestPoint = timbres5D[nearestIdx].get2D();
 		currentPoint = nearestIdx;
 	}
+	void mouseDown (const juce::MouseEvent &event) override {
+		juce::Point<float> pNorm = normalizePosition_M1_1(event.getMouseDownPosition());
+		setCurrentPointFromNearest(pNorm);
+	}
 	void mouseDrag(const juce::MouseEvent &event) override {
 		juce::Point<float> pNorm = normalizePosition_M1_1(event.getPosition());
-		auto x = pNorm.getX();
-		auto y = pNorm.getY();
-//		fmt::print("in mouseDrag at {},{}\n", x, y);
-		int nearestIdx = findNearestPoint(x, y);
-		[[maybe_unused]] auto nearestPoint = timbres5D[nearestIdx].get2D();
-		currentPoint = nearestIdx;
+		setCurrentPointFromNearest(pNorm);
 	}
 	int getCurrentPoint() const {
 		return currentPoint;

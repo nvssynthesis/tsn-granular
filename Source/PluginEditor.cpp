@@ -171,7 +171,7 @@ void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsIn
 	}
 	repaint();
 }
-void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
+void TsaraGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 	auto pIdx = timbreSpaceComponent.getCurrentPoint();
 
 	if (audioProcessor.getOnsets().size()){
@@ -188,9 +188,12 @@ void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event)
 		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
 	}
 }
+
+void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
+	setPositionSliderFromChosenPoint();
+}
 void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
-	auto pIdx = timbreSpaceComponent.getCurrentPoint();
-	fmt::print("editor mouse drag (doing nothing): {}\n", pIdx);
+	setPositionSliderFromChosenPoint();
 }
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
