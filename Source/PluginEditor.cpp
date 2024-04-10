@@ -21,6 +21,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
+,	positionQuantizeStrengthComboBox("Position Quantize Strength")
 ,	audioProcessor (p)
 {
 	addAndMakeVisible (fileComp);
@@ -44,6 +45,16 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	addAndMakeVisible(triggeringButton);
 	triggeringButton.onClick = [this, &p]{ updateToggleState(&triggeringButton, "Trigger", p.triggerValFromEditor);	};
 	triggeringButton.setClickingTogglesState(true);
+	
+	addAndMakeVisible(positionQuantizeStrengthComboBox);
+	positionQuantizeStrengthComboBox.addItem("None", 1);
+	positionQuantizeStrengthComboBox.addItem("Lax", 2);
+	positionQuantizeStrengthComboBox.addItem("Strict", 3);
+	positionQuantizeStrengthComboBox.setSelectedId(1);
+	positionQuantizeStrengthComboBox.onChange = [this] {
+		auto id = positionQuantizeStrengthComboBox.getSelectedId();
+		fmt::print("current id: {}", id);
+	};
 	
 	addAndMakeVisible(mainParamsComp);
 	
@@ -184,7 +195,6 @@ void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event)
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
-	fmt::print("paint called\n");
 	if (false){
 		juce::Graphics tg(backgroundImage);
 		
@@ -260,6 +270,8 @@ void TsaraGranularAudioProcessorEditor::resized()
 		x += buttonWidth;
 		buttonWidth = buttonHeight;
 		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
+		x += buttonWidth;
+		positionQuantizeStrengthComboBox.setBounds(x, y, 200, buttonHeight);
 		y += buttonHeight;
 //		y += smallPad;
 	}
