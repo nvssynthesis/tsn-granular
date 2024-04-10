@@ -85,12 +85,8 @@ public:
 	
 	bool triggerValFromEditor {false};
 
-	template<typename T>
-	struct editorInformant{
-		T val;
-	};
-	editorInformant<float> rmsInformant;
-	editorInformant<float> rmsWAinformant;
+	nvs::util::editorInformant<float> rmsInformant;
+	nvs::util::editorInformant<float> rmsWAinformant;
 	
 	juce::AudioFormatManager &getAudioFormatManager(){
 		return formatManager;
