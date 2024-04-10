@@ -29,16 +29,16 @@
         <FILE id="ejIgLF" name="AnalysisUsing.h" compile="0" resource="0" file="Source/Analysis/AnalysisUsing.h"/>
         <FILE id="hf00dz" name="EssentiaSetup.h" compile="0" resource="0" file="Source/Analysis/EssentiaSetup.h"/>
         <FILE id="aJfBvh" name="Settings.h" compile="0" resource="0" file="Source/Analysis/Settings.h"/>
+        <GROUP id="{ADF69AE1-3F4C-10B0-6C49-34B6EFCBAEF2}" name="OnsetAnalysis">
+          <FILE id="qAP1UX" name="OnsetAnalysis.cpp" compile="1" resource="0"
+                file="Source/Analysis/OnsetAnalysis/OnsetAnalysis.cpp"/>
+          <FILE id="aMzUNc" name="OnsetAnalysis.h" compile="0" resource="0" file="Source/Analysis/OnsetAnalysis/OnsetAnalysis.h"/>
+        </GROUP>
         <GROUP id="{1C077E8F-D9FC-EDC1-F658-1EF495057DE0}" name="TimbreAnalysis">
           <FILE id="aPBl5S" name="TimbreAnalysis.h" compile="0" resource="0"
                 file="Source/Analysis/TimbreAnalysis/TimbreAnalysis.h"/>
           <FILE id="N5ncsq" name="TimbreAnalysis.cpp" compile="1" resource="0"
                 file="Source/Analysis/TimbreAnalysis/TimbreAnalysis.cpp"/>
-        </GROUP>
-        <GROUP id="{F86C79D6-A13E-2158-4EA1-11331F91F403}" name="onsetAnalysis">
-          <FILE id="ejDdXe" name="OnsetAnalysis.cpp" compile="1" resource="0"
-                file="../onsetAnalysis/OnsetAnalysis.cpp"/>
-          <FILE id="CIt2XE" name="OnsetAnalysis.h" compile="0" resource="0" file="../onsetAnalysis/OnsetAnalysis.h"/>
         </GROUP>
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">

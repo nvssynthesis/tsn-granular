@@ -10,7 +10,7 @@
 
 #pragma once
 #include "PluginEditor.h"
-#include "onsetAnalysis/OnsetAnalysis.h"
+#include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 
 class SettingsWindow	:	public juce::DocumentWindow
 {

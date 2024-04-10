@@ -11,7 +11,7 @@
 #pragma once
 #include "Analysis/EssentiaSetup.h"
 #include "Synthesis/GranularSynthesis.h"
-#include "onsetAnalysis/OnsetAnalysis.h"
+#include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 #include "Analysis/Analyzer.h"
 #include <JuceHeader.h>
 
