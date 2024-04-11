@@ -9,8 +9,14 @@
   <MAINGROUP id="HJxsOe" name="tsara-granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
+        <FILE id="E1wLhj" name="OnsetSettingsComponent.h" compile="0" resource="0"
+              file="Source/Gui/OnsetSettingsComponent.h"/>
+        <FILE id="R039nD" name="OnsetSettingsComponent.cpp" compile="1" resource="0"
+              file="Source/Gui/OnsetSettingsComponent.cpp"/>
         <FILE id="EnbI2m" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/Gui/SettingsWindow.h"/>
+        <FILE id="ESH6Vv" name="SettingsWindow.cpp" compile="1" resource="0"
+              file="Source/Gui/SettingsWindow.cpp"/>
         <FILE id="hcS6RY" name="TimbreSpaceComponent.h" compile="0" resource="0"
               file="Source/Gui/TimbreSpaceComponent.h"/>
         <FILE id="kWmG4b" name="WaveformComponent.h" compile="0" resource="0"

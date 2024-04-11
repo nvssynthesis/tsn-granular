@@ -58,7 +58,7 @@ struct bfccSettings
 		unit_sum = 0,
 		unit_max
 	};
-	normalize_e normType {normalize_e::unit_sum};
+	normalize_e normType {normalize_e::unit_max};
 	enum spectrumType_e {
 		magnitude = 0,
 		power
@@ -68,7 +68,7 @@ struct bfccSettings
 		warping = 0,
 		linear
 	};
-	weightingType_e weightType {weightingType_e::warping};
+	weightingType_e weightType {weightingType_e::linear};
 	enum dctType_e {
 		typeII = 2,
 		typeIII = 3
