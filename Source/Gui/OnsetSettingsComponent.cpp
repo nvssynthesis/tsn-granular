@@ -17,6 +17,11 @@ OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, Tsar
 	_owner(owner)
 {
 	silenceThresholdSlider._slider.setRange(0.0, 1.0);
+
+	// update onsetSettings from those of the processor
+	_onsetSettings = proc.getOnsetSettings();
+	silenceThresholdSlider._slider.setValue(_onsetSettings.silenceThreshold);
+
 	addAndMakeVisible(&silenceThresholdSlider);
 	
 	applyButton.addListener(this);

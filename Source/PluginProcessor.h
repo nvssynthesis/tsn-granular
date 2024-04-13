@@ -98,11 +98,18 @@ public:
 	std::span<float> const &getActiveSpanRef()  {
 		return audioBuffersChannels.getActiveSpanRef();
 	}
+	
+	nvs::analysis::onsetSettings getOnsetSettings(){
+		return _analyzer.getOnsetSettings();
+	}
 	void setOnsetSettings(nvs::analysis::onsetSettings settings){
 		_analyzer.setOnsetSettings(settings);
 	}
 	nvs::analysis::analysisSettings getAnalysisSettings() const {
 		return _analyzer.getAnalysisSettings();
+	}
+	void setAnalysisSettings(nvs::analysis::analysisSettings settings){
+		_analyzer.setAnalysisSettings(settings);
 	}
 private:
 	
