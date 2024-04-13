@@ -11,13 +11,13 @@
 OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
-	silenceThresholdSlider(juce::Slider::SliderStyle::LinearBarVertical, this, "silence\nthreshold"),
+	silenceThresholdSlider(juce::Slider::SliderStyle::LinearVertical, this, "silence\nthreshold"),
 	applyButton("Apply"),
 	recalculateOnsetsButton("Recalculate Onsets"),
 	_owner(owner)
 {
 	silenceThresholdSlider._slider.setRange(0.0, 1.0);
-	addAndMakeVisible(&silenceThresholdSlider._slider);
+	addAndMakeVisible(&silenceThresholdSlider);
 	
 	applyButton.addListener(this);
 	addAndMakeVisible(&applyButton);
@@ -44,15 +44,14 @@ void OnsetSettingsComponent::placeMe(int const topPad, int const leftPad){
 	bounds.setY(barPad + topPad);
 	setBounds(bounds);
 }
-void OnsetSettingsComponent::placeSlider(int const topPad, int const leftPad, int const bottomPad){
-	int const sliderWidth = getWidth() / 10;
-	auto const label_h = silenceThresholdSlider._label.getHeight();
-	int const sliderHeight = getHeight() - topPad - bottomPad;
-	silenceThresholdSlider._slider.setBounds(leftPad, topPad + label_h, sliderWidth, sliderHeight);
-}
+
 void OnsetSettingsComponent::resized() {
 	placeMe(10, 10);			// top now +10 +10
-	placeSlider(10, 10, 60);	// top now +10 +60
+	int const pad = 10;
+	int const sliderWidth = getWidth() / 10;
+	int const sliderHeight = getHeight() - 2*pad;
+
+	silenceThresholdSlider.setBounds(pad, pad, sliderWidth, sliderHeight);
 	
 	applyButton.setSize(100, 40);
 	recalculateOnsetsButton.setSize(100, 40);

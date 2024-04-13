@@ -11,6 +11,7 @@
 #include "../PluginEditor.h"// without explicating parent, preprocessor was finding PluginEditor in slicer_granular
 #include "../Analysis/Settings.h"
 #include "NonAutomatableTitledSlider.h"
+#include "fmt/core.h"
 
 class OnsetSettingsComponent	:	public juce::Component,
 									private juce::Button::Listener,
@@ -20,7 +21,6 @@ public:
 	OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed);
 	void paint(juce::Graphics &g) override;
 	void placeMe(int const topPad, int const leftPad);
-	void placeSlider(int const topPad, int const leftPad, int const bottomPad);
 	void resized() override;
 private:
 	TsaraGranularAudioProcessor& proc;

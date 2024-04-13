@@ -8,7 +8,6 @@
   ==============================================================================
 */
 
-#pragma once
 #include "SettingsWindow.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 
