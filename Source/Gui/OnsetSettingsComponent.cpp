@@ -1,29 +1,23 @@
 //
 //  OnsetSettingsComponent.cpp
-//  tsara-granular - VST3
+//  tsara-granular
 //
 //  Created by Nicholas Solem on 4/10/24.
 //  Copyright © 2024 nvssynthesis. All rights reserved.
 //
 
-//#include "PluginEditor.h"
 #include "OnsetSettingsComponent.h"
-//#include "SettingsWindow.h"
-
 
 OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
+	silenceThresholdSlider(juce::Slider::SliderStyle::LinearBarVertical, this, "silence\nthreshold"),
 	applyButton("Apply"),
 	recalculateOnsetsButton("Recalculate Onsets"),
 	_owner(owner)
 {
-	silenceThresholdSlider.addListener(this);
-	silenceThresholdSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
-	silenceThresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 30);
-	silenceThresholdSlider.setNumDecimalPlacesToDisplay(2);
-	silenceThresholdSlider.setRange(0.0, 1.0);
-	addAndMakeVisible(&silenceThresholdSlider);
+	silenceThresholdSlider._slider.setRange(0.0, 1.0);
+	addAndMakeVisible(&silenceThresholdSlider._slider);
 	
 	applyButton.addListener(this);
 	addAndMakeVisible(&applyButton);
@@ -52,8 +46,9 @@ void OnsetSettingsComponent::placeMe(int const topPad, int const leftPad){
 }
 void OnsetSettingsComponent::placeSlider(int const topPad, int const leftPad, int const bottomPad){
 	int const sliderWidth = getWidth() / 10;
+	auto const label_h = silenceThresholdSlider._label.getHeight();
 	int const sliderHeight = getHeight() - topPad - bottomPad;
-	silenceThresholdSlider.setBounds(topPad, leftPad, sliderWidth, sliderHeight);
+	silenceThresholdSlider._slider.setBounds(leftPad, topPad + label_h, sliderWidth, sliderHeight);
 }
 void OnsetSettingsComponent::resized() {
 	placeMe(10, 10);			// top now +10 +10
@@ -69,7 +64,7 @@ void OnsetSettingsComponent::resized() {
 }
 
 void OnsetSettingsComponent::sliderValueChanged (juce::Slider* slider) {
-	if (slider == &silenceThresholdSlider){
+	if (slider == &silenceThresholdSlider._slider){
 		_onsetSettings.silenceThreshold = slider->getValue();
 	}
 }

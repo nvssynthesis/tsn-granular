@@ -6,16 +6,11 @@
 //  Copyright © 2024 nvssynthesis. All rights reserved.
 //
 
-#ifndef OnsetSettingsComponent_h
-#define OnsetSettingsComponent_h
-
+#pragma once
 #include <JuceHeader.h>
-#include "../PluginEditor.h"	// without explicating the parent directory, preprocessor was finding PluginEditor in slicer_granular
+#include "../PluginEditor.h"// without explicating parent, preprocessor was finding PluginEditor in slicer_granular
 #include "../Analysis/Settings.h"
-
-//class SettingsWindow;
-//class TsaraGranularAudioProcessor;
-//class TsaraGranularAudioProcessorEditor;
+#include "NonAutomatableTitledSlider.h"
 
 class OnsetSettingsComponent	:	public juce::Component,
 									private juce::Button::Listener,
@@ -33,7 +28,7 @@ private:
 	nvs::analysis::analysisSettings _analysisSettings;
 	nvs::analysis::onsetSettings _onsetSettings;
 	
-	juce::Slider silenceThresholdSlider;
+	NonAutomatableTitledSlider silenceThresholdSlider;
 	juce::TextButton applyButton;
 	juce::TextButton recalculateOnsetsButton;
 
@@ -41,5 +36,3 @@ private:
 	void sliderValueChanged (juce::Slider* slider) override;
 	void buttonClicked(juce::Button *button) override;
 };
-
-#endif /* OnsetSettingsComponent_h */
