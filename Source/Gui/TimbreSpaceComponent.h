@@ -55,9 +55,9 @@ class TimbreSpaceComponent	:	public juce::Component
 
 public:
 	TimbreSpaceComponent(){
-		timbres5D.add({.p2D{juce::Point(0.f, 0.f)}, .p3D{1.f, 0.5f, 0.2f}});
-		timbres5D.add({.p2D{0.5f, 0.5f}, .p3D{0.f, 0.8f, 0.9f}});
-		add5DPoint({-0.8f, 0.2f}, {0.1f, 0.2f, 0.3f});
+//		timbres5D.add({.p2D{juce::Point(0.f, 0.f)}, .p3D{1.f, 0.5f, 0.2f}});
+//		timbres5D.add({.p2D{0.5f, 0.5f}, .p3D{0.f, 0.8f, 0.9f}});
+//		add5DPoint({-0.8f, 0.2f}, {0.1f, 0.2f, 0.3f});
 	}
 	void add2DPoint(float x, float y){
 		point_t p(x, y);
@@ -95,9 +95,9 @@ public:
 		auto const h = r.getHeight();
 		g.setColour(juce::Colours::blue);
 		
-		auto pointToRect = [](point_t p) -> juce::Rectangle<float> {
+		auto pointToRect = [](point_t p, float pt_sz) -> juce::Rectangle<float> {
 			point_t upperLeft{p}, bottomRight{p};
-			constexpr float halfDotSize {2.f};
+			float halfDotSize {2.f * pt_sz};
 			upperLeft.addXY(-halfDotSize, -halfDotSize);
 			bottomRight.addXY(halfDotSize, halfDotSize);
 			return juce::Rectangle<float>(upperLeft, bottomRight);
@@ -109,14 +109,32 @@ public:
 			p *= 0.5f;			// [-1..1]
 			return p;
 		};
+		auto softclip = [](float x){
+			float const p {1.3f};
+			float const q {0.7f};
+			float const s {0.7f};
+			float const t {2.5f};
+			float const y = t * ((q*x - p) / (s + std::abs(q*x - p))) + p/2;
+			return y;
+		};
+		auto softclip2 = [](float x){
+			float const p {0.f};
+			float const q {0.2f};
+			float const s {0.5f};
+			float const t {4.5f};
+			float const y = t * ((q*x - p) / (s + std::abs(q*x - p))) + p/2;
+			return y;
+		};
 		for (auto p5 : timbres5D){
 			point_t p = p5.get2D();
 			auto const p3 = p5.get3D();
 			using nvs::memoryless::biuni;
-			g.setColour(juce::Colour(biuni(p3[0]), biuni(p3[1]), biuni(p3[2]), 1.f));
+			std::array<float, 3> uni_pts3 {biuni(p3[0]), biuni(p3[1]), biuni(p3[2])};
+			g.setColour(juce::Colour(uni_pts3[0], uni_pts3[1], uni_pts3[2], 1.f));
 			p = transformFromZeroOrigin(p);
 			p *= point_t(w,h);
-			auto rect = pointToRect(p);
+			float const closeness = uni_pts3[0] * uni_pts3[1] * uni_pts3[2] * 10.f;
+			auto const rect = pointToRect(p, softclip2(closeness));
 			g.fillEllipse(rect);
 		}
 	}
