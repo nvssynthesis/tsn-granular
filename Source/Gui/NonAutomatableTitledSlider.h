@@ -22,9 +22,9 @@ struct NonAutomatableTitledSlider : public juce::Component
 							   juce::String name,
 				   juce::Slider::TextEntryBoxPosition entryPos = juce::Slider::TextBoxBelow)
 	:
+	_name(name.replaceCharacter(' ', '\n')),
 	_slider(),
-	_label(name, name),
-	_name(name)
+	_label(_name, _name)
 	{
 		addChildComponent(_slider);
 		addChildComponent(_label);
@@ -41,6 +41,8 @@ struct NonAutomatableTitledSlider : public juce::Component
 		
 		_slider.setName(name);
 		_slider.setTitle(name);
+		
+		_slider.setRange(0.0, 1.0);
 
 		_slider.addListener(listener);
 		addAndMakeVisible(_slider);
@@ -62,11 +64,16 @@ struct NonAutomatableTitledSlider : public juce::Component
 		int const slider_h = getHeight() - label_h - bottomPad;
 		_slider.setBounds(leftPad, topPad + label_h, getWidth(), slider_h);
 	}
-	
-	Slider _slider;
-	Label _label;
+	void setValue(double value){
+		_slider.setValue(value);
+	}
+	Slider const *getSlider() const {
+		return &_slider;
+	}
 private:
 	juce::String _name;
+	Slider _slider;
+	Label _label;
 	juce::ComponentBoundsConstrainer constrainer;
 };
 

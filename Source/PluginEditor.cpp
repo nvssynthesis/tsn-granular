@@ -300,7 +300,8 @@ void TsaraGranularAudioProcessorEditor::resized()
 	}
 	{
 		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.getHeight();
-		timbreSpaceComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), timbreSpaceComponentHeight);
+		auto const timbreSpaceComponentWidth = localBounds.getWidth() * 0.5f;
+		timbreSpaceComponent.setBounds(localBounds.getX(), y, timbreSpaceComponentWidth, timbreSpaceComponentHeight);
 		y += timbreSpaceComponent.getHeight();
 	}
 }

@@ -11,16 +11,14 @@
 OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
-	silenceThresholdSlider(juce::Slider::SliderStyle::LinearVertical, this, "silence\nthreshold"),
+	silenceThresholdSlider(juce::Slider::SliderStyle::LinearVertical, this, "silence threshold"),
 	applyButton("Apply"),
 	recalculateOnsetsButton("Recalculate Onsets"),
 	_owner(owner)
 {
-	silenceThresholdSlider._slider.setRange(0.0, 1.0);
-
 	// update onsetSettings from those of the processor
 	_onsetSettings = proc.getOnsetSettings();
-	silenceThresholdSlider._slider.setValue(_onsetSettings.silenceThreshold);
+	silenceThresholdSlider.setValue(_onsetSettings.silenceThreshold);
 
 	addAndMakeVisible(&silenceThresholdSlider);
 	
@@ -68,7 +66,7 @@ void OnsetSettingsComponent::resized() {
 }
 
 void OnsetSettingsComponent::sliderValueChanged (juce::Slider* slider) {
-	if (slider == &silenceThresholdSlider._slider){
+	if (slider == silenceThresholdSlider.getSlider()){
 		_onsetSettings.silenceThreshold = slider->getValue();
 	}
 }
