@@ -10,7 +10,7 @@
 
 #pragma once
 #include "Analysis/EssentiaSetup.h"
-#include "Synthesis/GranularSynthesis.h"
+#include "../slicer_granular/Source/Synthesis/GranularSynthesis.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 #include "Analysis/Analyzer.h"
 #include <JuceHeader.h>

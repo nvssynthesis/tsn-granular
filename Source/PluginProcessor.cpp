@@ -247,7 +247,7 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	}
 	
 	// normally we'd have the synth voice as a juce synth voice and have to dynamic cast before setting its params
-	paramSet<0, static_cast<int>(params_e::count)>();
+	paramSet<0, static_cast<int>(params_e::count_main_granular_params)>();
 
 	float trigger = static_cast<float>(triggerValFromEditor);
 	
@@ -356,7 +356,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor:
 												   nullptr);	// valueFromString
 	};
 	
-	for (size_t i = 0; i < static_cast<size_t>(params_e::count); ++i){
+	for (size_t i = 0; i < static_cast<size_t>(params_e::count_main_granular_params); ++i){
 		params_e param = static_cast<params_e>(i);
 		layout.add(a(param));
 	}

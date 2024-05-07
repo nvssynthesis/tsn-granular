@@ -9,7 +9,7 @@
 */
 
 #include "TsaraGranularSynth.h"
-#include "algo_util.h"
+#include "../slicer_granular/Source/algo_util.h"
 #include "fmt/core.h"
 
 namespace nvs	{

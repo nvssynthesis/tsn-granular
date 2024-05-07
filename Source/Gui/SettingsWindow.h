@@ -9,7 +9,7 @@
 */
 
 #pragma once
-#include "PluginEditor.h"
+#include "./PluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
 
 class SettingsWindow	:	public juce::DocumentWindow

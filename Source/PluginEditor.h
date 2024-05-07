@@ -1,14 +1,14 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginProcessor.h"
-#include "params.h"
-#include "dsp_util.h"
-#include "Gui/FileSelectorComponent.h"
-#include "Gui/WaveformComponent.h"
-#include "Gui/SliderColumn.h"
-#include "Gui/TimbreSpaceComponent.h"
-#include "Gui/MainParamsComponent.h"
+#include "./PluginProcessor.h"
+#include "../slicer_granular/Source/params.h"
+#include "../slicer_granular/Source/dsp_util.h"
+#include "../slicer_granular/Source/Gui/FileSelectorComponent.h"
+#include "../slicer_granular/Source/Gui/WaveformComponent.h"
+#include "../slicer_granular/Source/Gui/SliderColumn.h"
+#include "../slicer_granular/Source/Gui/MainParamsComponent.h"
+#include "./Gui/TimbreSpaceComponent.h"
 
 //==============================================================================
 /** TODO:

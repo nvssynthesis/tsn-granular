@@ -11,9 +11,10 @@
 #include <JuceHeader.h>
 #include "Synthesis/TsaraGranularSynth.h"
 #include "Analysis/ThreadedAnalyzer.h"
-#include "AudioBuffersChannels.h"
-#include "dsp_util.h"
-#include "params.h"
+#include "../slicer_granular/Source/AudioBuffersChannels.h"
+#include "../slicer_granular/Source/dsp_util.h"
+#include "../slicer_granular/Source/misc_util.h"
+#include "../slicer_granular/Source/params.h"
 
 #if FROZEN_MAP
 	#include "frozen/map.h"
@@ -85,8 +86,8 @@ public:
 	
 	bool triggerValFromEditor {false};
 
-	nvs::util::editorInformant<float> rmsInformant;
-	nvs::util::editorInformant<float> rmsWAinformant;
+	nvs::util::EditorInformant<float> rmsInformant;
+	nvs::util::EditorInformant<float> rmsWAinformant;
 	
 	juce::AudioFormatManager &getAudioFormatManager(){
 		return formatManager;
@@ -146,7 +147,7 @@ private:
 #if (STATIC_MAP | FROZEN_MAP)
 	using granMembrSetFunc = void(nvs::gran::genGranPoly1::*) (float);
 
-	static constexpr inline MAP<params_e, granMembrSetFunc, static_cast<size_t>(params_e::count)>
+	static constexpr inline MAP<params_e, granMembrSetFunc, static_cast<size_t>(params_e::count_main_granular_params)>
 	paramSetterMap {
 		std::make_pair<params_e, granMembrSetFunc>(params_e::transpose, 		&nvs::gran::TsaraGranular::setTranspose),
 		std::make_pair<params_e, granMembrSetFunc>(params_e::position, 			&nvs::gran::TsaraGranular::setPosition),
@@ -166,7 +167,7 @@ private:
 	template <auto Start, auto End>
 	constexpr void paramSet();
 	
-	MAP<params_e, float *, static_cast<size_t>(params_e::count)>
+	MAP<params_e, float *, static_cast<size_t>(params_e::count_main_granular_params)>
 	lastParamsMap{
 		std::make_pair<params_e, float *>(params_e::transpose, 	&lastTranspose),
 		std::make_pair<params_e, float *>(params_e::position, 	&lastPosition),
