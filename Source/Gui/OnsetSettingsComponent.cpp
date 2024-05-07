@@ -76,6 +76,6 @@ void OnsetSettingsComponent::buttonClicked(juce::Button *button) {
 	}
 	else if (button == &recalculateOnsetsButton){
 		proc.setOnsetSettings(_onsetSettings);
-		editor.askForAnalysis();
+		proc.askForAnalysis();
 	}
 }

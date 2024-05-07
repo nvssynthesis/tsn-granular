@@ -9,6 +9,17 @@
   <MAINGROUP id="HJxsOe" name="tsara-granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
+        <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
+          <FILE id="kWmG4b" name="WaveformComponent.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/WaveformComponent.h"/>
+          <FILE id="Au4NaQ" name="SliderColumn.h" compile="0" resource="0" file="slicer_granular/Source/Gui/SliderColumn.h"/>
+          <FILE id="JuYcIg" name="MainParamsComponent.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/MainParamsComponent.h"/>
+          <FILE id="aIDqI0" name="FileSelectorComponent.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/FileSelectorComponent.h"/>
+          <FILE id="WeDqJ6" name="AttachedSlider.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/AttachedSlider.h"/>
+        </GROUP>
         <FILE id="R9RZvc" name="NonAutomatableTitledSlider.h" compile="0" resource="0"
               file="Source/Gui/NonAutomatableTitledSlider.h"/>
         <FILE id="E1wLhj" name="OnsetSettingsComponent.h" compile="0" resource="0"
@@ -21,15 +32,6 @@
               file="Source/Gui/SettingsWindow.cpp"/>
         <FILE id="hcS6RY" name="TimbreSpaceComponent.h" compile="0" resource="0"
               file="Source/Gui/TimbreSpaceComponent.h"/>
-        <FILE id="kWmG4b" name="WaveformComponent.h" compile="0" resource="0"
-              file="slicer_granular/Source/Gui/WaveformComponent.h"/>
-        <FILE id="Au4NaQ" name="SliderColumn.h" compile="0" resource="0" file="slicer_granular/Source/Gui/SliderColumn.h"/>
-        <FILE id="JuYcIg" name="MainParamsComponent.h" compile="0" resource="0"
-              file="slicer_granular/Source/Gui/MainParamsComponent.h"/>
-        <FILE id="aIDqI0" name="FileSelectorComponent.h" compile="0" resource="0"
-              file="slicer_granular/Source/Gui/FileSelectorComponent.h"/>
-        <FILE id="WeDqJ6" name="AttachedSlider.h" compile="0" resource="0"
-              file="slicer_granular/Source/Gui/AttachedSlider.h"/>
       </GROUP>
       <GROUP id="{4D89421A-9B73-C464-6F0A-912A784F3BFA}" name="Analysis">
         <FILE id="hMG2pR" name="Analyzer.h" compile="0" resource="0" file="Source/Analysis/Analyzer.h"/>
@@ -54,10 +56,16 @@
         </GROUP>
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">
-        <FILE id="nbX3ZR" name="GranularSynthesis.h" compile="0" resource="0"
-              file="slicer_granular/Source/Synthesis/GranularSynthesis.h"/>
-        <FILE id="Zc0J6U" name="GranularSynthesis.cpp" compile="1" resource="0"
-              file="slicer_granular/Source/Synthesis/GranularSynthesis.cpp"/>
+        <GROUP id="{36156BBE-4ED1-B2BC-F23A-9ECB50C4E569}" name="slicer">
+          <FILE id="nIWTUN" name="JuceGranularSynth.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Synthesis/JuceGranularSynth.cpp"/>
+          <FILE id="Ra8SMa" name="JuceGranularSynth.h" compile="0" resource="0"
+                file="slicer_granular/Source/Synthesis/JuceGranularSynth.h"/>
+          <FILE id="nbX3ZR" name="GranularSynthesis.h" compile="0" resource="0"
+                file="slicer_granular/Source/Synthesis/GranularSynthesis.h"/>
+          <FILE id="Zc0J6U" name="GranularSynthesis.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Synthesis/GranularSynthesis.cpp"/>
+        </GROUP>
         <FILE id="XzV9xU" name="TsaraGranularSynth.h" compile="0" resource="0"
               file="Source/Synthesis/TsaraGranularSynth.h"/>
         <FILE id="pXTMeF" name="TsaraGranularSynth.cpp" compile="1" resource="0"

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "./PluginProcessor.h"
+#include "../slicer_granular/Source/PluginEditor.h"
 #include "../slicer_granular/Source/params.h"
 #include "../slicer_granular/Source/dsp_util.h"
 #include "../slicer_granular/Source/Gui/FileSelectorComponent.h"
@@ -33,7 +34,6 @@ public:
 	void filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged) override;
 	void readFile (const juce::File& fileToRead);
 	//===============================================================================
-	void askForAnalysis();
 	void paintMarkers(std::vector<float> onsetsInSeconds,
 					  std::vector<std::vector<float>> PCA);
 	
@@ -70,25 +70,7 @@ private:
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 
 	void setPositionSliderFromChosenPoint();	// gets called by mouseDown, mouseDrag
-	
-	void update()
-	{
-		return;
-	   
-		const float level = audioProcessor.rmsInformant.val;
-		const float recentLevel = audioProcessor.rmsWAinformant.val;
-
-		const bool needsToRepaint = (level > (recentLevel * 1.2f));
 		
-		if (needsToRepaint){
-			++colourOffsetIndex;
-			colourOffsetIndex %= gradientColors.size();
-			repaint();
-		}
-	}
-	juce::VBlankAttachment vbAttachment { this, [this] { update(); } };
-	
 	TsaraGranularAudioProcessor& audioProcessor;
-	
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsaraGranularAudioProcessorEditor)
 };

@@ -17,7 +17,6 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
 ,	mainParamsComp(p.apvts)
 ,	waveformAndPositionComponent(512, p.getAudioFormatManager(), p.apvts)
-,	triggeringButton("Manual Trigger")	// unused
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
@@ -30,7 +29,10 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
-		askForAnalysis();
+		if (TsaraGranularAudioProcessor* a = dynamic_cast<TsaraGranularAudioProcessor*>(&processor)){
+			fmt::print("success dynamic casting");
+			a->askForAnalysis();
+		}
 	};
 	
 	addAndMakeVisible(writeWavsButton);
@@ -41,10 +43,6 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 		closeAllWindows();
 		popupSettings(false);
 	};
-	
-	addAndMakeVisible(triggeringButton);
-	triggeringButton.onClick = [this, &p]{ updateToggleState(&triggeringButton, "Trigger", p.triggerValFromEditor);	};
-	triggeringButton.setClickingTogglesState(true);
 	
 	addAndMakeVisible(positionQuantizeStrengthComboBox);
 	positionQuantizeStrengthComboBox.addItem("None", 1);
@@ -111,12 +109,6 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setResizable (true, ! native);
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
-}
-void TsaraGranularAudioProcessorEditor::askForAnalysis(){
-	if (TsaraGranularAudioProcessor* a = dynamic_cast<TsaraGranularAudioProcessor*>(&processor)){
-		fmt::print("success dynamic casting");
-		a->askForAnalysis();
-	}
 }
 void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
 													 std::vector<std::vector<float>> PCA){
@@ -272,7 +264,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 		settingsButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		buttonWidth = buttonHeight;
-		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
+//		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		positionQuantizeStrengthComboBox.setBounds(x, y, 200, buttonHeight);
 		y += buttonHeight;
@@ -317,7 +309,7 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	
 	audioProcessor.writeToLog(st_str);
 	audioProcessor.loadAudioFile(fileToRead, waveformAndPositionComponent.wc.getThumbnail());
-	askForAnalysis();
+	audioProcessor.askForAnalysis();
 }
 
 void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged)
