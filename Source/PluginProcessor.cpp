@@ -15,13 +15,12 @@ TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
 					   ),
 #endif
 apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
-, tsara_granular(lastSampleRate, audioBuffersChannels.getActiveSpanRef(),
-								audioBuffersChannels.getFileSampleRateRef(), N_GRAINS)
-, _analyzer(this)	// effectively adding this as listener to the analyzer
-, logFile(juce::File::getSpecialLocation
+,	tsara_granular_synth_juce(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), audioBuffersChannels.getFileSampleRateRef(), num_voices)
+, 	_analyzer(this)	// effectively adding this as listener to the analyzer
+, 	logFile(juce::File::getSpecialLocation
 		  (juce::File::SpecialLocationType::currentApplicationFile)
 		  .getSiblingFile("log.txt"))
-, fileLogger(logFile, "hello")
+, 	fileLogger(logFile, "hello")
 {
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
@@ -106,6 +105,15 @@ void TsaraGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesP
 {
 	lastSampleRate = sampleRate;
 	lastSamplesPerBlock = samplesPerBlock;
+	
+	tsara_granular_synth_juce.setCurrentPlaybackSampleRate (sampleRate);
+	for (int i = 0; i < tsara_granular_synth_juce.getNumVoices(); i++)
+	{
+		if (auto voice = dynamic_cast<GranularVoice*>(tsara_granular_synth_juce.getVoice(i)))
+		{
+			voice->prepareToPlay (sampleRate, samplesPerBlock);
+		}
+	}
 }
 
 void TsaraGranularAudioProcessor::releaseResources(){}
@@ -213,25 +221,6 @@ void TsaraGranularAudioProcessor::writeEvents(){
 	nvs::analysis::writeEventsToWav(wave, _analyzer.getOnsetsInSeconds(), currentFile, _analyzer.getAnalyzer());
 }
 
-#if (STATIC_MAP | FROZEN_MAP)
-template <auto Start, auto End>
-constexpr void TsaraGranularAudioProcessor::paramSet(){
-	float tmp;
-
-	if constexpr (Start < End){
-		constexpr params_e p = static_cast<params_e>(Start);
-		tmp = *apvts.getRawParameterValue(getParamElement<p, param_elem_e::name>());
-		float *last = lastParamsMap.at(p);
-		if (tmp != *last){
-			*last = tmp;
-			granMembrSetFunc setFunc = paramSetterMap.at(p);
-			(tsara_granular.*setFunc)(tmp);	// could replace with std::invoke
-		}
-		
-		paramSet<Start + 1, End>();
-	}
-}
-#endif
 
 void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
@@ -239,52 +228,24 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 	auto totalNumInputChannels  = getTotalNumInputChannels();
 	auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i){
 		buffer.clear (i, 0, buffer.getNumSamples());
+	}
+	
+	tsara_granular_synth_juce.granularMainParamSet<0, num_voices>(apvts);	// this just sets the params internal to the granular synth (effectively a voice)
+	tsara_granular_synth_juce.envelopeParamSet<0, num_voices>(apvts);
 	
 	if ( !(audioBuffersChannels.getActiveSpanRef().size()) ){
 		return;
 	}
 	
-	// normally we'd have the synth voice as a juce synth voice and have to dynamic cast before setting its params
-	paramSet<0, static_cast<int>(params_e::count_main_granular_params)>();
-
-	float trigger = static_cast<float>(triggerValFromEditor);
+	tsara_granular_synth_juce.renderNextBlock(buffer,
+						  midiMessages,
+						  0,
+						  buffer.getNumSamples());
+	// apply gain based on normalizationValue
+	// limit with jlimit?
 	
-	for (const juce::MidiMessageMetadata metadata : midiMessages){
-		if (metadata.numBytes == 3){
-			fileLogger.writeToLog (metadata.getMessage().getDescription());
-			juce::MidiMessage message = metadata.getMessage();
-			if (message.isNoteOn()){
-				tsara_granular.noteOn(message.getNoteNumber(), message.getVelocity());
-			}
-			else if (message.isNoteOff()){
-				tsara_granular.noteOff(message.getNoteNumber());
-			}
-			else if (message.isAftertouch()){
-				// do something with it...
-				message.getAfterTouchValue();
-			}
-			else if (message.isPitchWheel()){
-				// do something with it...
-				message.getPitchWheelValue();
-			}
-		}
-	}
-	
-	tsara_granular.shuffleIndices();
-	for (auto samp = 0; samp < buffer.getNumSamples(); ++samp){
-		std::array<float, 2> output = tsara_granular(trigger);
-
-		rms.accumulate(output[0] + output[1]);
-		for (int channel = 0; channel < totalNumOutputChannels; ++channel)
-		{
-			output[channel] = juce::jlimit(-1.f, 1.f, output[channel] * normalizationValue);
-
-			auto* channelData = buffer.getWritePointer (channel);
-			*(channelData + samp) = output[channel];
-		}
-	}
 	const auto rms_val = rms.query();
 	rmsInformant.val = rms_val;
 	rmsWAinformant.val = weightAvg(rms_val);
@@ -325,19 +286,22 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 		// then load onsets into synth
 		auto onsets = _analyzer.getOnsetsInSeconds();
 		if (onsets.size()){
-			tsara_granular.loadOnsets(onsets);
+			tsara_granular_synth_juce.loadOnsets(onsets);
 		}
 		fmt::print("processor: change listener callback: got things\n");
 	}
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor::createParameterLayout(){
-	std::cout << "createParamLayout\n";
+#if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
+	fmt::print("createParamLayout\n");
+#endif
 	
 	juce::AudioProcessorValueTreeState::ParameterLayout layout;
+	auto mainGranularParams = std::make_unique<juce::AudioProcessorParameterGroup>("Gran", "MainGranularParams", "|");
 	
 	auto stringFromValue = [&](float value, int maximumStringLength){
-		return juce::String (value, 4);	//getNumDecimalPlacesToDisplay()
+		return juce::String (value, 2);	//getNumDecimalPlacesToDisplay()
 	};
 	
 	auto a = [&](params_e p){
@@ -358,9 +322,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor:
 	
 	for (size_t i = 0; i < static_cast<size_t>(params_e::count_main_granular_params); ++i){
 		params_e param = static_cast<params_e>(i);
-		layout.add(a(param));
+		mainGranularParams->addChild(a(param));
 	}
+	layout.add(std::move(mainGranularParams));
 	
+	auto envelopeParams = std::make_unique<juce::AudioProcessorParameterGroup>("Env", "EnvelopeParams", "|");
+	
+	for (size_t i = static_cast<size_t>(params_e::count_main_granular_params) + 1;
+		 i < static_cast<size_t>(params_e::count_envelope_params);
+		 ++i){
+		params_e param = static_cast<params_e>(i);
+		envelopeParams->addChild(a(param));
+	}
+	layout.add(std::move(envelopeParams));
 	return layout;
 }
 

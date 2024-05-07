@@ -44,11 +44,10 @@ private:
 	juce::Image backgroundImage;
 	
 	FileSelectorComponent fileComp;
-	MainParamsComponent mainParamsComp;
+	TabbedPagesComponent tabbedPages;
 	WaveformAndPositionComponent waveformAndPositionComponent;
 	TimbreSpaceComponent timbreSpaceComponent;
 
-	juce::ToggleButton triggeringButton;
 	std::array<juce::Colour, 3> gradientColors {
 		juce::Colours::darkgrey,
 		juce::Colours::darkred,

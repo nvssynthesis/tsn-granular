@@ -18,32 +18,23 @@
 
 /** TODO:
 	-bake in some way to be sure that the currently held onsets match the current span
-	
- */
+*/
+static constexpr size_t N_GRAINS =
+#if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
+								15;
+#else
+								30;
+#endif
+
 namespace nvs	{
 namespace gran	{
 class TsaraGranular		:	public genGranPoly1
 {
 public: 
 	TsaraGranular(double const &sampleRate, std::span<float> const &wavespan,
-											double const&fileSampleRate, size_t nGrains);
+											double const&fileSampleRate, unsigned long seed = 1234567890UL);
 	virtual ~TsaraGranular() = default;
-
 	void loadOnsets(std::span<float> const onsetsInSeconds);
-#if 0
-	void writeEventsToWav(std::string_view ogPath, nvs::analysis::Analyzer &analyzer) {
-		if (!_wavespan.data() | !_onsetsInSeconds.data()){
-			std::cerr << "TsaraGranular::writeEventsToWav attempt using null data\n";
-			return;
-		}
-		std::vector<float> wave(_wavespan.size());
-		wave.assign(_wavespan.begin(), _wavespan.end());
-		
-		std::vector<float> onsets(_onsetsInSeconds.size());
-		onsets.assign(_onsetsInSeconds.begin(), _onsetsInSeconds.end());
-		nvs::analysis::writeEventsToWav(wave, onsets, ogPath, analyzer.ess_hold.factory, analyzer._splitSettings);
-	}
-#endif
 private:
 	std::vector<float> _onsetsNormalized;
 	

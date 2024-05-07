@@ -16,8 +16,8 @@ namespace nvs	{
 namespace gran	{
 
 TsaraGranular::TsaraGranular(double const &sampleRate, std::span<float> const &wavespan,
-														double const &fileSampleRate, size_t nGrains)
-:	genGranPoly1(sampleRate, wavespan, fileSampleRate, nGrains)
+														double const &fileSampleRate, unsigned long seed)
+:	genGranPoly1(sampleRate, wavespan, fileSampleRate, seed)
 {}
 //====================================================================================
 void TsaraGranular::loadOnsets(std::span<float> const onsetsInSeconds){

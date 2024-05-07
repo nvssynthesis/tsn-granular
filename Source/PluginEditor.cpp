@@ -15,7 +15,7 @@
 TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor& p)
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
-,	mainParamsComp(p.apvts)
+,	tabbedPages(p.apvts)
 ,	waveformAndPositionComponent(512, p.getAudioFormatManager(), p.apvts)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
@@ -54,7 +54,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 		fmt::print("current id: {}", id);
 	};
 	
-	addAndMakeVisible(mainParamsComp);
+	addAndMakeVisible(tabbedPages);
 	
 	addAndMakeVisible(waveformAndPositionComponent);
 	
@@ -172,11 +172,12 @@ void TsaraGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
 		double const onsetNormalized = onsetSamps / lengthSamps;
-			mainParamsComp.setSliderParam(params_e::position, onsetNormalized);
+		std::string a = getParamElement<params_e::position, param_elem_e::name>();
+		auto posParam = audioProcessor.apvts.getParameter(a);
+		posParam->setValueNotifyingHost(onsetNormalized);
 	}
 	if (audioProcessor.getOnsetwiseBFCCs().size()){
 		std::vector<float> thisBfccSet = audioProcessor.getOnsetwiseBFCCs()[pIdx];
-		
 		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
 	}
 }
@@ -190,7 +191,7 @@ void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event)
 //==============================================================================
 void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
-	if (false){
+	if (true){
 		juce::Graphics tg(backgroundImage);
 		
 		juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
@@ -264,7 +265,6 @@ void TsaraGranularAudioProcessorEditor::resized()
 		settingsButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		buttonWidth = buttonHeight;
-//		triggeringButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		positionQuantizeStrengthComboBox.setBounds(x, y, 200, buttonHeight);
 		y += buttonHeight;
@@ -280,10 +280,10 @@ void TsaraGranularAudioProcessorEditor::resized()
 		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.getHeight();
 
 		int const alottedMainParamsHeight = mainParamsRemainingHeight - y + smallPad;
+		
 		int const alottedMainParamsWidth = localBounds.getWidth();
-		juce::Rectangle<int> mainParamsBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
-		mainParamsComp.setBounds(mainParamsBounds);
-		y += mainParamsComp.getHeight();
+		tabbedPages.setBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
+		y += tabbedPages.getHeight();
 	}
 	{
 		auto const waveformComponentHeight = waveformCompRemainingHeightRatio * localBounds.getHeight();
