@@ -232,7 +232,6 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 
 void TsaraGranularAudioProcessorEditor::resized()
 {
-	fmt::print("resize called\n");
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
 	

@@ -11,7 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "nvs_libraries/include/nvs_memoryless.h"
+#include "../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "fmt/core.h"
 
 static bool inRange0_1(float x){
