@@ -64,7 +64,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
 	
 	constrainer.setMinimumSize(620, 500);
-	setSize (800, 550);
+	setSize (680, 950);
 	setResizable(true, true);
 }
 
@@ -269,9 +269,9 @@ void TsaraGranularAudioProcessorEditor::resized()
 		y += buttonHeight;
 //		y += smallPad;
 	}
-	auto const mainParamsRemainingHeightRatio  = 0.55f;
-	auto const waveformCompRemainingHeightRatio = 0.10f;
-	auto const timbreSpaceRemainingHeightRatio = 0.35f;
+	auto const mainParamsRemainingHeightRatio  = 0.37f;
+	auto const waveformCompRemainingHeightRatio = 0.12f;
+	auto const timbreSpaceRemainingHeightRatio = 0.51f;
 	auto const totalRemainingHeightRatiosSummed = (mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio) ;
 	assert(totalRemainingHeightRatiosSummed >= 0.999f);
 	assert(totalRemainingHeightRatiosSummed <= 1.001f);
@@ -291,7 +291,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 	}
 	{
 		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.getHeight();
-		auto const timbreSpaceComponentWidth = localBounds.getWidth() * 0.5f;
+		auto const timbreSpaceComponentWidth = localBounds.getWidth();
 		timbreSpaceComponent.setBounds(localBounds.getX(), y, timbreSpaceComponentWidth, timbreSpaceComponentHeight);
 		y += timbreSpaceComponent.getHeight();
 	}

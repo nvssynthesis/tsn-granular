@@ -88,7 +88,7 @@ public:
 		timbres5D.clear();
 	}
 	void paint(juce::Graphics &g) override {
-		g.fillAll(juce::Colours::snow);
+		g.fillAll(juce::Colours::rebeccapurple);
 
 		juce::Rectangle<float> r = g.getClipBounds().toFloat();
 		auto const w = r.getWidth();
