@@ -41,10 +41,10 @@
  #define JucePlugin_Enable_ARA             0
 #endif
 #ifndef  JucePlugin_Name
- #define JucePlugin_Name                   "tsara-granular"
+ #define JucePlugin_Name                   "tsn_granular"
 #endif
 #ifndef  JucePlugin_Desc
- #define JucePlugin_Desc                   "tsara-granular"
+ #define JucePlugin_Desc                   "tsn_granular"
 #endif
 #ifndef  JucePlugin_Manufacturer
  #define JucePlugin_Manufacturer           "nvssynthesis"
@@ -101,19 +101,19 @@
  #define JucePlugin_AUSubType              JucePlugin_PluginCode
 #endif
 #ifndef  JucePlugin_AUExportPrefix
- #define JucePlugin_AUExportPrefix         tsaragranularAU
+ #define JucePlugin_AUExportPrefix         tsn_granularAU
 #endif
 #ifndef  JucePlugin_AUExportPrefixQuoted
- #define JucePlugin_AUExportPrefixQuoted   "tsaragranularAU"
+ #define JucePlugin_AUExportPrefixQuoted   "tsn_granularAU"
 #endif
 #ifndef  JucePlugin_AUManufacturerCode
  #define JucePlugin_AUManufacturerCode     JucePlugin_ManufacturerCode
 #endif
 #ifndef  JucePlugin_CFBundleIdentifier
- #define JucePlugin_CFBundleIdentifier     com.nvssynthesis.tsaragranular
+ #define JucePlugin_CFBundleIdentifier     com.nvssynthesis.tsn_granular
 #endif
 #ifndef  JucePlugin_AAXIdentifier
- #define JucePlugin_AAXIdentifier          com.nvssynthesis.tsaragranular
+ #define JucePlugin_AAXIdentifier          com.nvssynthesis.tsn_granular
 #endif
 #ifndef  JucePlugin_AAXManufacturerCode
  #define JucePlugin_AAXManufacturerCode    JucePlugin_ManufacturerCode
@@ -137,7 +137,7 @@
  #define JucePlugin_IAASubType             JucePlugin_PluginCode
 #endif
 #ifndef  JucePlugin_IAAName
- #define JucePlugin_IAAName                "nvssynthesis: tsara-granular"
+ #define JucePlugin_IAAName                "nvssynthesis: tsn_granular"
 #endif
 #ifndef  JucePlugin_VSTNumMidiInputs
  #define JucePlugin_VSTNumMidiInputs       16
@@ -152,10 +152,10 @@
  #define JucePlugin_ARATransformationFlags  0
 #endif
 #ifndef  JucePlugin_ARAFactoryID
- #define JucePlugin_ARAFactoryID           "com.nvssynthesis.tsaragranular.factory"
+ #define JucePlugin_ARAFactoryID           "com.nvssynthesis.tsn_granular.factory"
 #endif
 #ifndef  JucePlugin_ARADocumentArchiveID
- #define JucePlugin_ARADocumentArchiveID   "com.nvssynthesis.tsaragranular.aradocumentarchive.0.0.1"
+ #define JucePlugin_ARADocumentArchiveID   "com.nvssynthesis.tsn_granular.aradocumentarchive.0.0.1"
 #endif
 #ifndef  JucePlugin_ARACompatibleArchiveIDs
  #define JucePlugin_ARACompatibleArchiveIDs  ""

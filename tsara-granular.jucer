@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="gXPk7b" name="tsara-granular" projectType="audioplug" useAppConfig="0"
+<JUCERPROJECT id="gXPk7b" name="tsn_granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               version="0.0.1" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;/Users/nicholassolem/development/TSARA&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;/Users/nicholassolem/development/TSARA/tsara-granular/Source">
-  <MAINGROUP id="HJxsOe" name="tsara-granular">
+  <MAINGROUP id="HJxsOe" name="tsn_granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
         <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
@@ -120,9 +120,9 @@
                appSandboxOptions="com.apple.security.files.user-selected.read-only"
                appSandbox="1" hardenedRuntime="1">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="tsara-granular" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="tsn_granular" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"
                        macOSDeploymentTarget="13.0" osxCompatibility="13.0 SDK"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="tsara-granular" macOSDeploymentTarget="13.0"
+        <CONFIGURATION isDebug="0" name="Release" targetName="tsn_granular" macOSDeploymentTarget="13.0"
                        osxCompatibility="13.0 SDK" enablePluginBinaryCopyStep="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

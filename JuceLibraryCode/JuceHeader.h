@@ -40,7 +40,7 @@
 #if ! JUCE_DONT_DECLARE_PROJECTINFO
 namespace ProjectInfo
 {
-    const char* const  projectName    = "tsara-granular";
+    const char* const  projectName    = "tsn_granular";
     const char* const  companyName    = "nvssynthesis";
     const char* const  versionString  = "0.0.1";
     const int          versionNumber  = 0x1;
