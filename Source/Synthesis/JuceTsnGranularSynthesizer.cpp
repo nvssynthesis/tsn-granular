@@ -8,4 +8,4 @@
   ==============================================================================
 */
 
-#include "JuceTsaraGranularSynthesizer.h"
+#include "JuceTsnGranularSynthesizer.h"

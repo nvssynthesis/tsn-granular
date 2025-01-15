@@ -12,7 +12,7 @@
 
 //==============================================================================
 
-TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor& p)
+TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 	: AudioProcessorEditor (&p)
 ,	fileComp(juce::File(), "*.wav;*.aif;*.aiff", "", "Select file to open")
 ,	tabbedPages(p.apvts)
@@ -29,7 +29,7 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
-		if (TsaraGranularAudioProcessor* a = dynamic_cast<TsaraGranularAudioProcessor*>(&processor)){
+		if (TsnGranularAudioProcessor* a = dynamic_cast<TsnGranularAudioProcessor*>(&processor)){
 			fmt::print("success dynamic casting");
 			a->askForAnalysis();
 		}
@@ -68,14 +68,14 @@ TsaraGranularAudioProcessorEditor::TsaraGranularAudioProcessorEditor (TsaraGranu
 	setResizable(true, true);
 }
 
-TsaraGranularAudioProcessorEditor::~TsaraGranularAudioProcessorEditor()
+TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
 
 	fileComp.pushRecentFilesToFile();
 }
 //==============================================================================
-void TsaraGranularAudioProcessorEditor::closeAllWindows()
+void TsnGranularAudioProcessorEditor::closeAllWindows()
 {
 	for (auto& window : windows)
 		window.deleteAndZero();
@@ -83,7 +83,7 @@ void TsaraGranularAudioProcessorEditor::closeAllWindows()
 	windows.clear();
 }
 //==============================================================================
-void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button, juce::String name, bool &valToAffect)
+void TsnGranularAudioProcessorEditor::updateToggleState (juce::Button* button, juce::String name, bool &valToAffect)
 {
 	bool state = button->getToggleState();
 	valToAffect = state;
@@ -91,7 +91,7 @@ void TsaraGranularAudioProcessorEditor::updateToggleState (juce::Button* button,
 
 	juce::Logger::outputDebugString (name + " Button changed to " + stateString);
 }
-void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
+void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	int const intensity = 70;
 	auto* settingsWindow = new SettingsWindow (audioProcessor, *this, juce::Colour(intensity, intensity, intensity));
 	windows.add (settingsWindow);
@@ -110,7 +110,7 @@ void TsaraGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
 }
-void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
+void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
 													 std::vector<std::vector<float>> PCA){
 	waveformAndPositionComponent.wc.removeMarkers();
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
@@ -163,7 +163,7 @@ void TsaraGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsIn
 	}
 	repaint();
 }
-void TsaraGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
+void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 	auto pIdx = timbreSpaceComponent.getCurrentPoint();
 
 	if (audioProcessor.getOnsets().size()){
@@ -182,14 +182,14 @@ void TsaraGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 	}
 }
 
-void TsaraGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
+void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
 	setPositionSliderFromChosenPoint();
 }
-void TsaraGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
+void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
 	setPositionSliderFromChosenPoint();
 }
 //==============================================================================
-void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
+void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 {
 	if (true){
 		juce::Graphics tg(backgroundImage);
@@ -230,7 +230,7 @@ void TsaraGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	}
 }
 
-void TsaraGranularAudioProcessorEditor::resized()
+void TsnGranularAudioProcessorEditor::resized()
 {
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
@@ -297,7 +297,7 @@ void TsaraGranularAudioProcessorEditor::resized()
 	}
 }
 
-void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
+void TsnGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 {
 	if (! fileToRead.existsAsFile()){
 		return;
@@ -311,13 +311,13 @@ void TsaraGranularAudioProcessorEditor::readFile (const juce::File& fileToRead)
 	audioProcessor.askForAnalysis();
 }
 
-void TsaraGranularAudioProcessorEditor::filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged)
+void TsnGranularAudioProcessorEditor::filenameComponentChanged (juce::FilenameComponent* fileComponentThatHasChanged)
 {
 	if (fileComponentThatHasChanged == &fileComp){
 		readFile (fileComp.getCurrentFile());
 	}
 }
-void TsaraGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster*  source) {
+void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster*  source) {
 	fmt::print("editor: change message received\n");
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		fmt::print("editor: dynamic cast to threaded analyzer ptr successful\n");

@@ -1,7 +1,7 @@
 /*
   ==============================================================================
 
-    JuceTsaraGranularSynthesizer.h
+    JuceTsnGranularSynthesizer.h
     Created: 7 May 2024 11:55:11am
     Author:  Nicholas Solem
 
@@ -12,18 +12,18 @@
 #include <JuceHeader.h>
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthSound.h"
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthVoice.h"
-#include "TsaraGranularSynth.h"
+#include "TsnGranularSynth.h"
 
-class JuceTsaraGranularSynthesizer	:	public juce::Synthesiser
+class JuceTsnGranularSynthesizer	:	public juce::Synthesiser
 {
 public:
-	JuceTsaraGranularSynthesizer(const double &sampleRate, const std::span<float> &wavespan, const double &fileSampleRate, unsigned int num_voices)
+	JuceTsnGranularSynthesizer(const double &sampleRate, const std::span<float> &wavespan, const double &fileSampleRate, unsigned int num_voices)
 	{
 		clearVoices();
 		unsigned long seed = 1234567890UL;
 		for (int i = 0; i < num_voices; ++i) {
 
-			auto voice = new GranularVoice(std::make_unique<nvs::gran::TsaraGranular>(sampleRate, wavespan, fileSampleRate, seed));
+			auto voice = new GranularVoice(std::make_unique<nvs::gran::TsnGranular>(sampleRate, wavespan, fileSampleRate, seed));
 			addVoice(voice);
 			++seed;
 		}
@@ -40,8 +40,8 @@ public:
 			juce::SynthesiserVoice *voice = getVoice(voiceIdx);
 			if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(voice)){
 				auto *granularSynthGuts = granularVoice->getGranularSynthGuts();
-				if (nvs::gran::TsaraGranular * tsaraGuts = dynamic_cast<nvs::gran::TsaraGranular*>(granularSynthGuts)){
-					tsaraGuts->loadOnsets(onsetsInSeconds);
+				if (nvs::gran::TsnGranular * tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>(granularSynthGuts)){
+					tsnGuts->loadOnsets(onsetsInSeconds);
 				}
 			}
 		}

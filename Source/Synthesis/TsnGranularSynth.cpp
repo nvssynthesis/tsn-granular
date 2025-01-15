@@ -1,26 +1,26 @@
 /*
   ==============================================================================
 
-    TsaraGranularSynth.cpp
+    TsnGranularSynth.cpp
     Created: 4 Sep 2023 1:54:00am
     Author:  Nicholas Solem
 
   ==============================================================================
 */
 
-#include "TsaraGranularSynth.h"
+#include "TsnGranularSynth.h"
 #include "../slicer_granular/Source/algo_util.h"
 #include "fmt/core.h"
 
 namespace nvs	{
 namespace gran	{
 
-TsaraGranular::TsaraGranular(double const &sampleRate, std::span<float> const &wavespan,
+TsnGranular::TsnGranular(double const &sampleRate, std::span<float> const &wavespan,
 														double const &fileSampleRate, unsigned long seed)
 :	genGranPoly1(sampleRate, wavespan, fileSampleRate, seed)
 {}
 //====================================================================================
-void TsaraGranular::loadOnsets(std::span<float> const onsetsInSeconds){
+void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
 	float const lengthInSeconds = static_cast<float>(_wavespan.size()) / _fileSampleRate;
 	// starting at end, count onsets exceeding lengthInSeconds
@@ -50,7 +50,7 @@ void TsaraGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 	}
 }
 //====================================================================================
-void TsaraGranular::doSetPosition(double positionNormalized) {
+void TsnGranular::doSetPosition(double positionNormalized) {
 	if (_onsetsNormalized.size()){
 		auto res = nvs::util::get_left(static_cast<float>(positionNormalized), _onsetsNormalized);
 		if (res){
@@ -59,14 +59,14 @@ void TsaraGranular::doSetPosition(double positionNormalized) {
 	}
 	this->genGranPoly1::doSetPosition(positionNormalized);
 }
-void TsaraGranular::doSetPositionRandomness(double rand){
+void TsnGranular::doSetPositionRandomness(double rand){
 	this->genGranPoly1::doSetPositionRandomness(rand);
 }
 
-void TsaraGranular::doSetDuration(double dur){
+void TsnGranular::doSetDuration(double dur){
 	this->genGranPoly1::doSetDuration(dur);
 }
-void TsaraGranular::doSetDurationRandomness(double rand){
+void TsnGranular::doSetDurationRandomness(double rand){
 	this->genGranPoly1::doSetDurationRandomness(rand);
 }
 
