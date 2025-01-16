@@ -11,7 +11,7 @@
 #include "SettingsWindow.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 
-SettingsWindow::SettingsWindow(TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed, juce::Colour backgroundColour)
+SettingsWindow::SettingsWindow(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed, juce::Colour backgroundColour)
 :	juce::DocumentWindow("Settings", backgroundColour, juce::DocumentWindow::allButtons)
 , 	onsetSettingsComponent(*this, p, ed)
 {

@@ -8,7 +8,7 @@
 
 #pragma once
 #include <JuceHeader.h>
-#include "../PluginEditor.h"// without explicating parent, preprocessor was finding PluginEditor in slicer_granular
+#include "TsnGranularPluginEditor.h"
 #include "../Analysis/Settings.h"
 #include "NonAutomatableTitledSlider.h"
 #include "fmt/core.h"
@@ -18,13 +18,13 @@ class OnsetSettingsComponent	:	public juce::Component,
 									private juce::Slider::Listener
 {
 public:
-	OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed);
+	OnsetSettingsComponent(juce::DocumentWindow &owner, TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed);
 	void paint(juce::Graphics &g) override;
 	void placeMe(int const topPad, int const leftPad);
 	void resized() override;
 private:
-	TsaraGranularAudioProcessor& proc;
-	TsaraGranularAudioProcessorEditor& editor;
+	TsnGranularAudioProcessor& proc;
+	TsnGranularAudioProcessorEditor& editor;
 	nvs::analysis::analysisSettings _analysisSettings;
 	nvs::analysis::onsetSettings _onsetSettings;
 	

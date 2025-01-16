@@ -8,6 +8,26 @@
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source">
   <MAINGROUP id="HJxsOe" name="tsn_granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
+      <GROUP id="{281DBBC8-56F5-5F7F-83DB-3BCAB903CB65}" name="Plugin">
+        <FILE id="IL0gcI" name="TsnGranularPluginEditor.cpp" compile="1" resource="0"
+              file="Source/TsnGranularPluginEditor.cpp"/>
+        <FILE id="b8oDEK" name="TsnGranularPluginEditor.h" compile="0" resource="0"
+              file="Source/TsnGranularPluginEditor.h"/>
+        <FILE id="oT8gzk" name="TsnGranularPluginProcessor.cpp" compile="1"
+              resource="0" file="Source/TsnGranularPluginProcessor.cpp"/>
+        <FILE id="gTTVFF" name="TsnGranularPluginProcessor.h" compile="0" resource="0"
+              file="Source/TsnGranularPluginProcessor.h"/>
+        <GROUP id="{BE588146-20B1-C109-96DE-54070FBD0BAF}" name="slicer">
+          <FILE id="yw5Tfp" name="SlicerGranularPluginEditor.cpp" compile="1"
+                resource="0" file="slicer_granular/Source/SlicerGranularPluginEditor.cpp"/>
+          <FILE id="ip3617" name="SlicerGranularPluginEditor.h" compile="0" resource="0"
+                file="slicer_granular/Source/SlicerGranularPluginEditor.h"/>
+          <FILE id="VsFIpo" name="SlicerGranularPluginProcessor.cpp" compile="1"
+                resource="0" file="slicer_granular/Source/SlicerGranularPluginProcessor.cpp"/>
+          <FILE id="gFxG5d" name="SlicerGranularPluginProcessor.h" compile="0"
+                resource="0" file="slicer_granular/Source/SlicerGranularPluginProcessor.h"/>
+        </GROUP>
+      </GROUP>
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
         <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
           <FILE id="aOLSoW" name="GranularMainParametersPage.cpp" compile="1"
@@ -67,6 +87,8 @@
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">
         <GROUP id="{36156BBE-4ED1-B2BC-F23A-9ECB50C4E569}" name="slicer">
+          <FILE id="vUmJgl" name="GrainDescription.h" compile="0" resource="0"
+                file="slicer_granular/Source/Synthesis/GrainDescription.h"/>
           <FILE id="IcDCcd" name="JuceGranularSynthesizer.cpp" compile="1" resource="0"
                 file="slicer_granular/Source/Synthesis/JuceGranularSynthesizer.cpp"/>
           <FILE id="okFc0M" name="JuceGranularSynthesizer.h" compile="0" resource="0"
@@ -93,20 +115,20 @@
         <FILE id="pXTMeF" name="TsnGranularSynth.cpp" compile="1" resource="0"
               file="Source/Synthesis/TsnGranularSynth.cpp"/>
       </GROUP>
-      <FILE id="WrZlTL" name="DataStructures.h" compile="0" resource="0"
-            file="slicer_granular/Source/DataStructures.h"/>
-      <FILE id="p1ioh5" name="algo_util.h" compile="0" resource="0" file="slicer_granular/Source/algo_util.h"/>
-      <FILE id="T86fMV" name="dsp_util.h" compile="0" resource="0" file="slicer_granular/Source/dsp_util.h"/>
+      <GROUP id="{7C4CC31C-C445-1FDC-FAFA-174D2CF0A1B5}" name="Random">
+        <FILE id="lM9MlP" name="LatchedRandom.h" compile="0" resource="0" file="slicer_granular/Source/LatchedRandom.h"/>
+        <FILE id="h7IROA" name="Random.h" compile="0" resource="0" file="slicer_granular/Source/Random.h"/>
+      </GROUP>
+      <GROUP id="{47F42E1A-BFED-51DF-EF45-B553B6D48E18}" name="util">
+        <FILE id="WrZlTL" name="DataStructures.h" compile="0" resource="0"
+              file="slicer_granular/Source/DataStructures.h"/>
+        <FILE id="e7Je1E" name="misc_util.cpp" compile="1" resource="0" file="slicer_granular/Source/misc_util.cpp"/>
+        <FILE id="SDNpiX" name="misc_util.h" compile="0" resource="0" file="slicer_granular/Source/misc_util.h"/>
+        <FILE id="p1ioh5" name="algo_util.h" compile="0" resource="0" file="slicer_granular/Source/algo_util.h"/>
+        <FILE id="T86fMV" name="dsp_util.h" compile="0" resource="0" file="slicer_granular/Source/dsp_util.h"/>
+      </GROUP>
       <FILE id="ibXLLb" name="params.h" compile="0" resource="0" file="slicer_granular/Source/params.h"/>
       <FILE id="Tv6rFJ" name="plotting.h" compile="0" resource="0" file="slicer_granular/Source/plotting.h"/>
-      <FILE id="h7IROA" name="Random.h" compile="0" resource="0" file="slicer_granular/Source/Random.h"/>
-      <FILE id="sgpa6o" name="PluginProcessor.cpp" compile="1" resource="0"
-            file="Source/PluginProcessor.cpp"/>
-      <FILE id="OfXFiO" name="PluginProcessor.h" compile="0" resource="0"
-            file="Source/PluginProcessor.h"/>
-      <FILE id="NTDw21" name="PluginEditor.cpp" compile="1" resource="0"
-            file="Source/PluginEditor.cpp"/>
-      <FILE id="y7FW2A" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>

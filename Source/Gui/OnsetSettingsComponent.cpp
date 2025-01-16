@@ -8,7 +8,7 @@
 
 #include "OnsetSettingsComponent.h"
 
-OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed)
+OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
 	silenceThresholdSlider(juce::Slider::SliderStyle::LinearVertical, this, "silence threshold"),

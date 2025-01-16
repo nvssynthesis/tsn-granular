@@ -9,13 +9,13 @@
 */
 
 #pragma once
-#include "./PluginEditor.h"
+#include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
 
 class SettingsWindow	:	public juce::DocumentWindow
 {
 public:
-	SettingsWindow(TsaraGranularAudioProcessor& p, TsaraGranularAudioProcessorEditor& ed, juce::Colour backgroundColour);
+	SettingsWindow(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed, juce::Colour backgroundColour);
 	void closeButtonPressed();
 	
 private:

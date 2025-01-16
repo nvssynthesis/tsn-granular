@@ -15,14 +15,20 @@
 namespace nvs	{
 namespace gran	{
 
-TsnGranular::TsnGranular(double const &sampleRate, std::span<float> const &wavespan,
-														double const &fileSampleRate, unsigned long seed)
-:	genGranPoly1(sampleRate, wavespan, fileSampleRate, seed)
+TsnGranular::TsnGranular(unsigned long seed)
+:	genGranPoly1(seed)
 {}
 //====================================================================================
+void TsnGranular::setAudioBlock(juce::dsp::AudioBlock<float> wave_block, double file_sample_rate){
+	_wave_block = wave_block;
+	_file_sample_rate = file_sample_rate;
+	for (auto &g : _grains){
+		g.setAudioBlock(_wave_block, file_sample_rate);
+	}
+}
 void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
-	float const lengthInSeconds = static_cast<float>(_wavespan.size()) / _fileSampleRate;
+	float const lengthInSeconds = static_cast<float>(_wave_block.getNumSamples()) / _file_sample_rate;
 	// starting at end, count onsets exceeding lengthInSeconds
 	size_t properOnsets = onsetsInSeconds.size();
 	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
@@ -33,7 +39,6 @@ void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 			break;
 		}
 	}
-
 	_onsetsNormalized.resize(properOnsets);
 	for (auto f : _onsetsNormalized){
 		fmt::print("{}\n", f);
