@@ -17,13 +17,13 @@
 		-needs to be 'locking' to points eventually
 */
 
-class TsaraGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
+class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
 ,											public juce::FilenameComponentListener
 ,											public juce::ChangeListener
 {
 public:
-	TsaraGranularAudioProcessorEditor (TsaraGranularAudioProcessor&);
-	~TsaraGranularAudioProcessorEditor() override;
+	TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor&);
+	~TsnGranularAudioProcessorEditor() override;
 	//==============================================================================
 	void updateToggleState (juce::Button* button, juce::String name, bool &valToAffect);
 	//==============================================================================
@@ -70,6 +70,6 @@ private:
 
 	void setPositionSliderFromChosenPoint();	// gets called by mouseDown, mouseDrag
 		
-	TsaraGranularAudioProcessor& audioProcessor;
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsaraGranularAudioProcessorEditor)
+	TsnGranularAudioProcessor& audioProcessor;
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)
 };

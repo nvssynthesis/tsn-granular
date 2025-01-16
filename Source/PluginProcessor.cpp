@@ -3,7 +3,7 @@
 #include "fmt/core.h"
 
 //==============================================================================
-TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
+TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
 	 : AudioProcessor (BusesProperties()
 					 #if ! JucePlugin_IsMidiEffect
@@ -15,7 +15,7 @@ TsaraGranularAudioProcessor::TsaraGranularAudioProcessor()
 					   ),
 #endif
 apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
-,	tsara_granular_synth_juce(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), audioBuffersChannels.getFileSampleRateRef(), num_voices)
+,	tsn_granular_synth_juce(lastSampleRate, audioBuffersChannels.getActiveSpanRef(), audioBuffersChannels.getFileSampleRateRef(), num_voices)
 , 	_analyzer(this)	// effectively adding this as listener to the analyzer
 , 	logFile(juce::File::getSpecialLocation
 		  (juce::File::SpecialLocationType::currentApplicationFile)
@@ -25,15 +25,15 @@ apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 	juce::Logger::setCurrentLogger (&fileLogger);
 	formatManager.registerBasicFormats();
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
-	fmt::print("TsaraGranularAudioProcessor DEBUG MODE\n");
+	fmt::print("TsnGranularAudioProcessor DEBUG MODE\n");
 	logFile.appendText("debug\n");
 #else
-	fmt::print("TsaraGranularAudioProcessor RELEASE MODE\n");
+	fmt::print("TsnGranularAudioProcessor RELEASE MODE\n");
 	logFile.appendText("release\n");
 #endif
 }
 
-TsaraGranularAudioProcessor::~TsaraGranularAudioProcessor()
+TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
 {
 	fileLogger.trimFileSize(logFile , 64 * 1024);
 	juce::Logger::setCurrentLogger (nullptr);
@@ -41,12 +41,12 @@ TsaraGranularAudioProcessor::~TsaraGranularAudioProcessor()
 }
 
 //==============================================================================
-const juce::String TsaraGranularAudioProcessor::getName() const
+const juce::String TsnGranularAudioProcessor::getName() const
 {
 	return JucePlugin_Name;
 }
 
-bool TsaraGranularAudioProcessor::acceptsMidi() const
+bool TsnGranularAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
 	return true;
@@ -55,7 +55,7 @@ bool TsaraGranularAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool TsaraGranularAudioProcessor::producesMidi() const
+bool TsnGranularAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
 	return true;
@@ -64,7 +64,7 @@ bool TsaraGranularAudioProcessor::producesMidi() const
    #endif
 }
 
-bool TsaraGranularAudioProcessor::isMidiEffect() const
+bool TsnGranularAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
 	return true;
@@ -73,53 +73,53 @@ bool TsaraGranularAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double TsaraGranularAudioProcessor::getTailLengthSeconds() const
+double TsnGranularAudioProcessor::getTailLengthSeconds() const
 {
 	return 0.0;
 }
 
-int TsaraGranularAudioProcessor::getNumPrograms()
+int TsnGranularAudioProcessor::getNumPrograms()
 {
 	return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
 				// so this should be at least 1, even if you're not really implementing programs.
 }
 
-int TsaraGranularAudioProcessor::getCurrentProgram()
+int TsnGranularAudioProcessor::getCurrentProgram()
 {
 	return 0;
 }
 
-void TsaraGranularAudioProcessor::setCurrentProgram (int index)
+void TsnGranularAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String TsaraGranularAudioProcessor::getProgramName (int index)
+const juce::String TsnGranularAudioProcessor::getProgramName (int index)
 {
 	return {};
 }
 
-void TsaraGranularAudioProcessor::changeProgramName (int index, const juce::String& newName){}
+void TsnGranularAudioProcessor::changeProgramName (int index, const juce::String& newName){}
 
 //==============================================================================
-void TsaraGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void TsnGranularAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
 	lastSampleRate = sampleRate;
 	lastSamplesPerBlock = samplesPerBlock;
 	
-	tsara_granular_synth_juce.setCurrentPlaybackSampleRate (sampleRate);
-	for (int i = 0; i < tsara_granular_synth_juce.getNumVoices(); i++)
+	tsn_granular_synth_juce.setCurrentPlaybackSampleRate (sampleRate);
+	for (int i = 0; i < tsn_granular_synth_juce.getNumVoices(); i++)
 	{
-		if (auto voice = dynamic_cast<GranularVoice*>(tsara_granular_synth_juce.getVoice(i)))
+		if (auto voice = dynamic_cast<GranularVoice*>(tsn_granular_synth_juce.getVoice(i)))
 		{
 			voice->prepareToPlay (sampleRate, samplesPerBlock);
 		}
 	}
 }
 
-void TsaraGranularAudioProcessor::releaseResources(){}
+void TsnGranularAudioProcessor::releaseResources(){}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool TsaraGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool TsnGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
 	juce::ignoreUnused (layouts);
@@ -144,10 +144,10 @@ bool TsaraGranularAudioProcessor::isBusesLayoutSupported (const BusesLayout& lay
 }
 #endif
 
-void TsaraGranularAudioProcessor::writeToLog(std::string const &s){
+void TsnGranularAudioProcessor::writeToLog(std::string const &s){
 	fileLogger.writeToLog (s);
 }
-void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail){
+void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioThumbnail *const thumbnail){
 	juce::AudioFormatReader *reader = formatManager.createReaderFor(f);
 	if (!reader){
 		std::cerr << "could not read file: " << f.getFileName() << "\n";
@@ -192,7 +192,7 @@ void TsaraGranularAudioProcessor::loadAudioFile(juce::File const f, juce::AudioT
 	currentFile = f.getFullPathName().toStdString();	// so far needed only for writeEvents()
 	delete reader;
 }
-void TsaraGranularAudioProcessor::askForAnalysis(){
+void TsnGranularAudioProcessor::askForAnalysis(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 
 	_analyzer.updateWave(waveSpan);
@@ -201,19 +201,19 @@ void TsaraGranularAudioProcessor::askForAnalysis(){
 	}
 }
 
-std::vector<float> TsaraGranularAudioProcessor::getOnsets() const {
+std::vector<float> TsnGranularAudioProcessor::getOnsets() const {
 	return _analyzer.getOnsetsInSeconds();
 }
 
-std::vector<std::vector<float>> TsaraGranularAudioProcessor::getOnsetwiseBFCCs() const {
+std::vector<std::vector<float>> TsnGranularAudioProcessor::getOnsetwiseBFCCs() const {
 	return _analyzer.getOnsetwiseBFCCs();
 }
 
-std::vector<std::vector<float>> TsaraGranularAudioProcessor::getPCA() const {
+std::vector<std::vector<float>> TsnGranularAudioProcessor::getPCA() const {
 	return _analyzer.getPCA();
 }
 
-void TsaraGranularAudioProcessor::writeEvents(){
+void TsnGranularAudioProcessor::writeEvents(){
 	std::span<float> const waveSpan = audioBuffersChannels.getActiveSpanRef();
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -222,7 +222,7 @@ void TsaraGranularAudioProcessor::writeEvents(){
 }
 
 
-void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
 	juce::ScopedNoDenormals noDenormals;
 	auto totalNumInputChannels  = getTotalNumInputChannels();
@@ -232,14 +232,14 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 		buffer.clear (i, 0, buffer.getNumSamples());
 	}
 	
-	tsara_granular_synth_juce.granularMainParamSet<0, num_voices>(apvts);	// this just sets the params internal to the granular synth (effectively a voice)
-	tsara_granular_synth_juce.envelopeParamSet<0, num_voices>(apvts);
+	tsn_granular_synth_juce.granularMainParamSet<0, num_voices>(apvts);	// this just sets the params internal to the granular synth (effectively a voice)
+	tsn_granular_synth_juce.envelopeParamSet<0, num_voices>(apvts);
 	
 	if ( !(audioBuffersChannels.getActiveSpanRef().size()) ){
 		return;
 	}
 	
-	tsara_granular_synth_juce.renderNextBlock(buffer,
+	tsn_granular_synth_juce.renderNextBlock(buffer,
 						  midiMessages,
 						  0,
 						  buffer.getNumSamples());
@@ -252,33 +252,33 @@ void TsaraGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer
 }
 
 //==============================================================================
-bool TsaraGranularAudioProcessor::hasEditor() const
+bool TsnGranularAudioProcessor::hasEditor() const
 {
 	return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* TsaraGranularAudioProcessor::createEditor()
+juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor()
 {
-	TsaraGranularAudioProcessorEditor* ed = new TsaraGranularAudioProcessorEditor (*this);
+	TsnGranularAudioProcessorEditor* ed = new TsnGranularAudioProcessorEditor (*this);
 	_analyzer.addChangeListener(ed);
 	return ed;
 }
 
 //==============================================================================
-void TsaraGranularAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void TsnGranularAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
 	// You should use this method to store your parameters in the memory block.
 	// You could do that either as raw data, or use the XML or ValueTree classes
 	// as intermediaries to make it easy to save and load complex data.
 }
 
-void TsaraGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
 	// You should use this method to restore your parameters from this memory block,
 	// whose contents will have been created by the getStateInformation() call.
 }
 
-void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
+void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	fmt::print("processor: change message received\n");
 	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
@@ -286,13 +286,13 @@ void TsaraGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster
 		// then load onsets into synth
 		auto onsets = _analyzer.getOnsetsInSeconds();
 		if (onsets.size()){
-			tsara_granular_synth_juce.loadOnsets(onsets);
+			tsn_granular_synth_juce.loadOnsets(onsets);
 		}
 		fmt::print("processor: change listener callback: got things\n");
 	}
 }
 
-juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor::createParameterLayout(){
+juce::AudioProcessorValueTreeState::ParameterLayout TsnGranularAudioProcessor::createParameterLayout(){
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 	fmt::print("createParamLayout\n");
 #endif
@@ -343,5 +343,5 @@ juce::AudioProcessorValueTreeState::ParameterLayout TsaraGranularAudioProcessor:
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-	return new TsaraGranularAudioProcessor();
+	return new TsnGranularAudioProcessor();
 }

@@ -1,20 +1,18 @@
 /** TODO:
 	-output gain
-
- */
+*/
 #pragma once
 
 #include <JuceHeader.h>
-#include "Synthesis/TsaraGranularSynth.h"
+#include "Synthesis/TsnGranularSynth.h"
 #include "Analysis/ThreadedAnalyzer.h"
-#include "./Synthesis/JuceTsaraGranularSynthesizer.h"
-#include "../slicer_granular/Source/AudioBuffersChannels.h"
+#include "./Synthesis/JuceTsnGranularSynthesizer.h"
 #include "../slicer_granular/Source/dsp_util.h"
 #include "../slicer_granular/Source/misc_util.h"
 
 //==============================================================================
 
-class TsaraGranularAudioProcessor  : public juce::AudioProcessor
+class TsnGranularAudioProcessor  : public juce::AudioProcessor
 							#if JucePlugin_Enable_ARA
 							 , public juce::AudioProcessorARAExtension
 							#endif
@@ -22,8 +20,8 @@ class TsaraGranularAudioProcessor  : public juce::AudioProcessor
 {
 public:
 	//==============================================================================
-	TsaraGranularAudioProcessor();
-	~TsaraGranularAudioProcessor() override;
+	TsnGranularAudioProcessor();
+	~TsnGranularAudioProcessor() override;
 	
 	//==============================================================================
 	void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -69,9 +67,6 @@ public:
 	std::vector<std::vector<float>> getPCA() const;
 	void writeEvents();
 	
-	nvs::util::EditorInformant<float> rmsInformant;
-	nvs::util::EditorInformant<float> rmsWAinformant;
-	
 	juce::AudioFormatManager &getAudioFormatManager(){
 		return formatManager;
 	}
@@ -96,10 +91,7 @@ public:
 		_analyzer.setAnalysisSettings(settings);
 	}
 private:
-	
-	AudioBuffersChannels audioBuffersChannels;
-	
-	JuceTsaraGranularSynthesizer tsara_granular_synth_juce;
+	JuceTsnGranularSynthesizer tsn_granular_synth_juce;
 	constexpr static int num_voices =
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 										6;
@@ -132,5 +124,5 @@ private:
 	juce::File logFile;
 	juce::FileLogger fileLogger;
 	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsaraGranularAudioProcessor)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessor)
 };
