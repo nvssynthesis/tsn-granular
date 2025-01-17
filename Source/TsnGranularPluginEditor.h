@@ -1,14 +1,6 @@
 #pragma once
 
-//#include <JuceHeader.h>
 #include "TsnGranularPluginProcessor.h"
-//#include "../slicer_granular/Source/SlicerGranularPluginEditor.h"
-//#include "../slicer_granular/Source/params.h"
-//#include "../slicer_granular/Source/dsp_util.h"
-//#include "../slicer_granular/Source/Gui/FileSelectorComponent.h"
-//#include "../slicer_granular/Source/Gui/WaveformComponent.h"
-//#include "../slicer_granular/Source/Gui/SliderColumn.h"
-//#include "../slicer_granular/Source/Gui/MainParamsComponent.h"
 #include "./Gui/TimbreSpaceComponent.h"
 #include "../slicer_granular/Source/SlicerGranularPluginEditor.h"
 
