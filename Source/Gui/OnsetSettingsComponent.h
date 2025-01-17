@@ -8,6 +8,7 @@
 
 #pragma once
 #include <JuceHeader.h>
+#include "TsnGranularPluginProcessor.h"
 #include "TsnGranularPluginEditor.h"
 #include "../Analysis/Settings.h"
 #include "NonAutomatableTitledSlider.h"

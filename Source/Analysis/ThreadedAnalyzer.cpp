@@ -20,7 +20,7 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 	addChangeListener(listener);
 }
 
-void ThreadedAnalyzer::updateWave(std::span<float> const wave){
+void ThreadedAnalyzer::updateWave(std::span<float const> wave){
 	inputWave = wave;
 }
 void ThreadedAnalyzer::run() {

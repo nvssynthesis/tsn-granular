@@ -120,8 +120,8 @@ void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::str
 		std::cerr << "unsuccessful write; wave or onsets of size 0\n";
 		return;
 	}
-	juce::String name(ogPath.data());
-	name.dropLastCharacters(4);
+	juce::String const base_name(ogPath.data());
+	base_name.dropLastCharacters(4);
 	
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, analyzer.ess_hold.factory, analyzer._analysisSettings, analyzer._splitSettings);
 	juce::WavAudioFormat format;
@@ -129,7 +129,7 @@ void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::str
 
 	int idx = 0;
 	for (auto const &e : events){
-		juce::String evName = name;
+		juce::String evName = base_name;
 		evName.append("_", 2);
 		evName.append(std::to_string(idx++), 4);
 		evName.append(".wav", 4);

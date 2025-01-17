@@ -25,7 +25,7 @@ public:
 	}
 	void run() override;
 
-	void updateWave(std::span<float> const wave);
+	void updateWave(std::span<float const> wave);
 	
 	inline vecReal getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
@@ -66,7 +66,7 @@ public:
 private:
 	Analyzer _analyzer;
 	
-	std::span<float> inputWave;
+	std::span<float const> inputWave;
 	
 	std::vector<float> outputOnsetsInSeconds;
 	vecVecReal outputOnsetwiseBFCCs;

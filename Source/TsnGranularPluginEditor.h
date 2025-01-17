@@ -33,20 +33,17 @@ public:
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
 private:
-//	juce::ComponentBoundsConstrainer constrainer;
+	juce::ComponentBoundsConstrainer constrainer;
 	juce::Image backgroundImage;
 	
-//	FileSelectorComponent fileComp;
-//	TabbedPagesComponent tabbedPages;
-//	WaveformAndPositionComponent waveformAndPositionComponent;
 	TimbreSpaceComponent timbreSpaceComponent;
 
-//	std::array<juce::Colour, 3> gradientColors {
-//		juce::Colours::darkgrey,
-//		juce::Colours::darkred,
-//		juce::Colours::darkgrey
-//	};
-//	size_t colourOffsetIndex {0};
+	std::array<juce::Colour, 3> gradientColors {
+		juce::Colours::darkgrey,
+		juce::Colours::darkred,
+		juce::Colours::darkgrey
+	};
+	size_t colourOffsetIndex {0};
 	
 	juce::TextButton askForAnalysisButton;
 	juce::TextButton writeWavsButton;

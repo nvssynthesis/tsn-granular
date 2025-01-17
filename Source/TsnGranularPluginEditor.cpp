@@ -13,16 +13,14 @@
 //==============================================================================
 
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
-: Slicer_granularAudioProcessorEditor (&p)
+: 	Slicer_granularAudioProcessorEditor (p)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
 ,	positionQuantizeStrengthComboBox("Position Quantize Strength")
+,	audioProcessor(p)
 {
-//	addAndMakeVisible (fileComp);
-//	fileComp.addListener (this);
-//	fileComp.getRecentFilesFromUserApplicationDataDirectory();
-	
+	addAndMakeVisible (fileComp);
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
 		if (TsnGranularAudioProcessor* a = dynamic_cast<TsnGranularAudioProcessor*>(&processor)){
@@ -50,16 +48,15 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 		fmt::print("current id: {}", id);
 	};
 	
-//	addAndMakeVisible(tabbedPages);
-//
-//	addAndMakeVisible(waveformAndPositionComponent);
+	addAndMakeVisible(tabbedPages);
+	addAndMakeVisible(waveformAndPositionComponent);
 	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
 	getLookAndFeel().setColour(juce::Slider::thumbColourId, juce::Colours::purple);
 	
-//	constrainer.setMinimumSize(620, 500);
+	constrainer.setMinimumSize(620, 500);
 	setSize (680, 950);
 	setResizable(true, true);
 }
@@ -161,7 +158,7 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
 		double const onsetNormalized = onsetSamps / lengthSamps;
 		std::string a = getParamElement<params_e::position, param_elem_e::name>();
-		auto posParam = audioProcessor.apvts.getParameter(a);
+		auto posParam = audioProcessor.getAPVTS().getParameter(a);
 		posParam->setValueNotifyingHost(onsetNormalized);
 	}
 	if (audioProcessor.getOnsetwiseBFCCs().size()){
