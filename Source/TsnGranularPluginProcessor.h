@@ -18,8 +18,6 @@ public:
 	TsnGranularAudioProcessor();
 	~TsnGranularAudioProcessor() override;
 	//==============================================================================
-	const juce::String getName() const override;
-	
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	
 	void askForAnalysis();
@@ -41,13 +39,6 @@ public:
 		_analyzer.setAnalysisSettings(settings);
 	}
 private:
-	JuceTsnGranularSynthesizer tsn_granular_synth_juce;
-	constexpr static int num_voices =
-#if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
-										6;
-#else
-										16;
-#endif
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
 	struct Features {

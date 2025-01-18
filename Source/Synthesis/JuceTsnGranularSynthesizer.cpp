@@ -12,7 +12,7 @@
 #include "../Synthesis/TsnGranularSynth.h"
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthSound.h"
 
-JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer(unsigned int num_voices)
+JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer()
 {
 	clearVoices();
 	unsigned long seed = 1234567890UL;
@@ -32,7 +32,7 @@ void JuceTsnGranularSynthesizer::loadOnsets(const std::span<float> onsetsInSecon
 		juce::SynthesiserVoice *voice = getVoice(voiceIdx);
 		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(voice)){
 			auto *granularSynthGuts = granularVoice->getGranularSynthGuts();
-			if (nvs::gran::TsnGranular * tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>(granularSynthGuts)){
+			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>(granularSynthGuts)){
 				tsnGuts->loadOnsets(onsetsInSeconds);
 			}
 		}

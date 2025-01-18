@@ -19,6 +19,6 @@
 class JuceTsnGranularSynthesizer	:	public GranularSynthesizer
 {
 public:
-	JuceTsnGranularSynthesizer(unsigned int num_voices);
+	JuceTsnGranularSynthesizer();
 	void loadOnsets(const std::span<float> onsetsInSeconds);
 };

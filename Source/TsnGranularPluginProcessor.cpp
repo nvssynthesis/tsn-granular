@@ -6,10 +6,10 @@
 
 //==============================================================================
 TsnGranularAudioProcessor::TsnGranularAudioProcessor()
-:	tsn_granular_synth_juce(num_voices)
-, 	_analyzer(this)	// effectively adding this as listener to the analyzer
+: 	_analyzer(this)	// effectively adding this as listener to the analyzer
 
 {
+	granular_synth_juce = std::make_unique<JuceTsnGranularSynthesizer>();
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 	writeToLog("TsnGranularAudioProcessor DEBUG MODE");
 #else
@@ -21,10 +21,6 @@ TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
 {}
 
 //==============================================================================
-const juce::String TsnGranularAudioProcessor::getName() const
-{
-	return JucePlugin_Name;
-}
 
 void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	// juce::AudioFormatReader *reader = formatManager.createReaderFor(f);
@@ -47,7 +43,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 	
 	_analyzer.updateWave(waveSpan);
 	if (_analyzer.startThread(juce::Thread::Priority::normal)){
-		fmt::print("analyzer onset thread started\n");
+		writeToLog("analyzer onset thread started\n");
 	}
 }
 
@@ -75,16 +71,21 @@ void TsnGranularAudioProcessor::writeEvents(){
 }
 
 void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	fmt::print("processor: change message received\n");
+	writeToLog("processor: change message received\n");
 	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		fmt::print("processor: dynamic cast to threaded analyzer successful\n");
+		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		// then load onsets into synth
 		auto onsets = _analyzer.getOnsetsInSeconds();
 		if (onsets.size()){
-			tsn_granular_synth_juce.loadOnsets(onsets);
+			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
+				tsn_granular_synth->loadOnsets(onsets);
+			}
+			else {
+				writeToLog("TsnGranularAudioProcessor::changeListenerCallback failed dynamic cast to TsnGranular");
+			}
 		}
-		fmt::print("processor: change listener callback: got things\n");
+		writeToLog("processor: change listener callback: got things\n");
 	}
 }
 
