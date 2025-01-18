@@ -15,20 +15,23 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 #else
 	writeToLog("TsnGranularAudioProcessor RELEASE MODE\n");
 #endif
+	
+	juce::String hasLogger = granular_synth_juce->hasLogger() ? "true" : "false";
+	juce::String msg = juce::String("synth has logger? ");
+	msg.append(hasLogger, 10);
+	writeToLog(msg);
 }
 
 TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
 {}
 
 //==============================================================================
+juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
+	return new TsnGranularAudioProcessorEditor(*this);
+}
+//==============================================================================
 
 void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
-	// juce::AudioFormatReader *reader = formatManager.createReaderFor(f);
-	// if (!reader){
-	// 	std::cerr << "could not read file: " << f.getFileName() << "\n";
-	// 	return;
-	// }
-	// int newLength = static_cast<int>(reader->lengthInSamples);
 	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
 	double const sr = sampleManagementGuts.lastFileSampleRate;
 	{	// limit tmp scope

@@ -18,6 +18,9 @@ public:
 	TsnGranularAudioProcessor();
 	~TsnGranularAudioProcessor() override;
 	//==============================================================================
+	juce::AudioProcessorEditor* createEditor() override;
+	//==============================================================================
+
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	
 	void askForAnalysis();
