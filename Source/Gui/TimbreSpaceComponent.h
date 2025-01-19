@@ -130,12 +130,15 @@ public:
 			auto const p3 = p5.get3D();
 			using nvs::memoryless::biuni;
 			std::array<float, 3> uni_pts3 {biuni(p3[0]), biuni(p3[1]), biuni(p3[2])};
-			g.setColour(juce::Colour(uni_pts3[0], uni_pts3[1], uni_pts3[2], 1.f));
+			auto const fillColour = juce::Colour(uni_pts3[0], uni_pts3[1], uni_pts3[2], 1.f);
+			g.setColour(fillColour);
 			p = transformFromZeroOrigin(p);
 			p *= point_t(w,h);
 			float const closeness = uni_pts3[0] * uni_pts3[1] * uni_pts3[2] * 10.f;
 			auto const rect = pointToRect(p, softclip2(closeness));
 			g.fillEllipse(rect);
+			g.setColour(fillColour.withRotatedHue(0.5f));
+			g.drawEllipse(rect, 2.f);
 		}
 	}
 	void resized() override {}

@@ -93,23 +93,22 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
 }
-void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
-													 std::vector<std::vector<float>> PCA){
-	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
-	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
-	
-	//=========================draw waveform markers====================
-	audioProcessor.writeToLog("Editor: Drawing waveform markers\n");
-	double const sr = audioProcessor.getAnalysisSettings().sampleRate;
-	size_t nSamps = audioProcessor.getCurrentWaveSize();
+void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &onsetsInSeconds, TsnGranularAudioProcessor &p, bool verbose = true){
+	if (verbose){
+		p.writeToLog("Editor: Drawing waveform markers\n");
+	}
+	double const sr = p.getAnalysisSettings().sampleRate;
+	size_t nSamps = p.getCurrentWaveSize();
 	for (auto onset : onsetsInSeconds){
 		onset *= sr;
 		onset /= static_cast<double>(nSamps);
-		waveformAndPositionComponent.wc.addMarker(onset);
+		wc.addMarker(onset);
 	}
-	  
-	//=====================draw PCA timbre space points=================
-	audioProcessor.writeToLog("Editor: Drawing PCA points\n");
+}
+void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vector<std::vector<float>> const &PCA, Slicer_granularAudioProcessor &p, bool verbose = true){
+	if (verbose){
+		p.writeToLog("Editor: Drawing PCA points\n");
+	}
 	size_t constexpr nDim {5};
 	std::array<size_t, nDim> constexpr dimensions {
 		0,
@@ -120,16 +119,16 @@ void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSe
 	};
 	std::array<float, nDim> normalizers;
 	for (int i = 0; i < nDim; ++i){
-		auto const range = nvs::analysis::getRangeOfDimension(PCA, dimensions[i]);
+	auto const range = nvs::analysis::getRangeOfDimension(PCA, dimensions[i]);
 		normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
 	}
 	for (std::vector<float> const &pcaFrame : PCA){
 		juce::Point<float> p;
-		
+
 		// just some bull as a placeholder for actual timbral analysis
 		float val = pcaFrame[dimensions[0]];
 		float val2 = pcaFrame[dimensions[1]];
-#pragma message("need proper normalization")
+		#pragma message("need proper normalization")
 		p.setX(val * normalizers[0]);
 		p.setY(val2 * normalizers[1]);
 		std::array<float, 3> color;
@@ -144,6 +143,13 @@ void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSe
 		timbreSpaceComponent.add5DPoint(p, color);
 		fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 	}
+}
+void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> onsetsInSeconds,
+													 std::vector<std::vector<float>> PCA){
+	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
+	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
+	drawWaveformMarkers(waveformAndPositionComponent.wc, onsetsInSeconds, audioProcessor);
+	drawTimbreSpacePoints(timbreSpaceComponent, PCA, GranularEditorCommon::audioProcessor);
 	repaint();
 }
 void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
