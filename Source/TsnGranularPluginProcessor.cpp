@@ -5,11 +5,20 @@
 #include "JucePluginDefines.h"
 
 //==============================================================================
-TsnGranularAudioProcessor::TsnGranularAudioProcessor()
-: 	_analyzer(this)	// effectively adding this as listener to the analyzer
-
+nvs::util::LoggingGuts::LoggingGuts()
+: logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
+, fileLogger(logFile, "tsn_granular logging")
 {
-	granular_synth_juce = std::make_unique<JuceTsnGranularSynthesizer>();
+	juce::Logger::setCurrentLogger (&fileLogger);
+}
+
+TsnGranularAudioProcessor::TsnGranularAudioProcessor()
+:	Slicer_granularAudioProcessor(std::make_unique<JuceTsnGranularSynthesizer>())
+,	_analyzer(this)	// effectively adding this as listener to the analyzer
+{
+	if (JuceTsnGranularSynthesizer *s = dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
+		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
+	}
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 	writeToLog("TsnGranularAudioProcessor DEBUG MODE");
 #else
