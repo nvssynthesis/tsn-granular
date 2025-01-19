@@ -44,11 +44,12 @@ juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
 
 void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
-	double const sr = sampleManagementGuts.lastFileSampleRate;
 	{	// limit tmp scope
+		double const sr = sampleManagementGuts.lastFileSampleRate;
 		auto anSettingsTmp = _analyzer.getAnalysisSettings();
 		anSettingsTmp.sampleRate = static_cast<float>(sr);
 		_analyzer.setAnalysisSettings(anSettingsTmp);
+		askForAnalysis();
 	}
 }
 void TsnGranularAudioProcessor::askForAnalysis(){

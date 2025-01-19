@@ -214,7 +214,6 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 //					g.fillEllipse(i, j, dotDim, dotDim);
 //					g.drawEllipse(i, j, dotDim, dotDim, dotDim);
 				}
-				
 			}
 		}
 	}
