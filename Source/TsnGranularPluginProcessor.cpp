@@ -36,7 +36,9 @@ TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
 
 //==============================================================================
 juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
-	return new TsnGranularAudioProcessorEditor(*this);
+	TsnGranularAudioProcessorEditor* ed = new TsnGranularAudioProcessorEditor (*this);
+	_analyzer.addChangeListener(ed);
+	return ed;
 }
 //==============================================================================
 
@@ -98,6 +100,9 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 			}
 		}
 		writeToLog("processor: change listener callback: got things\n");
+	}
+	else {
+		writeToLog("processor: dynamic cast unsuccessful");
 	}
 }
 
