@@ -60,7 +60,7 @@ public:
 //		add5DPoint({-0.8f, 0.2f}, {0.1f, 0.2f, 0.3f});
 	}
 	void add2DPoint(float x, float y){
-		point_t p(x, y);
+		point_t const p(x, y);
 		add2DPoint(p);
 	}
 	void add2DPoint(point_t p){
@@ -88,7 +88,7 @@ public:
 		timbres5D.clear();
 	}
 	void paint(juce::Graphics &g) override {
-		g.fillAll(juce::Colours::rebeccapurple);
+		g.fillAll(juce::Colour(juce::Colours::rebeccapurple).withMultipliedLightness(1.6f));
 
 		juce::Rectangle<float> r = g.getClipBounds().toFloat();
 		auto const w = r.getWidth();
@@ -118,10 +118,10 @@ public:
 			return y;
 		};
 		auto softclip2 = [](float x){
-			float const p {0.f};
+			float const p {-0.2f};
 			float const q {0.2f};
-			float const s {0.5f};
-			float const t {4.5f};
+			float const s {0.6f};
+			float const t {5.f};
 			float const y = t * ((q*x - p) / (s + std::abs(q*x - p))) + p/2;
 			return y;
 		};
@@ -134,11 +134,11 @@ public:
 			g.setColour(fillColour);
 			p = transformFromZeroOrigin(p);
 			p *= point_t(w,h);
-			float const closeness = uni_pts3[0] * uni_pts3[1] * uni_pts3[2] * 10.f;
-			auto const rect = pointToRect(p, softclip2(closeness));
+			float const z_closeness = uni_pts3[0] * uni_pts3[1] * uni_pts3[2] * 10.f;
+			auto const rect = pointToRect(p, softclip2(z_closeness));
 			g.fillEllipse(rect);
-			g.setColour(fillColour.withRotatedHue(0.5f));
-			g.drawEllipse(rect, 2.f);
+			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
+			g.drawEllipse(rect, 1.f);
 		}
 	}
 	void resized() override {}
@@ -172,11 +172,11 @@ public:
 		currentPoint = nearestIdx;
 	}
 	void mouseDown (const juce::MouseEvent &event) override {
-		juce::Point<float> pNorm = normalizePosition_M1_1(event.getMouseDownPosition());
+		juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getMouseDownPosition());
 		setCurrentPointFromNearest(pNorm);
 	}
 	void mouseDrag(const juce::MouseEvent &event) override {
-		juce::Point<float> pNorm = normalizePosition_M1_1(event.getPosition());
+		juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getPosition());
 		setCurrentPointFromNearest(pNorm);
 	}
 	int getCurrentPoint() const {
@@ -184,7 +184,7 @@ public:
 	}
 private:
 	int currentPoint {0};
-	juce::Point<float> normalizePosition_M1_1(juce::Point<int> pos){
+	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos){
 		float x = static_cast<float>(pos.getX());
 		float y = static_cast<float>(pos.getY());
 		auto bounds = getLocalBounds().toFloat();
