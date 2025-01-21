@@ -126,18 +126,18 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		4
 	};
 	std::array<float, nDim> normalizers;
-	for (int i = 0; i < nDim; ++i){
+	for (int i = 0; i < nDim; ++i) {
 	auto const range = nvs::analysis::getRangeOfDimension(PCA, dimensions[i]);
 		normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
 	}
-	for (std::vector<float> const &pcaFrame : PCA){
+	for (std::vector<float> const &pcaFrame : PCA) {
 		// just some bull as a placeholder for actual timbral analysis
 		#pragma message("need proper normalization")
 		juce::Point<float> const p(pcaFrame[dimensions[0]] * normalizers[0],
 								   pcaFrame[dimensions[1]] * normalizers[1]);
 		std::array<float, 3> const color {
-			( pcaFrame[dimensions[2]] * normalizers[2]),
-			( pcaFrame[dimensions[3]] * normalizers[3]),
+			( pcaFrame[dimensions[2]] * normalizers[2] ),
+			( pcaFrame[dimensions[3]] * normalizers[3] ),
 			( pcaFrame[dimensions[4]] * normalizers[4])
 		};
 		// with this method, there is the gaurantee that
@@ -158,7 +158,7 @@ void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> &onsetsInS
 }
 void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 	audioProcessor.writeToLog("editor: setPositionSliderFromChosenPoint");
-	auto pIdx = timbreSpaceComponent.getCurrentPoint();
+	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
 
 	if (audioProcessor.getOnsets().size()){
 		float const onsetSeconds = audioProcessor.getOnsets()[pIdx];
@@ -166,12 +166,12 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
 		double const onsetNormalized = onsetSamps / lengthSamps;
-		std::string a = getParamElement<params_e::position, param_elem_e::name>();
+		std::string const a = getParamElement<params_e::position, param_elem_e::name>();
 		auto posParam = audioProcessor.getAPVTS().getParameter(a);
 		posParam->setValueNotifyingHost(onsetNormalized);
 	}
 	if (audioProcessor.getOnsetwiseBFCCs().size()){
-		std::vector<float> thisBfccSet = audioProcessor.getOnsetwiseBFCCs()[pIdx];
+		std::vector<float> const thisBfccSet = audioProcessor.getOnsetwiseBFCCs()[pIdx];
 		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
 	}
 }
@@ -201,18 +201,17 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	g.drawImage(backgroundImage, getLocalBounds().toFloat());
 	
 	{
-		auto bounds = getLocalBounds();
+		auto const bounds = getLocalBounds();
 
-		juce::int64 seed = bounds.getWidth() + bounds.getHeight();
+		juce::int64 const seed = bounds.getWidth() + bounds.getHeight();
 		juce::Random rng(seed);
 		
-		const auto dotDim = 2;
 		for (auto i = 0; i < bounds.getWidth(); i += 2){
 			for (auto j = 0; j < bounds.getHeight(); j += 3){
 				
-				float val = rng.nextFloat();
+				float const val = rng.nextFloat();
 				if (val > 0.7f){
-					auto colour = juce::Colour(juce::uint8(rng.nextInt()), 0, 0,
+					auto const colour = juce::Colour(juce::uint8(rng.nextInt()), 0, 0,
 												   rng.nextFloat() * 0.3f);	// alpha
 					g.setColour(colour);
 //					g.fillEllipse(i, j, dotDim, dotDim);
@@ -228,10 +227,10 @@ void TsnGranularAudioProcessorEditor::resized()
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
 	
-	juce::Image toBeBackground(juce::Image::PixelFormat::RGB,
-							   localBounds.getWidth(),
-							   localBounds.getHeight(),
-							   false);
+	juce::Image const toBeBackground(juce::Image::PixelFormat::RGB,
+								   localBounds.getWidth(),
+								   localBounds.getHeight(),
+								   false);
 	backgroundImage = toBeBackground;
 	
 	int const smallPad = 10;

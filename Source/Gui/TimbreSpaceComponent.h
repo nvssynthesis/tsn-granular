@@ -109,20 +109,8 @@ public:
 			p *= 0.5f;			// [-1..1]
 			return p;
 		};
-		auto softclip = [](float x){
-			float const p {1.3f};
-			float const q {0.7f};
-			float const s {0.7f};
-			float const t {2.5f};
-			float const y = t * ((q*x - p) / (s + std::abs(q*x - p))) + p/2;
-			return y;
-		};
-		auto softclip2 = [](float x){
-			float const p {-0.2f};
-			float const q {0.2f};
-			float const s {0.6f};
-			float const t {5.f};
-			float const y = t * ((q*x - p) / (s + std::abs(q*x - p))) + p/2;
+		auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f, float const s = 0.6f, float const scale = 5.f){
+			float const y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias/2;
 			return y;
 		};
 		for (auto p5 : timbres5D){
@@ -135,7 +123,7 @@ public:
 			p = transformFromZeroOrigin(p);
 			p *= point_t(w,h);
 			float const z_closeness = uni_pts3[0] * uni_pts3[1] * uni_pts3[2] * 10.f;
-			auto const rect = pointToRect(p, softclip2(z_closeness));
+			auto const rect = pointToRect(p, softclip(z_closeness));
 			g.fillEllipse(rect);
 			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
 			g.drawEllipse(rect, 0.5f);
@@ -169,7 +157,7 @@ public:
 		if (verbose) {fmt::print("incoming point x: {}, y: {}\n", x, y);}
 		int nearestIdx = findNearestPoint(x, y);
 		[[maybe_unused]] auto nearestPoint = timbres5D[nearestIdx].get2D();
-		currentPoint = nearestIdx;
+		currentPointIdx = nearestIdx;
 	}
 	void mouseDown (const juce::MouseEvent &event) override {
 		juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getMouseDownPosition());
@@ -179,11 +167,11 @@ public:
 		juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getPosition());
 		setCurrentPointFromNearest(pNorm);
 	}
-	int getCurrentPoint() const {
-		return currentPoint;
+	int getCurrentPointIdx() const {
+		return currentPointIdx;
 	}
 private:
-	int currentPoint {0};
+	int currentPointIdx {0};
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos){
 		float x = static_cast<float>(pos.getX());
 		float y = static_cast<float>(pos.getY());
