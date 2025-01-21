@@ -19,11 +19,13 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintMarkers(std::vector<float> onsetsInSeconds,
-					  std::vector<std::vector<float>> PCA);
+	void paintMarkers(std::vector<float> &onsetsInSeconds,
+					  std::vector<std::vector<float>> &PCA);
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
+protected:
+	void displayGrainDescriptions() override;
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 	juce::Image backgroundImage;
