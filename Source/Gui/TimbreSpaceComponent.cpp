@@ -136,23 +136,36 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	auto const current_point = timbres5D[currentPointIdx];
 	
 	for (auto p5 : timbres5D){
-#pragma message("here i shall determine if p5 == current point, and do different things depending on if it does")
 		timbre2DPoint p2 = p5.get2D();
 		auto const p3 = p5.get3D();
 		
 		auto const uni_p3 = biuni(p3);
 		juce::Colour fillColour = p3ToColour(uni_p3);
 		
-		if (p5 == current_point){
-			fmt::print("current point: {}, {}, {}, {}, {}\n", p2.getX(), p2.getY(), p3[0], p3[1], p3[2]);
-			fillColour = fillColour.withMultipliedBrightness(2.f).withMultipliedLightness(1.1f);
-		}
-
-		g.setColour(fillColour);
 		p2 = transformFromZeroOrigin(p2);
 		p2 *= timbre2DPoint(w,h);
 		float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
 		auto const rect = pointToRect(p2, softclip(z_closeness));
+		
+		
+		if (p5 == current_point){
+			// brighter colour for selected point
+			fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
+			// also draw glowing orb under the point
+			float orb_radius = rect.getWidth() * 1.5f;
+			juce::ColourGradient gradient(
+				fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
+				p2.x, p2.y,					// Center position
+				fillColour.withAlpha(0.0f),	// Edge color (fully transparent)
+				p2.x, p2.y + orb_radius,	// Radius for the gradient
+				true						// Radial gradient
+			);
+			g.setGradientFill(gradient);
+			g.fillEllipse(p2.x - orb_radius, p2.y - orb_radius, orb_radius * 2, orb_radius * 2);
+		}
+
+
+		g.setColour(fillColour);
 		g.fillEllipse(rect);
 		g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
 		g.drawEllipse(rect, 0.5f);
