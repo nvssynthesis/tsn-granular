@@ -138,7 +138,7 @@ public:
 			auto const rect = pointToRect(p, softclip2(z_closeness));
 			g.fillEllipse(rect);
 			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
-			g.drawEllipse(rect, 1.f);
+			g.drawEllipse(rect, 0.5f);
 		}
 	}
 	void resized() override {}

@@ -94,10 +94,11 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 void TsnGranularAudioProcessorEditor::displayGrainDescriptions() {
 	audioProcessor.readGrainDescriptionData(grainDescriptions);
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::CurrentPosition);
-	for (auto gd : grainDescriptions){
+	for (auto &gd : grainDescriptions){
 		waveformAndPositionComponent.wc.addMarker(gd);
 #pragma message("fill this in")
 		// light up corresponding timbre space point
+		
 	}
 }
 void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &onsetsInSeconds, TsnGranularAudioProcessor &p, bool verbose = true){
@@ -290,15 +291,13 @@ void TsnGranularAudioProcessorEditor::resized()
 }
 
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	audioProcessor.writeToLog("editor: change message received\n");
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		audioProcessor.writeToLog("editor: dynamic cast to threaded analyzer ptr successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		std::vector<float> onsetsInSeconds = a->getOnsetsInSeconds();
 		std::vector<std::vector<float>> PCA = a->getPCA();
 		
 		paintMarkers(onsetsInSeconds, PCA);
-		audioProcessor.writeToLog("editor: change listener callback: got things\n");
+		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
 	}
 	else {
 		GranularEditorCommon::changeListenerCallback(source);
