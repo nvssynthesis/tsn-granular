@@ -65,6 +65,8 @@
               file="Source/Gui/SettingsWindow.cpp"/>
         <FILE id="hcS6RY" name="TimbreSpaceComponent.h" compile="0" resource="0"
               file="Source/Gui/TimbreSpaceComponent.h"/>
+        <FILE id="ojcx3l" name="TimbreSpaceComponent.cpp" compile="1" resource="0"
+              file="Source/Gui/TimbreSpaceComponent.cpp"/>
       </GROUP>
       <GROUP id="{4D89421A-9B73-C464-6F0A-912A784F3BFA}" name="Analysis">
         <FILE id="hMG2pR" name="Analyzer.h" compile="0" resource="0" file="Source/Analysis/Analyzer.h"/>
