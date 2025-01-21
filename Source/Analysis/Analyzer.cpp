@@ -48,7 +48,7 @@ std::optional<vecVecReal> Analyzer::calculateOnsetwiseBFCCs(vecReal wave, std::v
 	
 	vecVecReal bfccs;
 	for (vecReal const &e : events){
-		std::span<float const > waveSpan(e);
+		std::span<float const> waveSpan(e);
 		vecVecReal b_tmp = getBFCCs(waveSpan, ess_hold.factory, _analysisSettings, _bfccSettings);
 		b_tmp = truncate(b_tmp, 5);
 		vecReal binwiseMeans = binwiseMean(b_tmp);

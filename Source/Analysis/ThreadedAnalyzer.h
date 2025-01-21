@@ -66,7 +66,7 @@ public:
 private:
 	Analyzer _analyzer;
 	
-	std::span<float const> inputWave;
+	std::vector<float> inputWave;
 	
 	std::vector<float> outputOnsetsInSeconds;
 	vecVecReal outputOnsetwiseBFCCs;

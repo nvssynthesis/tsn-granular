@@ -21,7 +21,7 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 }
 
 void ThreadedAnalyzer::updateWave(std::span<float const> wave){
-	inputWave = wave;
+	inputWave.assign(wave.begin(), wave.end());
 }
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
@@ -34,9 +34,7 @@ void ThreadedAnalyzer::run() {
 	
 	// perform onset analysis
 	fmt::print("ThreadedAnalyzer: performing onset analysis\n");
-	std::vector<float> v;
-	v.assign(inputWave.begin(), inputWave.end());
-	auto onsetOpt = _analyzer.calculateOnsets(v, [&](){
+	auto onsetOpt = _analyzer.calculateOnsets(inputWave, [&](){
 		if (threadShouldExit()){
 			fmt::print("ONSET CALCULATION EXITED EARLY\n");
 			return false;
@@ -52,7 +50,7 @@ void ThreadedAnalyzer::run() {
 	}
 	// perform onsetwise BFCC analysis
 	fmt::print("ThreadedAnalyzer: performing bfcc analysis\n");
-	auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(v, *onsetOpt);
+	auto bfccOpt = _analyzer.calculateOnsetwiseBFCCs(inputWave, *onsetOpt);
 	jassert (bfccOpt.has_value());
 	
 	if (bfccOpt.value().size() <= 1){

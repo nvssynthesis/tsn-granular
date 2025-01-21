@@ -10,7 +10,7 @@
 
 #pragma once
 #include <optional>
-#include "onsetAnalysis/OnsetAnalysis.h"
+#include "OnsetAnalysis/OnsetAnalysis.h"
 #include "Analysis/TimbreAnalysis/TimbreAnalysis.h"
 #include <JuceHeader.h>
 
