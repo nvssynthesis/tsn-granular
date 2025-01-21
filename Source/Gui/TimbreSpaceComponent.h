@@ -36,6 +36,7 @@ public:
 		timbre2DPoint _p2D;			// used to locate the point in x,y plane
 		timbre3DPoint _p3D;	// used to describe the colour (hsv)
 
+		bool operator==(timbre5DPoint const &other) const;
 		timbre2DPoint get2D() const { return _p2D; }
 		timbre3DPoint get3D() const { return _p3D; }
 
