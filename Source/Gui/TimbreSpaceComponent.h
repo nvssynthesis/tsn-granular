@@ -14,6 +14,11 @@
 #include "../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "fmt/core.h"
 
+/**
+ TODO:
+ -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
+*/
+
 namespace {
 constexpr bool inRange0_1(float x){
 	return ( (x >= 0.f) && (x <= 1.f) );
@@ -25,44 +30,25 @@ constexpr bool inRangeM1_1(float x){
 class TimbreSpaceComponent	:	public juce::Component
 {
 public:
-	using point_t = juce::Point<float>;
-	using timbre2DPoint = point_t;
-private:
+	using timbre2DPoint = juce::Point<float>;
+	using timbre3DPoint = std::array<float, 3>;
 	struct timbre5DPoint {
-		timbre2DPoint p2D;			// used to locate the point in x,y plane
-		std::array<float, 3> p3D;	// used to describe the colour (hsv)
+		timbre2DPoint _p2D;			// used to locate the point in x,y plane
+		timbre3DPoint _p3D;	// used to describe the colour (hsv)
 
-		point_t get2D() const {
-			return p2D;
-		}
-		std::array<float, 3> get3D() const {
-			return p3D;
-		}
+		timbre2DPoint get2D() const { return _p2D; }
+		timbre3DPoint get3D() const { return _p3D; }
 
 		// to easily trade hsv for rbg
-		std::array<juce::uint8, 3> toUnsigned() const {
-			for (auto p : p3D){
-				assert(inRangeM1_1(p));
-			}
-			using namespace nvs::memoryless;
-			std::array<juce::uint8, 3> u {
-				static_cast<juce::uint8>(biuni(p3D[0]) * 255.f),
-				static_cast<juce::uint8>(biuni(p3D[1]) * 255.f),
-				static_cast<juce::uint8>(biuni(p3D[2]) * 255.f)
-			};
-			return u;
-		}
-	 };
-	juce::Array<timbre5DPoint> timbres5D;
-public:
+		std::array<juce::uint8, 3> toUnsigned() const;
+	};
 	TimbreSpaceComponent() = default;
-	void add5DPoint(point_t p2D, std::array<float, 3> p3D);
+	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
 	void add5DPoint(float x, float y, float z, float w, float v);
 	void clear();
 	void paint(juce::Graphics &g) override;
 	void resized() override;
 
-	int findNearestPoint(float x, float y);
 	
 	void setCurrentPointFromNearest(juce::Point<float> point, bool verbose=false);
 	void mouseDown (const juce::MouseEvent &event) override;
@@ -70,8 +56,11 @@ public:
 	int getCurrentPointIdx() const;
 private:
 	void add2DPoint(float x, float y);
-	void add2DPoint(point_t p);
+	void add2DPoint(timbre2DPoint p);
+	
+	juce::Array<timbre5DPoint> timbres5D;
 	int currentPointIdx {0};
+	
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos);
 	
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimbreSpaceComponent);
