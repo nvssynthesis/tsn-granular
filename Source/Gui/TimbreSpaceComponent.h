@@ -52,6 +52,7 @@ public:
 
 	
 	void setCurrentPointFromNearest(juce::Point<float> point, bool verbose=false);
+	void setCurrentPointIdx(int newIdx);	// careful with setting directly. 
 	void mouseDown (const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
 	int getCurrentPointIdx() const;

@@ -19,7 +19,7 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintMarkers(std::vector<float> &onsetsInSeconds,
+	void paintOnsetMarkersAndTimbrePoints(std::vector<float> &onsetsInSeconds,
 					  std::vector<std::vector<float>> &PCA);
 	
 	void mouseDown(const juce::MouseEvent &event) override;

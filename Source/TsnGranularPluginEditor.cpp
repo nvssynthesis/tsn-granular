@@ -9,6 +9,7 @@
 #include "TsnGranularPluginProcessor.h"
 #include "TsnGranularPluginEditor.h"
 #include "Gui/SettingsWindow.h"
+#include "../slicer_granular/Source/algo_util.h"
 
 //==============================================================================
 
@@ -50,6 +51,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
+	waveformAndPositionComponent.addChangeListener(this);
 	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
@@ -96,9 +98,6 @@ void TsnGranularAudioProcessorEditor::displayGrainDescriptions() {
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::CurrentPosition);
 	for (auto &gd : grainDescriptions){
 		waveformAndPositionComponent.wc.addMarker(gd);
-#pragma message("fill this in")
-		// light up corresponding timbre space point
-		
 	}
 }
 void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &onsetsInSeconds, TsnGranularAudioProcessor &p, bool verbose = true){
@@ -148,7 +147,7 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 	}
 }
-void TsnGranularAudioProcessorEditor::paintMarkers(std::vector<float> &onsetsInSeconds,
+void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> &onsetsInSeconds,
 													 std::vector<std::vector<float>> &PCA){
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
@@ -167,7 +166,7 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
 		double const onsetNormalized = onsetSamps / lengthSamps;
 		std::string const a = getParamElement<params_e::position, param_elem_e::name>();
-		auto posParam = audioProcessor.getAPVTS().getParameter(a);
+		juce::RangedAudioParameter* posParam = audioProcessor.getAPVTS().getParameter(a);
 		posParam->setValueNotifyingHost(onsetNormalized);
 	}
 	if (audioProcessor.getOnsetwiseBFCCs().size()){
@@ -295,8 +294,18 @@ void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
 		std::vector<float> onsetsInSeconds = a->getOnsetsInSeconds();
 		std::vector<std::vector<float>> PCA = a->getPCA();
 		
-		paintMarkers(onsetsInSeconds, PCA);
+		paintOnsetMarkersAndTimbrePoints(onsetsInSeconds, PCA);
 		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
+	}
+	else if (source == &waveformAndPositionComponent){
+		std::vector<double> const norm_onsets = waveformAndPositionComponent.wc.getNormalizedOnsets();
+		if (norm_onsets.size()){
+			size_t const left_pos_idx = nvs::util::get_left(waveformAndPositionComponent.getPositionSliderValue(), norm_onsets).value().first;
+			assert (left_pos_idx <= std::numeric_limits<int>::max());
+			// light up corresponding timbre space point
+			timbreSpaceComponent.setCurrentPointIdx(static_cast<int>(left_pos_idx));
+			timbreSpaceComponent.repaint();
+		}
 	}
 	else {
 		GranularEditorCommon::changeListenerCallback(source);

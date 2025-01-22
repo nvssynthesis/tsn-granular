@@ -179,6 +179,9 @@ void TimbreSpaceComponent::setCurrentPointFromNearest(juce::Point<float> point, 
 	if (verbose) {fmt::print("incoming point x: {}, y: {}\n", x, y);}
 	currentPointIdx = findNearestPoint(x, y, timbres5D);
 }
+void TimbreSpaceComponent::setCurrentPointIdx(int newIdx){
+	currentPointIdx = newIdx;
+}
 void TimbreSpaceComponent::mouseDown (const juce::MouseEvent &event) {
 	auto const lastPointIdx = currentPointIdx;
 	juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getMouseDownPosition());
