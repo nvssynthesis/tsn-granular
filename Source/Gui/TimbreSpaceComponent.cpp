@@ -120,8 +120,17 @@ timbre3DPoint biuni(timbre3DPoint const &bipolar_p3){
 	timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
 	return uni_pts3;
 }
+auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){
+	return out_low + (x - in_low) * (out_high - out_low) / (in_high - in_low);
+}
 juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
-	return juce::Colour(p3[0], p3[1], p3[2], alpha);
+	float const h = p3[0];
+	float const s = p3[1];
+	float v = p3[2];
+	assert (v >= 0.0);
+	assert (v <= 1.0);
+	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
+	return juce::Colour(h, s, v, alpha);
 }
 }	// anonymous namespace
 
@@ -131,7 +140,6 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	juce::Rectangle<float> r = g.getClipBounds().toFloat();
 	auto const w = r.getWidth();
 	auto const h = r.getHeight();
-	g.setColour(juce::Colours::blue);
 
 	auto const current_point = timbres5D[currentPointIdx];
 	
@@ -146,7 +154,6 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		p2 *= timbre2DPoint(w,h);
 		float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
 		auto const rect = pointToRect(p2, softclip(z_closeness));
-		
 		
 		if (p5 == current_point){
 			// brighter colour for selected point
@@ -163,8 +170,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			g.setGradientFill(gradient);
 			g.fillEllipse(p2.x - orb_radius, p2.y - orb_radius, orb_radius * 2, orb_radius * 2);
 		}
-
-
+		// draw a filled circle with a different coloured outline
 		g.setColour(fillColour);
 		g.fillEllipse(rect);
 		g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));

@@ -164,7 +164,7 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
 		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
 		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
-		double const onsetNormalized = onsetSamps / lengthSamps;
+		double const onsetNormalized = onsetSamps / lengthSamps + std::numeric_limits<float>::epsilon()*10.0;
 		std::string const a = getParamElement<params_e::position, param_elem_e::name>();
 		juce::RangedAudioParameter* posParam = audioProcessor.getAPVTS().getParameter(a);
 		posParam->setValueNotifyingHost(onsetNormalized);
