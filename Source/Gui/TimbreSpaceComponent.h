@@ -43,6 +43,12 @@ public:
 		// to easily trade hsv for rbg
 		std::array<juce::uint8, 3> toUnsigned() const;
 	};
+	
+	struct Navigator {
+		timbre2DPoint _p2D {0.f, 0.f};
+	};
+	
+	
 	TimbreSpaceComponent() = default;
 	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
 	void add5DPoint(float x, float y, float z, float w, float v);
@@ -62,6 +68,10 @@ public:
 	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 	
 	int getCurrentPointIdx() const;
+	
+	void setNavigatorPoint(timbre2DPoint p){
+		nav._p2D = p;
+	}
 private:
 	void add2DPoint(float x, float y);
 	void add2DPoint(timbre2DPoint p);
@@ -80,6 +90,8 @@ private:
 	void updateCursor();
 	
 	TSNMouse tsn_mouse;
+	
+	Navigator nav;
 	
 	juce::Array<timbre5DPoint> timbres5D;
 	int currentPointIdx {0};

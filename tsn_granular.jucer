@@ -124,6 +124,10 @@
         <FILE id="lM9MlP" name="LatchedRandom.h" compile="0" resource="0" file="slicer_granular/Source/LatchedRandom.h"/>
         <FILE id="h7IROA" name="Random.h" compile="0" resource="0" file="slicer_granular/Source/Random.h"/>
       </GROUP>
+      <GROUP id="{8CCD81F4-72A5-A473-1770-8228AF8E983D}" name="Navigation">
+        <FILE id="TbGvBi" name="LFO.cpp" compile="1" resource="0" file="Source/Navigation/LFO.cpp"/>
+        <FILE id="EKaMsG" name="LFO.h" compile="0" resource="0" file="Source/Navigation/LFO.h"/>
+      </GROUP>
       <GROUP id="{47F42E1A-BFED-51DF-EF45-B553B6D48E18}" name="util">
         <FILE id="WrZlTL" name="DataStructures.h" compile="0" resource="0"
               file="slicer_granular/Source/DataStructures.h"/>

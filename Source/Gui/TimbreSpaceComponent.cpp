@@ -88,6 +88,10 @@ auto transformFromZeroOrigin = [](timbre2DPoint p) -> timbre2DPoint
 	return p;
 };
 
+timbre2DPoint bipolar2dPointToComponentSpace(timbre2DPoint p2D, float componentWidth, float componentHeight){
+	return transformFromZeroOrigin(p2D) * timbre2DPoint(componentWidth, componentHeight);
+}
+
 auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f, float const s = 0.6f, float const scale = 5.f) -> float
 {
 	float const y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias/2;
@@ -154,45 +158,50 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	g.fillAll(juce::Colour(juce::Colours::rebeccapurple).withMultipliedLightness(1.6f));
-
+	
+	// keep these out of the following scope as long as i want to reuse them for the navigator
 	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
-
-	auto const current_point = timbres5D[currentPointIdx];
-	
-	for (auto p5 : timbres5D){
-		timbre2DPoint p2 = p5.get2D();
-		auto const p3 = p5.get3D();
+	{
+		auto const current_point = timbres5D[currentPointIdx];
 		
-		auto const uni_p3 = biuni(p3);
-		juce::Colour fillColour = p3ToColour(uni_p3);
-		
-		p2 = transformFromZeroOrigin(p2);
-		p2 *= timbre2DPoint(w,h);
-		float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
-		auto const rect = pointToRect(p2, softclip(z_closeness));
-		
-		if (p5 == current_point){
-			// brighter colour for selected point
-			fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
-			// also draw glowing orb under the point
-			float orb_radius = rect.getWidth() * 1.5f;
-			juce::ColourGradient gradient(
-				fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
-				p2.x, p2.y,					// Center position
-				fillColour.withAlpha(0.0f),	// Edge color (fully transparent)
-				p2.x, p2.y + orb_radius,	// Radius for the gradient
-				true						// Radial gradient
-			);
-			g.setGradientFill(gradient);
-			g.fillEllipse(p2.x - orb_radius, p2.y - orb_radius, orb_radius * 2, orb_radius * 2);
+		for (auto p5 : timbres5D){
+			timbre2DPoint p2 = bipolar2dPointToComponentSpace(p5.get2D(), w, h);
+			auto const p3 = p5.get3D();
+			
+			auto const uni_p3 = biuni(p3);
+			juce::Colour fillColour = p3ToColour(uni_p3);
+			
+			float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
+			auto const rect = pointToRect(p2, softclip(z_closeness));
+			
+			if (p5 == current_point){
+				// brighter colour for selected point
+				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
+				// also draw glowing orb under the point
+				float orb_radius = rect.getWidth() * 1.5f;
+				juce::ColourGradient gradient(
+					fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
+					p2.x, p2.y,					// Center position
+					fillColour.withAlpha(0.0f),	// Edge color (fully transparent)
+					p2.x, p2.y + orb_radius,	// Radius for the gradient
+					true						// Radial gradient
+				);
+				g.setGradientFill(gradient);
+				g.fillEllipse(p2.x - orb_radius, p2.y - orb_radius, orb_radius * 2, orb_radius * 2);
+			}
+			// draw a filled circle with a different coloured outline
+			g.setColour(fillColour);
+			g.fillEllipse(rect);
+			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
+			g.drawEllipse(rect, 0.5f);
 		}
-		// draw a filled circle with a different coloured outline
-		g.setColour(fillColour);
-		g.fillEllipse(rect);
-		g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
-		g.drawEllipse(rect, 0.5f);
+	}
+	// draw navigator
+	{
+		g.setColour(juce::Colours::black);
+		g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(nav._p2D, w, h), 2.f));
 	}
 }
 void TimbreSpaceComponent::resized() {}

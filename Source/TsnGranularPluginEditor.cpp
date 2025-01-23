@@ -15,6 +15,7 @@
 
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 : 	Slicer_granularAudioProcessorEditor (p)
+,	gui_lfo(0.5, 15.0)	// frequency, update rate in Hertz
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
@@ -53,6 +54,12 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.addChangeListener(this);
 	
+	gui_lfo.setOnUpdateCallback([&](double d){
+		// set navigator of timbre space component
+		timbreSpaceComponent.setNavigatorPoint(juce::Point<float>(0.f, d));
+		timbreSpaceComponent.repaint();
+	});
+	gui_lfo.start();
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
@@ -64,6 +71,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
+	gui_lfo.stop();
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()

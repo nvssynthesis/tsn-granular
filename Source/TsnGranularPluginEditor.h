@@ -2,6 +2,7 @@
 
 #include "TsnGranularPluginProcessor.h"
 #include "./Gui/TimbreSpaceComponent.h"
+#include "./Navigation/LFO.h"
 #include "../slicer_granular/Source/SlicerGranularPluginEditor.h"
 
 //==============================================================================
@@ -30,6 +31,7 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	juce::Image backgroundImage;
 	
+	nvs::nav::GUILFO gui_lfo;
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {
