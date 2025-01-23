@@ -68,10 +68,13 @@ private:
 	
 	struct TSNMouse
 	{
-		juce::Image createMouseImage();
-		TSNMouse()	:	_image(createMouseImage())	{}
+		void createMouseImage();
+		TSNMouse() {
+			createMouseImage();
+			fmt::print("tsn mouse constructed\n");
+		}
 		timbre3DPoint _uvz {0.f, 0.6f, 0.f};
-		juce::Image const _image;
+		juce::Image _image;
 		bool _dragging {false};
 	};
 	void updateCursor();

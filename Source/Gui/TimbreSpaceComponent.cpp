@@ -155,9 +155,9 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	g.fillAll(juce::Colour(juce::Colours::rebeccapurple).withMultipliedLightness(1.6f));
 
-	juce::Rectangle<float> r = g.getClipBounds().toFloat();
-	auto const w = r.getWidth();
-	auto const h = r.getHeight();
+	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
+	auto const w = r_bounds.getWidth();
+	auto const h = r_bounds.getHeight();
 
 	auto const current_point = timbres5D[currentPointIdx];
 	
@@ -237,7 +237,6 @@ void TimbreSpaceComponent::mouseUp (const juce::MouseEvent &event) {
 	tsn_mouse._dragging = false;
 }
 
-
 void TimbreSpaceComponent::mouseEnter(const juce::MouseEvent &event) {
 	juce::MouseCursor newCursor(tsn_mouse._image, 0, 0);
 	setMouseCursor(newCursor);
@@ -252,23 +251,23 @@ void TimbreSpaceComponent::mouseWheelMove(const juce::MouseEvent& event, const j
 	}
 	float &u = tsn_mouse._uvz[0];
 	u = juce::jlimit(0.f, 1.f, u + wheel.deltaY);
-	
 		
 	updateCursor();
 }
 void TimbreSpaceComponent::updateCursor() {
-	auto customImage = tsn_mouse.createMouseImage();
-	juce::MouseCursor customCursor(customImage, customImage.getWidth() / 2, customImage.getHeight() / 2);
+	tsn_mouse.createMouseImage();
+	auto mouseImage = tsn_mouse._image;
+	juce::MouseCursor customCursor(mouseImage, mouseImage.getWidth() / 2, mouseImage.getHeight() / 2);
 	setMouseCursor(customCursor);
 }
-juce::Image TimbreSpaceComponent::TSNMouse::createMouseImage() {
+void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	juce::Image image(juce::Image::ARGB, 16, 16, true);
 	juce::Graphics g(image);
 	
-	g.setColour(p3ToColour(_uvz));
+	g.setColour(p3ToColour(biuni(_uvz)));
 	g.fillEllipse(image.getBounds().toFloat());
 
-	return image;
+	_image = image;
 }
 
 int TimbreSpaceComponent::getCurrentPointIdx() const {
