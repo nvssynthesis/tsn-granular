@@ -49,16 +49,34 @@ public:
 	void clear();
 	void paint(juce::Graphics &g) override;
 	void resized() override;
-
 	
-	void setCurrentPointFromNearest(juce::Point<float> point, bool verbose=false);
-	void setCurrentPointIdx(int newIdx);	// careful with setting directly. 
+	void setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose=false);
+	void setCurrentPointIdx(int newIdx);	// careful with setting directly.
+	
 	void mouseDown (const juce::MouseEvent &event) override;
-	void mouseDrag(const juce::MouseEvent &event) override;
+	void mouseUp (const juce::MouseEvent &event) override;
+	void mouseDrag (const juce::MouseEvent &event) override;
+	void mouseDragOrDown(juce::Point<int> mousePos);
+	void mouseEnter(const juce::MouseEvent &event) override;
+	void mouseExit (const juce::MouseEvent &event) override;
+	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+	
 	int getCurrentPointIdx() const;
 private:
 	void add2DPoint(float x, float y);
 	void add2DPoint(timbre2DPoint p);
+	
+	struct TSNMouse
+	{
+		juce::Image createMouseImage();
+		TSNMouse()	:	_image(createMouseImage())	{}
+		timbre3DPoint _uvz {0.f, 0.6f, 0.f};
+		juce::Image const _image;
+		bool _dragging {false};
+	};
+	void updateCursor();
+	
+	TSNMouse tsn_mouse;
 	
 	juce::Array<timbre5DPoint> timbres5D;
 	int currentPointIdx {0};

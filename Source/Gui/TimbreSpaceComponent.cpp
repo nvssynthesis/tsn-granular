@@ -69,6 +69,7 @@ void TimbreSpaceComponent::add2DPoint(timbre2DPoint p){
 namespace {
 using timbre2DPoint = TimbreSpaceComponent::timbre2DPoint;
 using timbre3DPoint = TimbreSpaceComponent::timbre3DPoint;
+using timbre5DPoint = TimbreSpaceComponent::timbre5DPoint;
 
 auto pointToRect = [](timbre2DPoint p, float pt_sz) -> juce::Rectangle<float> {
 	timbre2DPoint upperLeft{p}, bottomRight{p};
@@ -93,17 +94,34 @@ auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f
 	return y;
 };
 
-int findNearestPoint(float x, float y, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D) {
+int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D) {
 	/*
 	 Do consider that we are only using 2 dimenstions to find the nearest point even though they are of greater dimensionality.
 	 */
+
+	auto const px = p5D.get2D().getX();
+	auto const py = p5D.get2D().getY();
+	auto const pu = p5D.get3D()[0];
+	auto const pv = p5D.get3D()[1];
+	auto const pz = p5D.get3D()[2];
+
+	
 	float diff = 1e15;
 	int idx = 0;
 	for (int i = 0; i < timbres5D.size(); ++i){
-		auto const p2D = timbres5D[i].get2D();
-		auto const xx = (p2D.getX() - x);
-		auto const yy = (p2D.getY() - y);
-		auto const tmp = xx*xx + yy*yy;
+		auto const current_x = timbres5D[i].get2D().getX();
+		auto const current_y = timbres5D[i].get2D().getY();
+		auto const current_u = timbres5D[i].get3D()[0];
+		auto const current_v = timbres5D[i].get3D()[1];
+		auto const current_z = timbres5D[i].get3D()[2];
+
+		auto const xx = (current_x - px);
+		auto const yy = (current_y - py);
+		auto const uu = (current_u - pu);
+		auto const vv = (current_v - pv);
+		auto const zz = (current_z - pz);
+
+		auto const tmp = xx*xx + yy*yy + 0.15*(uu*uu + vv*vv + zz*zz);
 		if (tmp < diff){
 			diff = tmp;
 			idx = i;
@@ -179,31 +197,80 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 }
 void TimbreSpaceComponent::resized() {}
 
-void TimbreSpaceComponent::setCurrentPointFromNearest(juce::Point<float> point, bool verbose) {
-	float const x = point.getX();
-	float const y = point.getY();
-	if (verbose) {fmt::print("incoming point x: {}, y: {}\n", x, y);}
-	currentPointIdx = findNearestPoint(x, y, timbres5D);
+void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose) {
+	if (verbose) {
+		fmt::print("incoming point x: {}, y: {}, u: {}, v: {}, z: {}\n",
+					p5D.get2D().getX(),
+					p5D.get2D().getY(),
+					p5D.get3D()[0],
+					p5D.get3D()[1],
+					p5D.get3D()[2]
+				   );
+	}
+	currentPointIdx = findNearestPoint(p5D, timbres5D);
 }
 void TimbreSpaceComponent::setCurrentPointIdx(int newIdx){
 	currentPointIdx = newIdx;
 }
-void TimbreSpaceComponent::mouseDown (const juce::MouseEvent &event) {
+void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
+	fmt::print("draggng or down\n");
+	tsn_mouse._dragging = true;
 	auto const lastPointIdx = currentPointIdx;
-	juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getMouseDownPosition());
-	setCurrentPointFromNearest(pNorm);
+	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
+	timbre5DPoint p5D {
+		._p2D{p2D_norm},
+		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[2], tsn_mouse._uvz[2]}
+	};
+	setCurrentPointFromNearest(p5D);
 	if (currentPointIdx != lastPointIdx){
 		repaint();
 	}
 }
+
 void TimbreSpaceComponent::mouseDrag(const juce::MouseEvent &event) {
-	auto const lastPointIdx = currentPointIdx;
-	juce::Point<float> pNorm = normalizePosition_neg1_pos1(event.getPosition());
-	setCurrentPointFromNearest(pNorm);
-	if (currentPointIdx != lastPointIdx){
-		repaint();
-	}
+	mouseDragOrDown(event.getPosition());
 }
+void TimbreSpaceComponent::mouseDown (const juce::MouseEvent &event) {
+	mouseDragOrDown(event.getMouseDownPosition());
+}
+void TimbreSpaceComponent::mouseUp (const juce::MouseEvent &event) {
+	tsn_mouse._dragging = false;
+}
+
+
+void TimbreSpaceComponent::mouseEnter(const juce::MouseEvent &event) {
+	juce::MouseCursor newCursor(tsn_mouse._image, 0, 0);
+	setMouseCursor(newCursor);
+}
+
+void TimbreSpaceComponent::mouseExit(const juce::MouseEvent &event) {
+	setMouseCursor(juce::MouseCursor::NormalCursor);
+}
+void TimbreSpaceComponent::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) {
+	if (tsn_mouse._dragging) {
+		return;
+	}
+	float &u = tsn_mouse._uvz[0];
+	u = juce::jlimit(0.f, 1.f, u + wheel.deltaY);
+	
+		
+	updateCursor();
+}
+void TimbreSpaceComponent::updateCursor() {
+	auto customImage = tsn_mouse.createMouseImage();
+	juce::MouseCursor customCursor(customImage, customImage.getWidth() / 2, customImage.getHeight() / 2);
+	setMouseCursor(customCursor);
+}
+juce::Image TimbreSpaceComponent::TSNMouse::createMouseImage() {
+	juce::Image image(juce::Image::ARGB, 16, 16, true);
+	juce::Graphics g(image);
+	
+	g.setColour(p3ToColour(_uvz));
+	g.fillEllipse(image.getBounds().toFloat());
+
+	return image;
+}
+
 int TimbreSpaceComponent::getCurrentPointIdx() const {
 	return currentPointIdx;
 }
