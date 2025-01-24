@@ -31,21 +31,23 @@ void GUILFO::setFrequency(double newFrequencyHz) {
 	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / updateIntervalMs;
 }
 
-void GUILFO::setOnUpdateCallback(std::function<void(double)> callback) {
+void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
 	onUpdate = std::move(callback);
 }
 
 void GUILFO::timerCallback() {
 	phase += phaseIncrement;
 
-	if (phase > 2.0 * juce::MathConstants<double>::pi)
+	if (phase > 2.0 * juce::MathConstants<double>::pi){
 		phase -= 2.0 * juce::MathConstants<double>::pi;
+	}
 
-	double lfoValue = std::sin(phase); // Sine wave output (-1 to 1)
+	double x = std::cos(phase);
+	double y = std::sin(phase);
 
 	// Trigger the callback to update the TimbreSpaceComponent
 	if (onUpdate)
-		onUpdate(lfoValue);
+		onUpdate(x, y);
 }
 
 }	// nvs::nav

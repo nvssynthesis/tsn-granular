@@ -54,9 +54,9 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.addChangeListener(this);
 	
-	gui_lfo.setOnUpdateCallback([&](double d){
+	gui_lfo.setOnUpdateCallback([&](double x, double y){
 		// set navigator of timbre space component
-		timbreSpaceComponent.setNavigatorPoint(juce::Point<float>(0.f, d));
+		timbreSpaceComponent.setNavigatorPoint(juce::Point<float>(x, y));
 		timbreSpaceComponent.repaint();
 	});
 	gui_lfo.start();
