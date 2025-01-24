@@ -18,21 +18,25 @@ namespace nvs::nav {
 class GUILFO : public juce::Timer
 {
 public:
-	GUILFO(double initialFrequencyHz, double updateRateHz);
+	GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz);
 	~GUILFO() override = default;
 	void start();
 	void stop();
 	void setFrequency(double newFrequencyHz);
+	void setAmplitude(double newAmplitude);
 	void setOnUpdateCallback(std::function<void(double, double)> callback);
 
 protected:
 	void timerCallback() override;
 
 private:
-	double frequencyHz{1.0};
+	juce::AudioProcessorValueTreeState& _apvts;
+	
+	double frequencyHz;
+	double amplitude;
 	double phase{0.0};
-	double phaseIncrement{0.0};            // Phase increment per timer tick
-	int updateIntervalMs{16};
+	double phaseIncrement;	// Phase increment per timer tick
+	int updateIntervalMs;
 	std::function<void(double, double)> onUpdate;
 };
 

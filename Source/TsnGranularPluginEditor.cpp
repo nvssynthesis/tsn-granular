@@ -16,7 +16,7 @@
 
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 : 	Slicer_granularAudioProcessorEditor (p)
-,	gui_lfo(0.5, 15.0)	// frequency, update rate in Hertz
+,	gui_lfo(p.getAPVTS(), 15.0)	// frequency, update rate in Hertz
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
@@ -59,7 +59,15 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	
 	gui_lfo.setOnUpdateCallback([&](double x, double y){
 		// set navigator of timbre space component
-		timbreSpaceComponent.setNavigatorPoint(juce::Point<float>(x, y));
+		auto const p2 = juce::Point<float>(x, y);
+		timbreSpaceComponent.setNavigatorPoint(p2);
+		// also attract to nearest point
+		auto p5 = TimbreSpaceComponent::timbre5DPoint {
+			._p2D{p2},
+			._p3D{0.f, 0.f, 0.f}
+		};
+		timbreSpaceComponent.setCurrentPointFromNearest(p5);
+		setPositionSliderFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	});
 	gui_lfo.start();
@@ -148,7 +156,7 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		std::array<float, 3> const color {
 			( pcaFrame[dimensions[2]] * normalizers[2] ),
 			( pcaFrame[dimensions[3]] * normalizers[3] ),
-			( pcaFrame[dimensions[4]] * normalizers[4])
+			( pcaFrame[dimensions[4]] * normalizers[4] )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to

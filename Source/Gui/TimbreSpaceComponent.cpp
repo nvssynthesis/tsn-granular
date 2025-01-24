@@ -108,7 +108,6 @@ int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre
 	auto const pu = p5D.get3D()[0];
 	auto const pv = p5D.get3D()[1];
 	auto const pz = p5D.get3D()[2];
-
 	
 	float diff = 1e15;
 	int idx = 0;

@@ -11,12 +11,14 @@
 #include "LFO.h"
 
 namespace nvs::nav {
-GUILFO::GUILFO(double initialFrequencyHz, double updateRateHz)
-:	frequencyHz(initialFrequencyHz), updateIntervalMs(static_cast<int>(1000.0 / updateRateHz))
+GUILFO::GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
+:	_apvts(apvts)
+,	frequencyHz(*_apvts.getRawParameterValue("Rate"))
+, 	updateIntervalMs(static_cast<int>(1000.0 / updateRateHz))
 {
-	setFrequency(initialFrequencyHz);
+	setFrequency(*_apvts.getRawParameterValue("Rate"));
+	setAmplitude(*_apvts.getRawParameterValue("Amount"));
 }
-
 
 void GUILFO::start() {
 	startTimer(updateIntervalMs);
@@ -30,20 +32,28 @@ void GUILFO::setFrequency(double newFrequencyHz) {
 	frequencyHz = newFrequencyHz;
 	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / updateIntervalMs;
 }
+void GUILFO::setAmplitude(double newAmplitude) {
+	amplitude = newAmplitude;
+}
 
 void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
 	onUpdate = std::move(callback);
 }
 
 void GUILFO::timerCallback() {
+	// update parameters
+	setFrequency(*_apvts.getRawParameterValue("Rate"));
+	setAmplitude(*_apvts.getRawParameterValue("Amount"));
+	
+	// compute phase and waveforms
+	assert(phaseIncrement >= 0.0);	// otherwise wrapping method won't work as expected
 	phase += phaseIncrement;
 
 	if (phase > 2.0 * juce::MathConstants<double>::pi){
 		phase -= 2.0 * juce::MathConstants<double>::pi;
 	}
-
-	double x = std::cos(phase);
-	double y = std::sin(phase);
+	double const x = std::cos(phase) * amplitude;
+	double const y = std::sin(phase) * amplitude;
 
 	// Trigger the callback to update the TimbreSpaceComponent
 	if (onUpdate)

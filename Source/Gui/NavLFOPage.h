@@ -1,11 +1,11 @@
 /*
-  ==============================================================================
+  =============================================================================
 
-    NavLFOPage.h
-    Created: 23 Jan 2025 4:16:56pm
-    Author:  Nicholas Solem
+    NavLFOPage.
+    Created: 23 Jan 2025 4:16:56p
+    Author:  Nicholas Sole
 
-  ==============================================================================
+  =============================================================================
 */
 
 #pragma once
@@ -55,3 +55,4 @@ struct NavLFOPage :	public juce::Component
 private:
 	NavLFOParamsComponent navLfoParamsComp;
 };
+
