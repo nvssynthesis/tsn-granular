@@ -10,6 +10,7 @@
 #include "TsnGranularPluginEditor.h"
 #include "Gui/SettingsWindow.h"
 #include "../slicer_granular/Source/algo_util.h"
+#include "Gui/NavLFOPage.h"
 
 //==============================================================================
 
@@ -50,6 +51,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 		fmt::print("current id: {}", id);
 	};
 	
+	tabbedPages.addTab ("Navigation LFO Parameters", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS()), true);
+
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.addChangeListener(this);

@@ -53,6 +53,8 @@
           <FILE id="WeDqJ6" name="AttachedSlider.h" compile="0" resource="0"
                 file="slicer_granular/Source/Gui/AttachedSlider.h"/>
         </GROUP>
+        <FILE id="ElQ0Ov" name="NavLFOPage.cpp" compile="1" resource="0" file="Source/Gui/NavLFOPage.cpp"/>
+        <FILE id="DpL3jD" name="NavLFOPage.h" compile="0" resource="0" file="Source/Gui/NavLFOPage.h"/>
         <FILE id="R9RZvc" name="NonAutomatableTitledSlider.h" compile="0" resource="0"
               file="Source/Gui/NonAutomatableTitledSlider.h"/>
         <FILE id="E1wLhj" name="OnsetSettingsComponent.h" compile="0" resource="0"
