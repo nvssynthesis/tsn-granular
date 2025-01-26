@@ -1,3 +1,6 @@
 [submodule "slicer_granular"]
 	path = slicer_granular
 	url = https://github.com/nvssynthesis/slicer_granular.git
+[submodule "aubio"]
+	path = aubio
+	url = https://github.com/aubio/aubio.git
