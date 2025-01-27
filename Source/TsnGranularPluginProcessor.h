@@ -25,7 +25,7 @@ public:
 	
 	void askForAnalysis();
 	std::vector<float> getOnsets() const;
-	std::vector<std::vector<float>> getOnsetwiseBFCCs() const;
+	std::vector<std::vector<float>> getOnsetwiseTimbres() const;
 	std::vector<std::vector<float>> getPCA() const;
 	void writeEvents();
 	

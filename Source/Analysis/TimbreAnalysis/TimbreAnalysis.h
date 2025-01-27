@@ -14,9 +14,12 @@
 #include "Analysis/AnalysisUsing.h"
 #include "Analysis/Settings.h"
 #include <span>
+#include "../aubio/src/aubio.h"
 
 namespace nvs {
 namespace analysis {
+
+std::vector<float> getPitches(std::span<Real> waveSpan);
 
 vecVecReal
 getBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory,

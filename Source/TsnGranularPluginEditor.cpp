@@ -188,9 +188,9 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 		juce::RangedAudioParameter* posParam = audioProcessor.getAPVTS().getParameter(a);
 		posParam->setValueNotifyingHost(onsetNormalized);
 	}
-	if (audioProcessor.getOnsetwiseBFCCs().size()){
-		std::vector<float> const thisBfccSet = audioProcessor.getOnsetwiseBFCCs()[pIdx];
-		fmt::print("BFCC: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisBfccSet[1],thisBfccSet[2],thisBfccSet[3],thisBfccSet[4],thisBfccSet[5]);
+	if (audioProcessor.getPCA().size()){
+		std::vector<float> const thisPcaSet = audioProcessor.getPCA()[pIdx];
+		fmt::print("PCA: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisPcaSet[1],thisPcaSet[2],thisPcaSet[3],thisPcaSet[4],thisPcaSet[5]);
 	}
 }
 

@@ -30,8 +30,8 @@ public:
 	inline vecReal getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
 	}
-	inline vecVecReal getOnsetwiseBFCCs() const {
-		return outputOnsetwiseBFCCs;
+	inline vecVecReal getOnsetwiseTimbreMeasurements() const {
+		return outputOnsetwiseTimbreMeasurements;
 	}
 	inline vecVecReal getPCA() const {
 		return outputPCA;
@@ -69,7 +69,7 @@ private:
 	std::vector<float> inputWave;
 	
 	std::vector<float> outputOnsetsInSeconds;
-	vecVecReal outputOnsetwiseBFCCs;
+	vecVecReal outputOnsetwiseTimbreMeasurements;
 	vecVecReal outputPCA;
 };
 

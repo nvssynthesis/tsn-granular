@@ -13,6 +13,59 @@
 namespace nvs {
 namespace analysis {
 
+std::vector<float> getPitches(std::span<Real> waveSpan){
+	size_t const N = waveSpan.size();
+	int const win_sz = 2048;
+	int const hop_sz = 512;
+	
+	int const num_wins = (N <= win_sz) ? 1 :
+										ceil(N - win_sz) / hop_sz + 1;
+	
+	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast", /*buf_size*/ win_sz, /*hop_size*/hop_sz, /*sample_rate*/ 44100);
+	if (!pDetector){
+		return {};
+	}
+
+	if (aubio_pitch_set_silence(pDetector, -50.f)) { // returns 0 on success
+		del_aubio_pitch(pDetector);
+		return {};
+	}
+	
+	if (aubio_pitch_set_unit(pDetector, "cent")) {
+		del_aubio_pitch(pDetector);
+		return {};
+	}
+	
+	std::vector<float> pitches(num_wins, 0.0f);
+	
+	fvec_t* fv_in = new_fvec(win_sz);
+	fvec_t* fv_out = new_fvec(1);
+	
+	if (!fv_in || !fv_out) {
+		del_fvec(fv_in);
+		del_fvec(fv_out);
+		del_aubio_pitch(pDetector);
+		return {};
+	}
+	
+	for (int i = 0; i < num_wins; ++i) {
+		std::memcpy(fv_in->data,
+					waveSpan.data() + i * hop_sz,
+					win_sz * sizeof(Real));
+
+		aubio_pitch_do(pDetector, fv_in, fv_out);
+
+		pitches[i] = fvec_get_sample(fv_out, 0);
+	}
+	
+	del_fvec(fv_in);
+	del_fvec(fv_out);
+	del_aubio_pitch(pDetector);
+	
+	return pitches;
+}
+
+
 vecVecReal getBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, analysisSettings const anSettings, bfccSettings const bfSettings)
 {
 	size_t const waveSize = waveSpan.size();

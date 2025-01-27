@@ -3,3 +3,4 @@ Builds/
 ..bfg-report/
 JuceLibraryCode/
 .vscode/
+aubio/

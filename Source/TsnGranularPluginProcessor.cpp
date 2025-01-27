@@ -66,8 +66,8 @@ std::vector<float> TsnGranularAudioProcessor::getOnsets() const {
 	return _analyzer.getOnsetsInSeconds();
 }
 
-std::vector<std::vector<float>> TsnGranularAudioProcessor::getOnsetwiseBFCCs() const {
-	return _analyzer.getOnsetwiseBFCCs();
+std::vector<std::vector<float>> TsnGranularAudioProcessor::getOnsetwiseTimbres() const {
+	return _analyzer.getOnsetwiseTimbreMeasurements();
 }
 
 std::vector<std::vector<float>> TsnGranularAudioProcessor::getPCA() const {

@@ -17,6 +17,16 @@
 namespace nvs {
 namespace analysis {
 
+template <typename T>
+struct EventwiseDescription {
+	T median	{};
+	T range		{};
+	T slope		{};	// linear regression
+};
+using EventwisePitchDescription = EventwiseDescription<float>;
+using EventwiseBFCCDescription = EventwiseDescription<std::vector<float>>;
+
+
 class Analyzer {
 private:
 	nvs::ess::EssentiaInitializer ess_init;
@@ -24,7 +34,9 @@ public:
 	Analyzer();
 	
 	std::optional<vecReal> calculateOnsets(vecReal wave, std::function<bool(void)> runLoopCallback=[](){return true;});
-	std::optional<vecVecReal> calculateOnsetwiseBFCCs(vecReal wave, vecReal onsetsInSeconds);
+	EventwisePitchDescription calculateEventwisePitchDescription(vecReal waveEvent);
+	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal waveEvent);
+	std::optional<vecVecReal> calculateOnsetwiseTimbreSpace(vecReal wave, vecReal onsetsInSeconds);
 	std::optional<vecVecReal> calculatePCA(vecVecReal const &V);
 
 	nvs::ess::EssentiaHolder ess_hold;
@@ -50,12 +62,28 @@ inline void cleanOnsets (vecReal &onsetsInSeconds, float maxLengthInSeconds){
 	onsetsInSeconds.resize(properOnsets);
 }
 
-
+#if 0
 Real mean(vecReal const &V);
+Real median(vecReal V);
+#endif
 vecVecReal truncate(vecVecReal const &V, size_t trunc);
 vecVecReal transpose(vecVecReal const &V);
-vecReal binwiseMean(vecVecReal const &V);
 
+template <typename Func>
+concept StatisticVectorFunction = requires(Func f, vecReal const &v) {
+	{ f(v) } -> std::convertible_to<Real>;
+};
+
+template <StatisticVectorFunction Func>
+vecReal binwiseStatistic(vecVecReal const &V, Func statisticFunc) {
+	vecVecReal Vtranspose = transpose(V);
+	size_t const sz = Vtranspose.size();
+	vecReal results(sz);
+	for (size_t i = 0; i < sz; ++i) {
+		results[i] = statisticFunc(Vtranspose[i]);
+	}
+	return results;
+}
 
 void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, Analyzer analyzer);
 

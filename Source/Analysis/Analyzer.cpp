@@ -9,6 +9,8 @@
 */
 
 #include "Analysis/Analyzer.h"
+#include <numeric>
+#include <concepts>
 
 namespace nvs {
 namespace analysis {
@@ -16,7 +18,8 @@ namespace analysis {
 Analyzer::Analyzer()
 :	ess_hold(ess_init)
 {}
-	
+
+
 std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave, std::function<bool(void)> runLoopCallback){
 	if (!wave.size()){
 		return std::nullopt;
@@ -38,7 +41,29 @@ std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave, std::function<boo
 	return onsetsInSeconds;
 }
 
-std::optional<vecVecReal> Analyzer::calculateOnsetwiseBFCCs(vecReal wave, std::vector<float> onsetsInSeconds){
+EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal waveEvent) {
+	vecReal p_tmp = getPitches(waveEvent);
+	
+	EventwisePitchDescription descr {
+		.median = essentia::median(p_tmp),
+		.range{},
+		.slope{}
+	};
+	return descr;
+}
+
+EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal waveEvent) {
+	vecVecReal b_tmp = getBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);
+	
+	EventwiseBFCCDescription descr {
+		.median {binwiseStatistic(b_tmp, essentia::median<Real>)},
+		.range {},
+		.slope {}
+	};
+	return descr;
+}
+
+std::optional<vecVecReal> Analyzer::calculateOnsetwiseTimbreSpace(vecReal wave, std::vector<float> onsetsInSeconds){
 	if ((!wave.size()) || (!onsetsInSeconds.size())){
 		return std::nullopt;
 	}
@@ -46,17 +71,26 @@ std::optional<vecVecReal> Analyzer::calculateOnsetwiseBFCCs(vecReal wave, std::v
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, _analysisSettings, _splitSettings);
 #pragma message("probably need some normalization, possibly based on variance")
 	
-	vecVecReal bfccs;
+	vecVecReal timbre_points;
+	
 	for (vecReal const &e : events){
-		std::span<float const> waveSpan(e);
-		vecVecReal b_tmp = getBFCCs(waveSpan, ess_hold.factory, _analysisSettings, _bfccSettings);
-//		b_tmp = truncate(b_tmp, 55);
-		vecReal binwiseMeans = binwiseMean(b_tmp);
-		bfccs.push_back(binwiseMeans);
+		std::vector<float> event_measurements;
+		
+		EventwiseBFCCDescription bfcc_descr = calculateEventwiseBFCCDescription(e);
+		event_measurements.insert(event_measurements.end(),
+								  bfcc_descr.median.begin(), bfcc_descr.median.end());
+
+		
+		EventwisePitchDescription pitch_descr = calculateEventwisePitchDescription(e);
+		auto const pitch_median = pitch_descr.median;
+		event_measurements.push_back(pitch_median);
+		
+		timbre_points.push_back(event_measurements);
+
 		std::cout << "got BFCCs for event\n";
 	}
 	std::cout << "calculated all BFCCs\n";
-	return bfccs;
+	return timbre_points;
 }
 
 std::optional<vecVecReal> Analyzer::calculatePCA(vecVecReal const &V){
@@ -67,7 +101,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(vecVecReal const &V){
 	std::cout << "calculated PCAs\n";
 	return pca;
 }
-
+#if 0
 Real mean(vecReal const &V){
 	Real mean {0.f};
 	for (auto const &e : V){
@@ -76,6 +110,19 @@ Real mean(vecReal const &V){
 	mean /= static_cast<float>(V.size());
 	return mean;
 }
+
+Real median(vecReal V) {
+	if (V.empty()) {
+		return 0.f;
+	}
+
+	std::sort(V.begin(), V.end());
+
+	size_t const mid = std::midpoint(0UL, V.size() - 1);
+
+	return V[mid];
+}
+#endif
 vecVecReal truncate(vecVecReal const &V, size_t trunc){
 	if (V.size() < trunc){
 		return V;
@@ -103,16 +150,7 @@ vecVecReal transpose(vecVecReal const &V){
 	}
 	return Vtranspose;
 }
-vecReal binwiseMean(vecVecReal const &V){
-	vecVecReal Vtranspose = transpose(V);
-	// now need to create a vector constituted of the mean of each vector in Vtranspose
-	size_t const sz = Vtranspose.size();
-	vecReal means(sz);
-	for (int i = 0; i < sz; ++i){
-		means[i] = mean(Vtranspose[i]);
-	}
-	return means;
-}
+
 
 void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, Analyzer analyzer)
 {
