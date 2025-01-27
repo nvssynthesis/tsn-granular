@@ -31,7 +31,7 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	juce::Image backgroundImage;
 	
-	nvs::nav::GUILFO gui_lfo;
+	nvs::nav::GUILFO &gui_lfo;
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {

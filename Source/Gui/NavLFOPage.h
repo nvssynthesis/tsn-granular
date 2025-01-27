@@ -18,7 +18,9 @@ struct NavLFOParamsComponent	:	public juce::Component
 	:	sliderArray
 	{
 		AttachedSlider(apvts, params_e::nav_lfo_amount, juce::Slider::SliderStyle::LinearVertical),
-		AttachedSlider(apvts, params_e::nav_lfo_rate, juce::Slider::SliderStyle::LinearVertical)
+		AttachedSlider(apvts, params_e::nav_lfo_rate, juce::Slider::SliderStyle::LinearVertical),
+		AttachedSlider(apvts, params_e::nav_lfo_offset_x, juce::Slider::SliderStyle::LinearVertical),
+		AttachedSlider(apvts, params_e::nav_lfo_offset_y, juce::Slider::SliderStyle::LinearVertical)
 	}
 	{
 		for (auto &s : sliderArray){

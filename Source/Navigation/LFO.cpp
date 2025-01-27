@@ -17,7 +17,7 @@ GUILFO::GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 , 	updateIntervalMs(static_cast<int>(1000.0 / updateRateHz))
 {
 	setFrequency(*_apvts.getRawParameterValue("Rate"));
-	setAmplitude(*_apvts.getRawParameterValue("Amount"));
+	amplitude = (*_apvts.getRawParameterValue("Amount"));
 }
 
 void GUILFO::start() {
@@ -32,9 +32,6 @@ void GUILFO::setFrequency(double newFrequencyHz) {
 	frequencyHz = newFrequencyHz;
 	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / updateIntervalMs;
 }
-void GUILFO::setAmplitude(double newAmplitude) {
-	amplitude = newAmplitude;
-}
 
 void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
 	onUpdate = std::move(callback);
@@ -43,8 +40,10 @@ void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
 void GUILFO::timerCallback() {
 	// update parameters
 	setFrequency(*_apvts.getRawParameterValue("Rate"));
-	setAmplitude(*_apvts.getRawParameterValue("Amount"));
-	
+	amplitude = *_apvts.getRawParameterValue("Amount");
+	offsetX = *_apvts.getRawParameterValue("X Offset");
+	offsetY = *_apvts.getRawParameterValue("Y Offset");
+
 	// compute phase and waveforms
 	assert(phaseIncrement >= 0.0);	// otherwise wrapping method won't work as expected
 	phase += phaseIncrement;
@@ -52,8 +51,8 @@ void GUILFO::timerCallback() {
 	if (phase > 2.0 * juce::MathConstants<double>::pi){
 		phase -= 2.0 * juce::MathConstants<double>::pi;
 	}
-	double const x = std::cos(phase) * amplitude;
-	double const y = std::sin(phase) * amplitude;
+	double const x = std::cos(phase) * amplitude + offsetX;
+	double const y = std::sin(phase) * amplitude + offsetY;
 
 	// Trigger the callback to update the TimbreSpaceComponent
 	if (onUpdate)

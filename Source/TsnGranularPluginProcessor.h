@@ -7,6 +7,7 @@
 #include "Analysis/ThreadedAnalyzer.h"
 #include "./Synthesis/JuceTsnGranularSynthesizer.h"
 #include "../slicer_granular/Source/SlicerGranularPluginProcessor.h"
+#include "./Navigation/LFO.h"
 
 //==============================================================================
 
@@ -29,6 +30,10 @@ public:
 	std::vector<std::vector<float>> getPCA() const;
 	void writeEvents();
 	
+	nvs::nav::GUILFO &getGUILFO() {
+		return gui_lfo;
+	}
+	
 	nvs::analysis::onsetSettings getOnsetSettings(){
 		return _analyzer.getOnsetSettings();
 	}
@@ -50,6 +55,9 @@ private:
 		std::optional<std::vector<std::vector<float>>> PCA;
 	};
 	Features _feat;
+	
+	nvs::nav::GUILFO gui_lfo;
+
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessor)

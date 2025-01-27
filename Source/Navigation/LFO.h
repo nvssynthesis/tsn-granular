@@ -22,8 +22,6 @@ public:
 	~GUILFO() override = default;
 	void start();
 	void stop();
-	void setFrequency(double newFrequencyHz);
-	void setAmplitude(double newAmplitude);
 	void setOnUpdateCallback(std::function<void(double, double)> callback);
 
 protected:
@@ -32,9 +30,13 @@ protected:
 private:
 	juce::AudioProcessorValueTreeState& _apvts;
 	
+	void setFrequency(double newFrequencyHz);
+
 	double frequencyHz;
 	double amplitude;
 	double phase{0.0};
+	double offsetX {0.0};
+	double offsetY {0.0};
 	double phaseIncrement;	// Phase increment per timer tick
 	int updateIntervalMs;
 	std::function<void(double, double)> onUpdate;

@@ -16,7 +16,7 @@
 
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 : 	Slicer_granularAudioProcessorEditor (p)
-,	gui_lfo(p.getAPVTS(), 15.0)	// frequency, update rate in Hertz
+,	gui_lfo(p.getGUILFO())	// processor owns it, but editor facilitates communication from lfo > timbre space
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
