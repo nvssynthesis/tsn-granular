@@ -9,6 +9,7 @@
 */
 
 #include "TimbreSpaceComponent.h"
+#include "../slicer_granular/Source/params.h"
 
 //===============================================timbre5DPoint=================================================
 bool TimbreSpaceComponent::timbre5DPoint::operator==(timbre5DPoint const &other) const {
@@ -98,7 +99,7 @@ auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f
 	return y;
 };
 
-int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D) {
+int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D, float higher_3D_weight = 0.02f) {
 	/*
 	 Do consider that we are only using 2 dimenstions to find the nearest point even though they are of greater dimensionality.
 	 */
@@ -124,7 +125,7 @@ int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre
 		auto const vv = (current_v - pv);
 		auto const zz = (current_z - pz);
 
-		auto const tmp = xx*xx + yy*yy + 0.15*(uu*uu + vv*vv + zz*zz);
+		auto const tmp = xx*xx + yy*yy + higher_3D_weight*(uu*uu + vv*vv + zz*zz);
 		if (tmp < diff){
 			diff = tmp;
 			idx = i;
@@ -152,6 +153,10 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 	assert (v <= 1.0);
 	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
 	return juce::Colour(h, s, v, alpha);
+}
+void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timbre2DPoint p2D){
+	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_offset_x)) = p2D.getX();
+	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_offset_y)) = p2D.getY();
 }
 }	// anonymous namespace
 
@@ -217,9 +222,18 @@ void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool ve
 	}
 	currentPointIdx = findNearestPoint(p5D, timbres5D);
 }
+
 void TimbreSpaceComponent::setCurrentPointIdx(int newIdx){
 	currentPointIdx = newIdx;
+#pragma message("Deal with both position slider and LFO position choosing point")
+	// get corresponding point to set x/y offsets
+	// this leads to controls fighting each other. need to think of better way to deal with this.
+//	auto const p5D = timbres5D[currentPointIdx];
+//	setLfoOffsetParamsFromPoint(_apvts, p5D.get2D());
 }
+
+
+
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	fmt::print("draggng or down\n");
 	tsn_mouse._dragging = true;
@@ -229,6 +243,9 @@ void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 		._p2D{p2D_norm},
 		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[2], tsn_mouse._uvz[2]}
 	};
+	
+	setLfoOffsetParamsFromPoint(_apvts, p2D_norm);
+
 	setCurrentPointFromNearest(p5D);
 	if (currentPointIdx != lastPointIdx){
 		repaint();

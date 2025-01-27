@@ -49,7 +49,9 @@ public:
 	};
 	
 	
-	TimbreSpaceComponent() = default;
+	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts)
+	:	_apvts{apvts}
+	{}
 	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
 	void add5DPoint(float x, float y, float z, float w, float v);
 	void clear();
@@ -73,6 +75,8 @@ public:
 		nav._p2D = p;
 	}
 private:
+	juce::AudioProcessorValueTreeState &_apvts;
+	
 	void add2DPoint(float x, float y);
 	void add2DPoint(timbre2DPoint p);
 	
@@ -90,7 +94,6 @@ private:
 	void updateCursor();
 	
 	TSNMouse tsn_mouse;
-	
 	Navigator nav;
 	
 	juce::Array<timbre5DPoint> timbres5D;
