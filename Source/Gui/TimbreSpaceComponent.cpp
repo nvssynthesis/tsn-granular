@@ -99,7 +99,7 @@ auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f
 	return y;
 };
 
-int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D, float higher_3D_weight = 0.02f) {
+int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D, float higher_3D_weight = 0.01f) {
 	/*
 	 Do consider that we are only using 2 dimenstions to find the nearest point even though they are of greater dimensionality.
 	 */
