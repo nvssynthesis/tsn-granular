@@ -15,38 +15,32 @@
 namespace nvs	{
 namespace gran	{
 
-TsnGranular::TsnGranular(unsigned long seed)
-:	genGranPoly1(seed)
+TsnGranular::TsnGranular(GranularSynthSharedState *const synth_shared_state, unsigned long seed)
+:	genGranPoly1(synth_shared_state, seed)
 {}
 //====================================================================================
-void TsnGranular::setAudioBlock(juce::dsp::AudioBlock<float> wave_block, double file_sample_rate){
-	_wave_block = wave_block;
-	_file_sample_rate = file_sample_rate;
-	for (auto &g : _grains){
-		g.setAudioBlock(_wave_block, file_sample_rate);
-	}
-}
+
 void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
-	float const lengthInSeconds = static_cast<float>(_wave_block.getNumSamples()) / _file_sample_rate;
+	double const lengthInSeconds = static_cast<double>(_synth_shared_state->_buffer._wave_block.getNumSamples()) / _synth_shared_state->_buffer._file_sample_rate;
 	// starting at end, count onsets exceeding lengthInSeconds
-	size_t properOnsets = onsetsInSeconds.size();
+	size_t numProperOnsets = onsetsInSeconds.size();
 	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
 		if (*it > lengthInSeconds){
-			--properOnsets;
+			--numProperOnsets;
 		}
 		else {	// since the vector is sorted, we know that there are no more exceeding the proper length
 			break;
 		}
 	}
-	_onsetsNormalized.resize(properOnsets);
+	_onsetsNormalized.resize(numProperOnsets);
 	for (auto f : _onsetsNormalized){
 		fmt::print("{}\n", f);
 	}
-	std::transform(onsetsInSeconds.begin(), onsetsInSeconds.begin() + properOnsets,
+	std::transform(onsetsInSeconds.begin(), onsetsInSeconds.begin() + numProperOnsets,
 				   _onsetsNormalized.begin(), [=](float f)
 				{
-					float res = f / lengthInSeconds;
+					double res = f / lengthInSeconds;
 					assert(res <= 1.f);
 					return res;
 				});
@@ -57,18 +51,23 @@ void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
 //====================================================================================
 void TsnGranular::doSetPosition(double positionNormalized) {
 	if (_onsetsNormalized.size()){
-		auto res = nvs::util::get_left(static_cast<float>(positionNormalized), _onsetsNormalized);
+		auto const res = nvs::util::get_left(positionNormalized, _onsetsNormalized);
 		if (res){
-			positionNormalized = static_cast<double>(res.value().second);
+			_currentEventInfo.start_pos = static_cast<double>(res.value().second);
+			size_t const nextIdx = res.value().first + 1;
+			_currentEventInfo.end_pos = nextIdx < _onsetsNormalized.size() ? _onsetsNormalized[nextIdx] : 1.0;
 		}
 	}
-	this->genGranPoly1::doSetPosition(positionNormalized);
+#pragma message("here needs to set position within bounds of 'event'")
+	this->genGranPoly1::doSetPosition(_currentEventInfo.start_pos);
 }
 void TsnGranular::doSetPositionRandomness(double rand){
 	this->genGranPoly1::doSetPositionRandomness(rand);
 }
 
+
 void TsnGranular::doSetDuration(double dur){
+	// make duration based on current event
 	this->genGranPoly1::doSetDuration(dur);
 }
 void TsnGranular::doSetDurationRandomness(double rand){

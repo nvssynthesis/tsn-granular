@@ -15,7 +15,8 @@
 //==============================================================================
 
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
-: 	Slicer_granularAudioProcessorEditor (p)
+:	AudioProcessorEditor (&p)
+,	GranularEditorCommon (p)
 ,	gui_lfo(p.getGUILFO())	// processor owns it, but editor facilitates communication from lfo > timbre space
 ,	timbreSpaceComponent(p.getAPVTS())
 ,	askForAnalysisButton("Calculate Analysis")
@@ -176,7 +177,7 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vect
 	repaint();
 }
 void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
-	audioProcessor.writeToLog("editor: setPositionSliderFromChosenPoint");
+//	audioProcessor.writeToLog("editor: setPositionSliderFromChosenPoint");
 	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
 
 	if (audioProcessor.getOnsets().size()){
@@ -191,7 +192,6 @@ void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
 	}
 	if (audioProcessor.getPCA().size()){
 		std::vector<float> const thisPcaSet = audioProcessor.getPCA()[pIdx];
-		fmt::print("PCA: \t{:.2f},\t{:.2f},\t{:.2f},\t{:.2f}\t{:.2f}\n", thisPcaSet[1],thisPcaSet[2],thisPcaSet[3],thisPcaSet[4],thisPcaSet[5]);
 	}
 }
 

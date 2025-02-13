@@ -20,8 +20,9 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 	addChangeListener(listener);
 }
 
-void ThreadedAnalyzer::updateWave(std::span<float const> wave){
+void ThreadedAnalyzer::updateWave(std::span<float const> wave, size_t eventualFilenameHash){
 	inputWave.assign(wave.begin(), wave.end());
+	_eventualFilenameHash = eventualFilenameHash;
 }
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
@@ -66,6 +67,7 @@ void ThreadedAnalyzer::run() {
 	outputOnsetsInSeconds = onsetOpt.value();
 	outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt.value();
 	outputPCA = PCAopt.value();
+	_filenameHash = _eventualFilenameHash;	// successful completion of each field updates the effective hash to that corresponding to the filepath used.
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();
 }

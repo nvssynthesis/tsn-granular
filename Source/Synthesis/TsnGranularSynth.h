@@ -19,19 +19,26 @@
 /** TODO:
 	-bake in some way to be sure that the currently held onsets match the current span
 */
+struct EventInfo {
+	double start_pos;
+	double end_pos;
+};
 
 namespace nvs	{
 namespace gran	{
-class TsnGranular		:	public genGranPoly1
+class TsnGranular		:		public genGranPoly1
 {
 public: 
-	TsnGranular(unsigned long seed = 1234567890UL);
+	TsnGranular(GranularSynthSharedState *const synth_shared_state, unsigned long seed = 1234567890UL);
 	virtual ~TsnGranular() = default;
-	void setAudioBlock(juce::dsp::AudioBlock<float> wave_block, double file_sample_rate) override;
 	void loadOnsets(std::span<float> const onsetsInSeconds);
+	bool readyForProcess() const {
+		return _onsetsNormalized.size() > 0;
+	}
 private:
-	std::vector<float> _onsetsNormalized;
-	double _file_sample_rate;
+	std::vector<double> _onsetsNormalized;
+	EventInfo _currentEventInfo;
+	
 	void doSetPosition(double position) override;
 	void doSetPositionRandomness(double rand) override;
 	void doSetDuration(double dur) override;
@@ -40,3 +47,4 @@ private:
 
 }	// namespace gran
 }	// namespace nvs
+

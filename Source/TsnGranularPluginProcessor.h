@@ -20,6 +20,9 @@ public:
 	~TsnGranularAudioProcessor() override;
 	//==============================================================================
 	juce::AudioProcessorEditor* createEditor() override;
+	void setStateInformation (const void* data, int sizeInBytes) override;
+	void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
 	//==============================================================================
 
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
@@ -48,13 +51,6 @@ public:
 	}
 private:
 	nvs::analysis::ThreadedAnalyzer _analyzer;
-	
-	struct Features {
-		std::optional<std::vector<float>> onsetsInSeconds;
-		std::optional<std::vector<std::vector<float>>> onsetwiseBFCCs;
-		std::optional<std::vector<std::vector<float>>> PCA;
-	};
-	Features _feat;
 	
 	nvs::nav::GUILFO gui_lfo;
 

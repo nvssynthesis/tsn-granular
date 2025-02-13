@@ -11,7 +11,8 @@
 		-needs to be 'locking' to points eventually
 */
 
-class TsnGranularAudioProcessorEditor  : 	public Slicer_granularAudioProcessorEditor
+class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
+,											public GranularEditorCommon
 {
 public:
 	TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor&);

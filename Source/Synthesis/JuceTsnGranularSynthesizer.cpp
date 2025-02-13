@@ -15,9 +15,13 @@
 JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer()
 {
 	clearVoices();
+	{
+		_synth_shared_state._settings._center_position_at_env_peak = false;
+		_synth_shared_state._settings._duration_pitch_compensation = 0.f;
+	}
 	unsigned long seed = 1234567890UL;
 	for (int i = 0; i < num_voices; ++i) {
-		auto voice = new GranularVoice(std::make_unique<nvs::gran::TsnGranular>(seed));
+		auto voice = new GranularVoice(std::make_unique<nvs::gran::TsnGranular>(&_synth_shared_state, seed));
 		addVoice(voice);
 		++seed;
 	}

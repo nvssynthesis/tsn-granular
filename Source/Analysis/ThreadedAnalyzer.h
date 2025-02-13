@@ -25,7 +25,7 @@ public:
 	}
 	void run() override;
 
-	void updateWave(std::span<float const> wave);
+	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
 	
 	inline vecReal getOnsetsInSeconds() const {
 		return outputOnsetsInSeconds;
@@ -63,14 +63,20 @@ public:
 	Analyzer &getAnalyzer() {
 		return _analyzer;
 	}
+	size_t getFilenameHash() const {
+		return _filenameHash;
+	}
 private:
 	Analyzer _analyzer;
 	
-	std::vector<float> inputWave;
+	vecReal inputWave;
 	
-	std::vector<float> outputOnsetsInSeconds;
+	vecReal outputOnsetsInSeconds;
 	vecVecReal outputOnsetwiseTimbreMeasurements;
 	vecVecReal outputPCA;
+	
+	size_t _filenameHash;
+	size_t _eventualFilenameHash;
 };
 
 }	// namespace analysis

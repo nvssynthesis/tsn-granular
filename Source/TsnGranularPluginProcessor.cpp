@@ -36,10 +36,43 @@ juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
 	_analyzer.addChangeListener(ed);
 	return ed;
 }
+
+
+void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+{
+	loggingGuts.fileLogger.logMessage("TSN processor: setStateInformation");
+	// Restore parameters from memory block
+	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+
+	if (xmlState.get() != nullptr){
+		if (xmlState->hasTagName (apvts.state.getType())){
+			apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
+
+			juce::Value sampleFilePath = apvts.state.getPropertyAsValue(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, nullptr, true);
+			juce::File const sampleFile = juce::File(sampleFilePath.toString());
+			loadAudioFile(sampleFile, true);
+		}
+	}
+}
 //==============================================================================
 
 void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
-	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
+	writeToLog("TSN: loadAudioFile\n");
+	const juce::SpinLock::ScopedLockType lock(audioBlockLock);
+	loggingGuts.fileLogger.logMessage("                                          ...locked");
+
+	readInAudioFileToBuffer(f);
+	granular_synth_juce->setAudioBlock(sampleManagementGuts.sampleBuffer, sampleManagementGuts.lastFileSampleRate, f.getFullPathName().hash());	// maybe this could just go inside readInAudioFileToBuffer()
+	{
+		juce::Value sampleFilePathValue = apvts.state.getPropertyAsValue(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, nullptr, true);
+		sampleFilePathValue.setValue(f.getFullPathName());
+		sampleManagementGuts.sampleFilePath = sampleFilePathValue.toString();
+		apvts.state.setProperty(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, sampleFilePathValue, nullptr);
+	}
+	if (notifyEditor){
+		loggingGuts.fileLogger.logMessage("Processor: sending change message from loadAudioFile");
+		juce::MessageManager::callAsync([this]() { sampleManagementGuts.sendChangeMessage(); });
+	}
 	{	// limit tmp scope
 		double const sr = sampleManagementGuts.lastFileSampleRate;
 		auto anSettingsTmp = _analyzer.getAnalysisSettings();
@@ -47,14 +80,22 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 		_analyzer.setAnalysisSettings(anSettingsTmp);
 		askForAnalysis();
 	}
+	writeToLog("TSN: loadAudioFile exiting");
 }
 void TsnGranularAudioProcessor::askForAnalysis(){
 	auto const buffer = sampleManagementGuts.sampleBuffer;
-	auto const waveSpan = std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples());
-	
-	_analyzer.updateWave(waveSpan);
-	if (_analyzer.startThread(juce::Thread::Priority::normal)){
-		writeToLog("analyzer onset thread started\n");
+	if (!buffer.getNumChannels()){
+		writeToLog("TSN: askForAnalysis: buffer had no channels. Early exit.");
+		return;
+	}
+	if (!buffer.getNumSamples()){
+		writeToLog("TSN: askForAnalysis: buffer had no samples. Early exit.");
+		return;
+	}
+	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
+						 sampleManagementGuts.sampleFilePath.hash());
+	if (_analyzer.startThread(juce::Thread::Priority::high)){
+		writeToLog("analyzer onset thread started");
 	}
 }
 
@@ -101,6 +142,16 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 	else {
 		writeToLog("processor: dynamic cast unsuccessful");
 	}
+}
+
+void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+	auto const buffer_fn_hash = granular_synth_juce->getFilenameHash();
+	auto const analysis_fn_hash = _analyzer.getFilenameHash();
+	if (analysis_fn_hash != buffer_fn_hash) {
+		writeToLog("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early");
+		return;
+	}
+	Slicer_granularAudioProcessor::processBlock (buffer, midiMessages);
 }
 
 //==============================================================================
