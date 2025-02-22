@@ -31,6 +31,10 @@
       </GROUP>
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
         <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
+          <FILE id="XZrPwx" name="GrainBusyDisplay.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Gui/GrainBusyDisplay.cpp"/>
+          <FILE id="JAbq7z" name="GrainBusyDisplay.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/GrainBusyDisplay.h"/>
           <FILE id="aOLSoW" name="GranularMainParametersPage.cpp" compile="1"
                 resource="0" file="slicer_granular/Source/Gui/GranularMainParametersPage.cpp"/>
           <FILE id="bsWZZ4" name="GranularMainParametersPage.h" compile="0" resource="0"
@@ -94,6 +98,7 @@
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">
         <GROUP id="{36156BBE-4ED1-B2BC-F23A-9ECB50C4E569}" name="slicer">
+          <FILE id="WQiFHj" name="VoicesXGrains.h" compile="0" resource="0" file="slicer_granular/Source/Synthesis/VoicesXGrains.h"/>
           <FILE id="vUmJgl" name="GrainDescription.h" compile="0" resource="0"
                 file="slicer_granular/Source/Synthesis/GrainDescription.h"/>
           <FILE id="IcDCcd" name="JuceGranularSynthesizer.cpp" compile="1" resource="0"

@@ -13,19 +13,18 @@
 namespace nvs {
 namespace analysis {
 
-std::vector<float> getPitches(std::span<Real> waveSpan){
+namespace {
+std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, analysisSettings an_settings){
+#ifdef INCLUDE_AUBIO
 	size_t const N = waveSpan.size();
-	int const win_sz = 2048;
-	int const hop_sz = 512;
 	
-	int const num_wins = (N <= win_sz) ? 1 :
-										ceil(N - win_sz) / hop_sz + 1;
+	int const num_wins = (N <= win_sz) ? 1 : ceil(N - win_sz) / hop_sz + 1;
 	
-	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast", /*buf_size*/ win_sz, /*hop_size*/hop_sz, /*sample_rate*/ 44100);
+	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast", /*buf_size*/ an_settings.win_sz, /*hop_size*/ an_settings.hop_sz, /*sample_rate*/ an_settings.sampleRate);
 	if (!pDetector){
 		return {};
 	}
-
+	
 	if (aubio_pitch_set_silence(pDetector, -50.f)) { // returns 0 on success
 		del_aubio_pitch(pDetector);
 		return {};
@@ -52,9 +51,9 @@ std::vector<float> getPitches(std::span<Real> waveSpan){
 		std::memcpy(fv_in->data,
 					waveSpan.data() + i * hop_sz,
 					win_sz * sizeof(Real));
-
+		
 		aubio_pitch_do(pDetector, fv_in, fv_out);
-
+		
 		pitches[i] = fvec_get_sample(fv_out, 0);
 	}
 	
@@ -63,16 +62,87 @@ std::vector<float> getPitches(std::span<Real> waveSpan){
 	del_aubio_pitch(pDetector);
 	
 	return pitches;
+#else
+	assert(false);
+	return {};	// of course it won't return anyway.
+#endif
 }
 
+PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, analysisSettings an_settings, pitchSettings pitch_settings){
+	size_t const waveSize = waveSpan.size();
+	vecReal wave(waveSize);
+	wave.assign(waveSpan.begin(), waveSpan.end());
+	
+	vectorInput *inVec = new vectorInput(&wave);
+	
+	Algorithm* frameCutter	=	factory.create("FrameCutter",
+											   "frameSize", an_settings.frameSize,
+											   "hopSize", an_settings.hopSize,
+											   "lastFrameToEndOfFile", true,
+											   "silentFrames", "keep",
+											   "startFromZero", true,
+											   "validFrameThresholdRatio", 0.f);
+	
+	Algorithm* windowing	=	factory.create("Windowing",
+											   "normalized", false,
+											   "size", an_settings.frameSize,
+											   "zeroPadding", an_settings.frameSize,
+											   "type", "hann",
+											   "zeroPhase", false);
+	
+	Algorithm* pitchDet	=	factory.create(pitch_settings.getPitchDetectionAlgoAsString(),
+										   "frameSize", an_settings.frameSize,
+										   "interpolate", pitch_settings.interpolate,
+										   "maxFrequency", pitch_settings.maxFrequency,
+										   "minFrequency", pitch_settings.minFrequency,
+										   "sampleRate", an_settings.sampleRate,
+										   "tolerance", pitch_settings.tolerance
+										   );
+	
+	Algorithm* pitchFrameAccumulator = factory.create("RealAccumulator");
+	Algorithm* pitchConfidenceFrameAccumulator = factory.create("RealAccumulator");
+	
+	std::vector<vecReal> pitches, pitchConfidences;
+	VectorOutput<vecReal> *pitchAccumOutput = new VectorOutput<vecReal>(&pitches);
+	VectorOutput<vecReal> *pitchConfidenceAccumOutput = new VectorOutput<vecReal>(&pitchConfidences);
+	
+	*inVec												>>		frameCutter->input("signal");
+	frameCutter->output("frame")						>>		windowing->input("frame");
+	windowing->output("frame")							>>		pitchDet->input("signal");
+	pitchDet->output("pitch")							>>		pitchFrameAccumulator->input("data");
+	pitchDet->output("pitchConfidence")					>>		pitchConfidenceFrameAccumulator->input("data");
+	pitchFrameAccumulator->output("array")				>>		pitchAccumOutput->input("data");
+	pitchConfidenceFrameAccumulator->output("array")	>>		pitchConfidenceAccumOutput->input("data");
+	
+	Network n(inVec);
+	n.run();
+	n.clear();
+	
+	assert(pitches.size() == pitchConfidences.size());
+	assert(pitches.size() == 1);
+	assert(pitches[0].size() == pitchConfidences[0].size());
+	
+	return PitchesAndConfidences { pitches[0], pitchConfidences[0] };
+}
+}	// anonymous namespace
 
-vecVecReal getBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, analysisSettings const anSettings, bfccSettings const bfSettings)
+PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, analysisSettings an_settings, pitchSettings pitch_settings){
+	switch (pitch_settings.algo) {
+		case pitchSettings::pitchDetectionAlgorithm_e::yin:
+			return calculatePitchesEssentiaYin(waveEvent, factory, an_settings, pitch_settings);
+			break;
+		default:
+			assert(false);
+	}
+}
+
+vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, analysisSettings an_settings, bfccSettings bfcc_settings)
 {
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	bfccSettings::spectrumType_e specType = bfSettings.specType;
+	bfccSettings::spectrumType_e specType = bfcc_settings.specType;
 	std::string const specAlgoStr  = (specType == bfccSettings::spectrumType_e::power) ? "PowerSpectrum" : "Spectrum";
 	std::string const specInputStr = (specType == bfccSettings::spectrumType_e::power) ? "signal" : "frame";
 	std::string const specOutputStr = (specType == bfccSettings::spectrumType_e::power) ? "powerSpectrum" : "spectrum";
@@ -81,8 +151,8 @@ vecVecReal getBFCCs(std::span<Real const> waveSpan, streamingFactory const &fact
 	vectorInput *inVec = new vectorInput(&wave);
 	
 	Algorithm* frameCutter	=	factory.create("FrameCutter",
-											   "frameSize", anSettings.frameSize,
-											   "hopSize", anSettings.hopSize,
+											   "frameSize", an_settings.frameSize,
+											   "hopSize", an_settings.hopSize,
 											   "lastFrameToEndOfFile", true,
 											   "silentFrames", "keep",
 											   "startFromZero", true,
@@ -90,27 +160,27 @@ vecVecReal getBFCCs(std::span<Real const> waveSpan, streamingFactory const &fact
 	
 	Algorithm* windowing	=	factory.create("Windowing",
 											   "normalized", false,
-											   "size", anSettings.frameSize,
-											   "zeroPadding", anSettings.frameSize,
+											   "size", an_settings.frameSize,
+											   "zeroPadding", an_settings.frameSize,
 											   "type", "hann",
 											   "zeroPhase", false);
 	
 	Algorithm* spectrum 	= 	factory.create(specAlgoStr,
-											   "size", anSettings.frameSize * 2);
+											   "size", an_settings.frameSize * 2);
 	
 	Algorithm*  bfcc 		= 	factory.create("BFCC",
-												"dctType", bfSettings.dctType,
-												"highFrequencyBound", bfSettings.highFrequencyBound,
-												"inputSize", anSettings.frameSize + 1,
-												"liftering", bfSettings.liftering,
+												"dctType", bfcc_settings.dctType,
+												"highFrequencyBound", bfcc_settings.highFrequencyBound,
+												"inputSize", an_settings.frameSize + 1,
+												"liftering", bfcc_settings.liftering,
 												"logType", "dbamp",	// logarithmic compression type. Use 'dbpow' if working with power and 'dbamp' if working with magnitudes
-												"lowFrequencyBound", bfSettings.lowFrequencyBound,
-												"normalize", bfSettings.normalizeTypeAsString,
-												"numberBands", bfSettings.numBands,
-												"numberCoefficients", bfSettings.numCoefficients,
-												"sampleRate", anSettings.sampleRate,
-												"type", bfSettings.spectrumTypeAsString,
-												"weighting", bfSettings.weightingType
+												"lowFrequencyBound", bfcc_settings.lowFrequencyBound,
+												"normalize", bfcc_settings.getNormalizeTypeAsString(),
+												"numberBands", bfcc_settings.numBands,
+												"numberCoefficients", bfcc_settings.numCoefficients,
+												"sampleRate", an_settings.sampleRate,
+												"type", bfcc_settings.getSpectrumTypeAsString(),
+												"weighting", bfcc_settings.getWeightingTypeAsString()
 												);
 	
 	
@@ -180,7 +250,7 @@ vecVecReal PCA(vecVecReal const &V, standardFactory const &factory){
 	return PCAmat;
 }
 
-std::pair<Real, Real> getRangeOfDimension(vecVecReal const &V, size_t dim){
+std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim){
 	Real min {std::numeric_limits<Real>::max()};
 	Real max {std::numeric_limits<Real>::lowest()};
 	
@@ -197,7 +267,7 @@ std::pair<Real, Real> getRangeOfDimension(vecVecReal const &V, size_t dim){
 	return std::make_pair(min, max);
 }
 
-Real getNormalizationMultiplier(std::pair<Real, Real> range){
+Real calculateNormalizationMultiplier(std::pair<Real, Real> range){
 	return 1.f / std::max(std::abs(range.first), std::abs(range.second));
 }
 

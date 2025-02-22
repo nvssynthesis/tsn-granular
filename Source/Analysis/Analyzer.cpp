@@ -42,10 +42,10 @@ std::optional<vecReal> Analyzer::calculateOnsets(vecReal wave, std::function<boo
 }
 
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal waveEvent) {
-	vecReal p_tmp = getPitches(waveEvent);
+	auto p_tmp = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, _analysisSettings, _pitchSettings);
 	
 	EventwisePitchDescription descr {
-		.median = essentia::median(p_tmp),
+		.median = essentia::median(p_tmp.pitches),
 		.range{},
 		.slope{}
 	};
@@ -53,7 +53,7 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal w
 }
 
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal waveEvent) {
-	vecVecReal b_tmp = getBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);
+	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);
 	
 	EventwiseBFCCDescription descr {
 		.median {binwiseStatistic(b_tmp, essentia::median<Real>)},

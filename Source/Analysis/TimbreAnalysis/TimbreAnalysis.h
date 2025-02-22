@@ -14,22 +14,30 @@
 #include "Analysis/AnalysisUsing.h"
 #include "Analysis/Settings.h"
 #include <span>
+
+#ifdef INCLUDE_AUBIO
 #include "../aubio/src/aubio.h"
+#endif
 
 namespace nvs {
 namespace analysis {
 
-std::vector<float> getPitches(std::span<Real> waveSpan);
+struct PitchesAndConfidences {
+	std::vector<Real> pitches, confidences;
+};
+
+
+
+PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, analysisSettings an_settings, pitchSettings pitch_settings);
 
 vecVecReal
-getBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory,
-		 analysisSettings const anSettings, bfccSettings const bfSettings);
+calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory,
+		 analysisSettings an_settings, bfccSettings bfcc_settings);
 
 vecVecReal PCA(vecVecReal const &V, standardFactory const &factory);
 
-
-std::pair<Real, Real> getRangeOfDimension(vecVecReal const &V, size_t dim);
-Real getNormalizationMultiplier(std::pair<Real, Real> range);
+std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim);
+Real calculateNormalizationMultiplier(std::pair<Real, Real> range);
 
 }	// namespace analysis
 }	// namespace nvs

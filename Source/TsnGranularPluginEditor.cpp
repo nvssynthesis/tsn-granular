@@ -147,8 +147,8 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	};
 	std::array<float, nDim> normalizers;
 	for (int i = 0; i < nDim; ++i) {
-	auto const range = nvs::analysis::getRangeOfDimension(PCA, dimensions[i]);
-		normalizers[i] = nvs::analysis::getNormalizationMultiplier(range);
+	auto const range = nvs::analysis::calculateRangeOfDimension(PCA, dimensions[i]);
+		normalizers[i] = nvs::analysis::calculateNormalizationMultiplier(range);
 	}
 	for (std::vector<float> const &pcaFrame : PCA) {
 		// just some bull as a placeholder for actual timbral analysis

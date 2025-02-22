@@ -91,9 +91,9 @@ struct bfccSettings
 		{linear, "linear"}
 	};
 	
-	std::string normalizeTypeAsString {normMap.at(normType)};
-	std::string spectrumTypeAsString {spectrumTypeMap.at(specType)};
-	std::string weightingType {weightingTypeMap.at(weightType)};
+	std::string getNormalizeTypeAsString() const {return normMap.at(normType);}
+	std::string getSpectrumTypeAsString() const {return spectrumTypeMap.at(specType);}
+	std::string getWeightingTypeAsString() const {return weightingTypeMap.at(weightType);}
 };
 struct sBicSettings
 {
@@ -103,6 +103,27 @@ struct sBicSettings
 	int minSegmentLengthFrames {10};
 	int sizeFirstPass {300};
 	int sizeSecondPass {200};
+};
+struct pitchSettings
+{
+	enum pitchDetectionAlgorithm_e {
+		yin = 0,
+		pYin,
+		chroma
+	};
+	pitchDetectionAlgorithm_e algo {pitchDetectionAlgorithm_e::yin};
+	bool interpolate {true};
+	Real maxFrequency {22050.f};
+	Real minFrequency {20.f};
+	Real tolerance {0.15f};
+	
+	const static inline std::map<pitchDetectionAlgorithm_e, std::string>
+	pitchDetectionAlgorithmMap {
+		{yin, "PitchYin"},
+		{pYin, "PitchYinProbabilistic"},
+		{chroma, "Chromagram"}
+	};
+	std::string getPitchDetectionAlgoAsString() const { return pitchDetectionAlgorithmMap.at(algo); }
 };
 struct splitSettings
 {

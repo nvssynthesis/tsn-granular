@@ -213,10 +213,10 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 											   "lowFrequencyBound", bfSettings.lowFrequencyBound,
 											   "inputSize", anSettings.frameSize + 1,
 											   "liftering", bfSettings.liftering,
-											   "normalize", bfSettings.normalizeTypeAsString,
+											   "normalize", bfSettings.getNormalizeTypeAsString(),
 											   "numberBands", bfSettings.numBands,
 											   "numberCoefficients", bfSettings.numCoefficients,
-											   "weighting", bfSettings.weightingType,
+											   "weighting", bfSettings.getWeightingTypeAsString(),
 											   "type", "power",
 											   "logType", "dbpow"	// use dbpow if working with power
 											   );

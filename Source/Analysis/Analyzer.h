@@ -42,6 +42,7 @@ public:
 	nvs::ess::EssentiaHolder ess_hold;
 	
 	analysisSettings _analysisSettings;
+	pitchSettings _pitchSettings {};
 	onsetSettings _onsetSettings;
 	splitSettings _splitSettings;
 	bfccSettings _bfccSettings;
