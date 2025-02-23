@@ -29,7 +29,7 @@ namespace gran	{
 class TsnGranular		:		public genGranPoly1
 {
 public: 
-	TsnGranular(GranularSynthSharedState *const synth_shared_state, unsigned long seed = 1234567890UL);
+	TsnGranular(GranularSynthSharedState *const synth_shared_state, int voice_id, unsigned long seed = 1234567890UL);
 	virtual ~TsnGranular() = default;
 	void loadOnsets(std::span<float> const onsetsInSeconds);
 	bool readyForProcess() const {

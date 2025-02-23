@@ -21,3 +21,4 @@ public:
 	}
 	void loadOnsets(const std::span<float> onsetsInSeconds);
 };
+

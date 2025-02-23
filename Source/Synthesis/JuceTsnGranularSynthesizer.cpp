@@ -21,7 +21,7 @@ JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer()
 	}
 	unsigned long seed = 1234567890UL;
 	for (int i = 0; i < num_voices; ++i) {
-		auto voice = new GranularVoice(std::make_unique<nvs::gran::TsnGranular>(&_synth_shared_state, seed));
+		auto voice = new GranularVoice(std::make_unique<nvs::gran::TsnGranular>(&_synth_shared_state, i, seed));
 		addVoice(voice);
 		++seed;
 	}

@@ -15,8 +15,8 @@
 namespace nvs	{
 namespace gran	{
 
-TsnGranular::TsnGranular(GranularSynthSharedState *const synth_shared_state, unsigned long seed)
-:	genGranPoly1(synth_shared_state, seed)
+TsnGranular::TsnGranular(GranularSynthSharedState *const synth_shared_state, int voice_id, unsigned long seed)
+:	genGranPoly1(synth_shared_state, voice_id, seed)
 {}
 //====================================================================================
 
