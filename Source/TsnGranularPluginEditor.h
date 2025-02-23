@@ -27,7 +27,6 @@ public:
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
 protected:
-	void displayGrainDescriptions() override;
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 	juce::Image backgroundImage;

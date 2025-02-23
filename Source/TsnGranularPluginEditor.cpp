@@ -25,6 +25,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 ,	positionQuantizeStrengthComboBox("Position Quantize Strength")
 ,	audioProcessor(p)
 {
+	addAndMakeVisible(grainBusyDisplay);
 	addAndMakeVisible (fileComp);
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
@@ -113,13 +114,6 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setResizable (true, ! native);
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
-}
-void TsnGranularAudioProcessorEditor::displayGrainDescriptions() {
-	audioProcessor.readGrainDescriptionData(grainDescriptions);
-	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::CurrentPosition);
-	for (auto &gd : grainDescriptions){
-		waveformAndPositionComponent.wc.addMarker(gd);
-	}
 }
 void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &onsetsInSeconds, TsnGranularAudioProcessor &p, bool verbose = true){
 	if (verbose){
@@ -219,26 +213,6 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 
 	g.drawImage(backgroundImage, getLocalBounds().toFloat());
 	
-	{
-		auto const bounds = getLocalBounds();
-
-		juce::int64 const seed = bounds.getWidth() + bounds.getHeight();
-		juce::Random rng(seed);
-		
-		for (auto i = 0; i < bounds.getWidth(); i += 2){
-			for (auto j = 0; j < bounds.getHeight(); j += 3){
-				
-				float const val = rng.nextFloat();
-				if (val > 0.7f){
-					auto const colour = juce::Colour(juce::uint8(rng.nextInt()), 0, 0,
-												   rng.nextFloat() * 0.3f);	// alpha
-					g.setColour(colour);
-//					g.fillEllipse(i, j, dotDim, dotDim);
-//					g.drawEllipse(i, j, dotDim, dotDim, dotDim);
-				}
-			}
-		}
-	}
 }
 
 void TsnGranularAudioProcessorEditor::resized()
@@ -256,15 +230,8 @@ void TsnGranularAudioProcessorEditor::resized()
 	localBounds.reduce(smallPad, smallPad);
 	
 	int x(0), y(0);
-	{	// just some scopes for temporaries
-		int fileCompWidth = localBounds.getWidth();
-		int fileCompHeight = 20;
-		x = localBounds.getX();
-		y = localBounds.getY();
-		fileComp.setBounds(x, y, fileCompWidth, fileCompHeight);
-		y += fileCompHeight;
-		y += smallPad;
-	}
+	y = placeFileCompAndGrainBusyDisplay(localBounds, smallPad, grainBusyDisplay, fileComp, y);
+
 	{
 		int buttonWidth = 90;
 		int buttonHeight = 25;
