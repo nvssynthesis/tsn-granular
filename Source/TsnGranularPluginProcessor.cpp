@@ -169,6 +169,11 @@ void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
 	auto const buffer_fn_hash = granular_synth_juce->getFilenameHash();
 	auto const analysis_fn_hash = _analyzer.getFilenameHash();
 	if (analysis_fn_hash != buffer_fn_hash) {
+		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
+		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
+			buffer.clear (i, 0, buffer.getNumSamples());
+		}
+		
 		writeToLog("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early");
 		return;
 	}
