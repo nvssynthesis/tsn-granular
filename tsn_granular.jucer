@@ -159,7 +159,8 @@
         <CONFIGURATION isDebug="1" name="Debug" targetName="tsn_granular" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"
                        macOSDeploymentTarget="13.0" osxCompatibility="13.0 SDK"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="tsn_granular" macOSDeploymentTarget="13.0"
-                       osxCompatibility="13.0 SDK" enablePluginBinaryCopyStep="1" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"/>
+                       osxCompatibility="13.0 SDK" enablePluginBinaryCopyStep="1" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"
+                       optimisation="6"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../Applications/JUCE/modules"/>
