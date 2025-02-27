@@ -46,11 +46,6 @@ public:
 private:
 	std::vector<double> _onsetsNormalized;
 	EventInfo _currentEventInfo;
-	
-	void doSetPosition(double position) override;
-	void doSetPositionRandomness(double rand) override;
-	void doSetDuration(double dur) override;
-	void doSetDurationRandomness(double rand) override;
 };
 
 }	// namespace gran

@@ -28,11 +28,11 @@ void TsnGranular::setWaveEvent(size_t index) {
 	if (!_onsetsNormalized.size()){
 		return;
 	}
-	auto const nextIdx = index + 1;
+	auto const nextIdx = (index + 1) % _onsetsNormalized.size();
 	ReadBounds const bounds
 	{
 		.begin = _onsetsNormalized[index],
-		.end = nextIdx < _onsetsNormalized.size() ? _onsetsNormalized[nextIdx] : 1.0
+		.end =  _onsetsNormalized[nextIdx]
 	};
 	setReadBounds(bounds);
 }
@@ -41,30 +41,7 @@ void TsnGranular::setWaveEvents(std::array<size_t, 4> indices, std::array<float,
 }
 
 //====================================================================================
-void TsnGranular::doSetPosition(double positionNormalized) {
-	if (_onsetsNormalized.size()){
-		auto const res = nvs::util::get_left(positionNormalized, _onsetsNormalized);
-		if (res){
-			_currentEventInfo.start_pos = static_cast<double>(res.value().second);
-			size_t const nextIdx = res.value().first + 1;
-			_currentEventInfo.end_pos = nextIdx < _onsetsNormalized.size() ? _onsetsNormalized[nextIdx] : 1.0;
-		}
-	}
-#pragma message("here needs to set position within bounds of 'event'")
-	this->genGranPoly1::doSetPosition(_currentEventInfo.start_pos);
-}
-void TsnGranular::doSetPositionRandomness(double rand){
-	this->genGranPoly1::doSetPositionRandomness(rand);
-}
 
-
-void TsnGranular::doSetDuration(double dur){
-	// make duration based on current event
-	this->genGranPoly1::doSetDuration(dur);
-}
-void TsnGranular::doSetDurationRandomness(double rand){
-	this->genGranPoly1::doSetDurationRandomness(rand);
-}
 
 }	// namespace gran
 }	// namespace nvs
