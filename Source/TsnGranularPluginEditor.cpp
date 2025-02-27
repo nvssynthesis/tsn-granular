@@ -58,7 +58,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
-	waveformAndPositionComponent.addChangeListener(this);
+//	waveformAndPositionComponent.addChangeListener(this);
 	
 	gui_lfo.setOnUpdateCallback([&](double x, double y){
 		// set navigator of timbre space component
@@ -264,21 +264,8 @@ void TsnGranularAudioProcessorEditor::resized()
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		std::vector<float> onsets = a->getOnsets();
-		std::vector<std::vector<float>> PCA = a->getPCA();
-		
 		paintOnsetMarkersAndTimbrePoints(a->getOnsets(), a->getPCA());
 		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
-	}
-	else if (source == &waveformAndPositionComponent){
-		std::vector<double> const norm_onsets = waveformAndPositionComponent.wc.getNormalizedOnsets();
-		if (norm_onsets.size()){
-			size_t const left_pos_idx = nvs::util::get_left(waveformAndPositionComponent.getPositionSliderValue(), norm_onsets).value().first;
-			assert (left_pos_idx <= std::numeric_limits<int>::max());
-			// light up corresponding timbre space point
-			timbreSpaceComponent.setCurrentPointIdx(static_cast<int>(left_pos_idx));
-			timbreSpaceComponent.repaint();
-		}
 	}
 	else {
 		GranularEditorCommon::changeListenerCallback(source);
