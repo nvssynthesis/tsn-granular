@@ -20,9 +20,9 @@ namespace analysis {
 vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real const sampleRate = 44100.f);
 //===================================================================================
 
-array2dReal onsetAnalysis(vecReal const &waveform, streamingFactory const &factory,
+array2dReal calculateOnsetsMatrix(vecReal const &waveform, streamingFactory const &factory,
 						  analysisSettings const anSettings, std::function<bool(void)> runLoopCallback=[](){return true;});
-vecReal onsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory,
+vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory,
 						analysisSettings const anSettings, onsetSettings const onSettings);
 vecVecReal featuresForSbic(vecReal const &waveform, AlgorithmFactory const &factory,
 						   analysisSettings const anSettings, bfccSettings const bfccSettings,

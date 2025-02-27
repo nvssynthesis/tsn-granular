@@ -27,7 +27,7 @@ vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real co
 	return freqSweep;
 }
 
-array2dReal onsetAnalysis(std::vector<Real> const &waveform,
+array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  streamingFactory const &factory, analysisSettings const settings,
 						  std::function<bool(void)> runLoopCallback){
 	auto const input_sr = settings.sampleRate;
@@ -157,7 +157,7 @@ array2dReal onsetAnalysis(std::vector<Real> const &waveform,
 }
 
 #pragma message("make this work with StreamingFactory")
-vecReal onsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory,
+vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory,
 						analysisSettings const anSettings, onsetSettings const onSettings)
 {
 	/* assuming that the onsetAnalysisMatrix was derived from the above onsetAnalysis,

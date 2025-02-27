@@ -19,6 +19,9 @@ public:
 	bool readyForProcess() const {
 		return false;
 	}
-	void loadOnsets(const std::span<float> onsetsInSeconds);
+	void loadOnsets(const std::span<float> onsets);
+	void setWaveEvent(size_t index);
+	void setWaveEvents(std::array<size_t, 4> indices,
+					   std::array<float, 4> weights);
 };
 

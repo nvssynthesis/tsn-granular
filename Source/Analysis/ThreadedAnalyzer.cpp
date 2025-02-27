@@ -21,21 +21,22 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 }
 
 void ThreadedAnalyzer::updateWave(std::span<float const> wave, size_t eventualFilenameHash){
-	inputWave.assign(wave.begin(), wave.end());
+	_inputWave.assign(wave.begin(), wave.end());
 	_eventualFilenameHash = eventualFilenameHash;
 }
+
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
-	outputOnsetsInSeconds.clear();
-	outputOnsetwiseTimbreMeasurements.clear();
-	outputPCA.clear();
-	if (!(inputWave.data() && inputWave.size())){
+	_outputOnsets.clear();
+	_outputOnsetwiseTimbreMeasurements.clear();
+	_outputPCA.clear();
+	if (!(_inputWave.data() && _inputWave.size())){
 		return;
 	}
 	
 	// perform onset analysis
 	fmt::print("ThreadedAnalyzer: performing onset analysis\n");
-	auto onsetOpt = _analyzer.calculateOnsets(inputWave, [&](){
+	auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, [&](){
 		if (threadShouldExit()){
 			fmt::print("ONSET CALCULATION EXITED EARLY\n");
 			return false;
@@ -51,7 +52,7 @@ void ThreadedAnalyzer::run() {
 	}
 	// perform onsetwise BFCC analysis
 	fmt::print("ThreadedAnalyzer: performing bfcc analysis\n");
-	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(inputWave, *onsetOpt);
+	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt);
 	jassert (timbreMeasurementsOpt.has_value());
 	
 	if (timbreMeasurementsOpt.value().size() <= 1){
@@ -64,9 +65,15 @@ void ThreadedAnalyzer::run() {
 	auto PCAopt = _analyzer.calculatePCA(*timbreMeasurementsOpt);
 	jassert(PCAopt.has_value());
 	
-	outputOnsetsInSeconds = onsetOpt.value();
-	outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt.value();
-	outputPCA = PCAopt.value();
+	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer._analysisSettings.sampleRate);
+	// filter onsets here
+	filterOnsets(onsetOpt.value(), lengthInSeconds);
+	// normalize onsets here
+	normalizeOnsets(onsetOpt.value(), lengthInSeconds);
+	
+	_outputOnsets = onsetOpt.value();
+	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt.value();
+	_outputPCA = PCAopt.value();
 	_filenameHash = _eventualFilenameHash;	// successful completion of each field updates the effective hash to that corresponding to the filepath used.
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();

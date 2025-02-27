@@ -21,8 +21,8 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintOnsetMarkersAndTimbrePoints(std::vector<float> &onsetsInSeconds,
-					  std::vector<std::vector<float>> &PCA);
+	void paintOnsetMarkersAndTimbrePoints(std::vector<float> const &onsets,
+					  std::vector<std::vector<float>> const &PCA);
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
@@ -54,7 +54,7 @@ private:
 
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 
-	void setPositionSliderFromChosenPoint();	// gets called by mouseDown, mouseDrag
+	void setReadBoundsFromChosenPoint();	// gets called by mouseDown, mouseDrag
 		
 	TsnGranularAudioProcessor& audioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)

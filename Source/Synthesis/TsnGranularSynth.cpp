@@ -20,34 +20,26 @@ TsnGranular::TsnGranular(GranularSynthSharedState *const synth_shared_state, int
 {}
 //====================================================================================
 
-void TsnGranular::loadOnsets(std::span<float> const onsetsInSeconds){
-	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
-	double const lengthInSeconds = static_cast<double>(_synth_shared_state->_buffer._wave_block.getNumSamples()) / _synth_shared_state->_buffer._file_sample_rate;
-	// starting at end, count onsets exceeding lengthInSeconds
-	size_t numProperOnsets = onsetsInSeconds.size();
-	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
-		if (*it > lengthInSeconds){
-			--numProperOnsets;
-		}
-		else {	// since the vector is sorted, we know that there are no more exceeding the proper length
-			break;
-		}
-	}
-	_onsetsNormalized.resize(numProperOnsets);
-	for (auto f : _onsetsNormalized){
-		fmt::print("{}\n", f);
-	}
-	std::transform(onsetsInSeconds.begin(), onsetsInSeconds.begin() + numProperOnsets,
-				   _onsetsNormalized.begin(), [=](float f)
-				{
-					double res = f / lengthInSeconds;
-					assert(res <= 1.f);
-					return res;
-				});
-	for (auto f : _onsetsNormalized){
-		fmt::print("{}\n", f);
-	}
+void TsnGranular::loadOnsets(std::span<float> const normalizedOnsets){
+	_onsetsNormalized.assign(normalizedOnsets.begin(), normalizedOnsets.end());
 }
+
+void TsnGranular::setWaveEvent(size_t index) {
+	if (!_onsetsNormalized.size()){
+		return;
+	}
+	auto const nextIdx = index + 1;
+	ReadBounds const bounds
+	{
+		.begin = _onsetsNormalized[index],
+		.end = nextIdx < _onsetsNormalized.size() ? _onsetsNormalized[nextIdx] : 1.0
+	};
+	setReadBounds(bounds);
+}
+void TsnGranular::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights) {
+	assert (false);
+}
+
 //====================================================================================
 void TsnGranular::doSetPosition(double positionNormalized) {
 	if (_onsetsNormalized.size()){

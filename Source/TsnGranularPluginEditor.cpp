@@ -70,7 +70,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 			._p3D{0.f, 0.f, 0.f}
 		};
 		timbreSpaceComponent.setCurrentPointFromNearest(p5);
-		setPositionSliderFromChosenPoint();
+		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	});
 	gui_lfo.start();
@@ -115,15 +115,12 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
 }
-void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &onsetsInSeconds, TsnGranularAudioProcessor &p, bool verbose = true){
+void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &normalizedOnsets, TsnGranularAudioProcessor &p, bool verbose = true){
 	if (verbose){
 		p.writeToLog("Editor: Drawing waveform markers\n");
 	}
 	double const sr = p.getAnalysisSettings().sampleRate;
-	size_t nSamps = p.getCurrentWaveSize();
-	for (auto onset : onsetsInSeconds){
-		onset *= sr;
-		onset /= static_cast<double>(nSamps);
+	for (auto onset : normalizedOnsets) {
 		wc.addMarker(onset);
 	}
 }
@@ -156,44 +153,33 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
-		// the Nth member of onsetsSeconds.
+		// the Nth member of onsets.
 		float const padding_scalar = 0.95f;
 		timbreSpaceComponent.add5DPoint(p * padding_scalar, color);
 		fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 	}
 }
-void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> &onsetsInSeconds,
-													 std::vector<std::vector<float>> &PCA){
+void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
+													 std::vector<std::vector<float>> const &PCA) {
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
-	drawWaveformMarkers(waveformAndPositionComponent.wc, onsetsInSeconds, audioProcessor);
+	drawWaveformMarkers(waveformAndPositionComponent.wc, normalizedOnsets, audioProcessor);
 	drawTimbreSpacePoints(timbreSpaceComponent, PCA, GranularEditorCommon::audioProcessor);
 	repaint();
 }
-void TsnGranularAudioProcessorEditor::setPositionSliderFromChosenPoint() {
-//	audioProcessor.writeToLog("editor: setPositionSliderFromChosenPoint");
-	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
 
+void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
+	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
 	if (audioProcessor.getOnsets().size()){
-		float const onsetSeconds = audioProcessor.getOnsets()[pIdx];
-		double const sr = audioProcessor.getAnalysisSettings().sampleRate;
-		double const onsetSamps = static_cast<size_t>(onsetSeconds * sr);
-		double const lengthSamps = static_cast<double>( audioProcessor.getCurrentWaveSize() );
-		double const onsetNormalized = onsetSamps / lengthSamps + std::numeric_limits<float>::epsilon()*10.0;
-		std::string const a = getParamElement<params_e::position, param_elem_e::name>();
-		juce::RangedAudioParameter* posParam = audioProcessor.getAPVTS().getParameter(a);
-		posParam->setValueNotifyingHost(onsetNormalized);
-	}
-	if (audioProcessor.getPCA().size()){
-		std::vector<float> const thisPcaSet = audioProcessor.getPCA()[pIdx];
+		audioProcessor.setWaveEvent(pIdx);
 	}
 }
 
 void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
-	setPositionSliderFromChosenPoint();
+	setReadBoundsFromChosenPoint();
 }
 void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
-	setPositionSliderFromChosenPoint();
+	setReadBoundsFromChosenPoint();
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
@@ -278,10 +264,10 @@ void TsnGranularAudioProcessorEditor::resized()
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		std::vector<float> onsetsInSeconds = a->getOnsetsInSeconds();
+		std::vector<float> onsets = a->getOnsets();
 		std::vector<std::vector<float>> PCA = a->getPCA();
 		
-		paintOnsetMarkersAndTimbrePoints(onsetsInSeconds, PCA);
+		paintOnsetMarkersAndTimbrePoints(a->getOnsets(), a->getPCA());
 		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
 	}
 	else if (source == &waveformAndPositionComponent){

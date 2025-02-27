@@ -27,11 +27,15 @@ public:
 
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	
+	
+	void setWaveEvent(size_t index);					// effectively sets readBounds for all grains of all voices
+	void setWaveEvents(std::array<size_t, 4> indices,
+					   std::array<float, 4> weights);	// effectively sets readBounds proportionally for all contained grains, for tetrahedral timbre selection
+	
 	void askForAnalysis();
 	std::vector<float> getOnsets() const;
 	std::vector<std::vector<float>> getOnsetwiseTimbres() const;
 	std::vector<std::vector<float>> getPCA() const;
-	void writeEvents();
 	
 	nvs::nav::GUILFO &getGUILFO() {
 		return gui_lfo;
@@ -49,6 +53,7 @@ public:
 	void setAnalysisSettings(nvs::analysis::analysisSettings settings){
 		_analyzer.setAnalysisSettings(settings);
 	}
+	void writeEvents();
 private:
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	

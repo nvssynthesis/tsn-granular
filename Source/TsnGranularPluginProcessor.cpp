@@ -17,8 +17,11 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 ,	_analyzer(this)			// effectively adding this as listener to the analyzer
 ,	gui_lfo(apvts, 20.0)	// processor owns it, but editor facilitates communication from lfo > timbre space
 {
-	if (JuceTsnGranularSynthesizer *s = dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
+	if (dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
 		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
+	}
+	else {
+		writeToLog("Failed to dynamic cast JuceTsnGranularSynthesizer");
 	}
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 	writeToLog("TsnGranularAudioProcessor DEBUG MODE");
@@ -82,6 +85,21 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 	}
 	writeToLog("TSN: loadAudioFile exiting");
 }
+
+void TsnGranularAudioProcessor::setWaveEvent(size_t index)
+{
+	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(granular_synth_juce.get())){
+		tsn_synth_juce->setWaveEvent(index);
+	}
+}
+
+void TsnGranularAudioProcessor::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights)
+{
+	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(granular_synth_juce.get())){
+		tsn_synth_juce->setWaveEvents(indices, weights);
+	}
+}
+
 void TsnGranularAudioProcessor::askForAnalysis(){
 	auto const buffer = sampleManagementGuts.sampleBuffer;
 	if (!buffer.getNumChannels()){
@@ -100,7 +118,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 }
 
 std::vector<float> TsnGranularAudioProcessor::getOnsets() const {
-	return _analyzer.getOnsetsInSeconds();
+	return _analyzer.getOnsets();
 }
 
 std::vector<std::vector<float>> TsnGranularAudioProcessor::getOnsetwiseTimbres() const {
@@ -119,7 +137,10 @@ void TsnGranularAudioProcessor::writeEvents(){
 	
 	// any reason to use getPropertyAsValue instead?
 	juce::String audioFilePath = apvts.state.getProperty(sampleManagementGuts.audioFilePathValueTreeStateIdentifier);
-	nvs::analysis::writeEventsToWav(wave, _analyzer.getOnsetsInSeconds(), audioFilePath.toStdString(), _analyzer.getAnalyzer());
+	
+	std::vector<float> onsetsTmp = _analyzer.getOnsets();
+	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), _analyzer.getAnalyzer()._analysisSettings.sampleRate));
+	nvs::analysis::writeEventsToWav(wave, onsetsTmp, audioFilePath.toStdString(), _analyzer.getAnalyzer());
 }
 
 void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
@@ -128,7 +149,7 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		// then load onsets into synth
-		auto onsets = _analyzer.getOnsetsInSeconds();
+		auto onsets = _analyzer.getOnsets();
 		if (onsets.size()){
 			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
 				tsn_granular_synth->loadOnsets(onsets);

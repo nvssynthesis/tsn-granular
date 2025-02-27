@@ -27,14 +27,14 @@ public:
 
 	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
 	
-	inline vecReal getOnsetsInSeconds() const {
-		return outputOnsetsInSeconds;
+	inline vecReal getOnsets() const {
+		return _outputOnsets;
 	}
 	inline vecVecReal getOnsetwiseTimbreMeasurements() const {
-		return outputOnsetwiseTimbreMeasurements;
+		return _outputOnsetwiseTimbreMeasurements;
 	}
 	inline vecVecReal getPCA() const {
-		return outputPCA;
+		return _outputPCA;
 	}
 	inline void setAnalysisSettings(analysisSettings settings){
 		_analyzer._analysisSettings = settings;
@@ -69,11 +69,11 @@ public:
 private:
 	Analyzer _analyzer;
 	
-	vecReal inputWave;
+	vecReal _inputWave;
 	
-	vecReal outputOnsetsInSeconds;
-	vecVecReal outputOnsetwiseTimbreMeasurements;
-	vecVecReal outputPCA;
+	vecReal _outputOnsets;
+	vecVecReal _outputOnsetwiseTimbreMeasurements;
+	vecVecReal _outputPCA;
 	
 	size_t _filenameHash;
 	size_t _eventualFilenameHash;

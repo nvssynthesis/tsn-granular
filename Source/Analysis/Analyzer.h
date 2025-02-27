@@ -33,10 +33,10 @@ private:
 public:
 	Analyzer();
 	
-	std::optional<vecReal> calculateOnsets(vecReal wave, std::function<bool(void)> runLoopCallback=[](){return true;});
-	EventwisePitchDescription calculateEventwisePitchDescription(vecReal waveEvent);
-	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal waveEvent);
-	std::optional<vecVecReal> calculateOnsetwiseTimbreSpace(vecReal wave, vecReal onsetsInSeconds);
+	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, std::function<bool(void)> runLoopCallback=[](){return true;});
+	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent);
+	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
+	std::optional<vecVecReal> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets);
 	std::optional<vecVecReal> calculatePCA(vecVecReal const &V);
 
 	nvs::ess::EssentiaHolder ess_hold;
@@ -48,25 +48,54 @@ public:
 	bfccSettings _bfccSettings;
 };
 
-inline void cleanOnsets (vecReal &onsetsInSeconds, float maxLengthInSeconds){
-//	float const lengthInSeconds = static_cast<float>(_wavespan.size()) / _fileSampleRate;
-	size_t properOnsets = onsetsInSeconds.size();
-	for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
-		if (*it > maxLengthInSeconds){
-			--properOnsets;
-		}
-		else {	// since the vector is sorted, we know that there are no more exceeding the proper length
-			break;
-		}
-	}
-	assert(properOnsets <= onsetsInSeconds.size());
-	onsetsInSeconds.resize(properOnsets);
+inline double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
+	return static_cast<double>(lengthInSamples / sampleRate);
 }
 
-#if 0
-Real mean(vecReal const &V);
-Real median(vecReal V);
-#endif
+inline void filterOnsets(std::vector<float> &onsetsInSeconds, double lengthInSeconds, float minimumOnsetDeltaSeconds = 0.02f)
+{
+	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
+	{	// filter out onsets that exceed the file length
+		
+		// starting at end, count onsets exceeding lengthInSeconds
+		size_t numProperOnsets = onsetsInSeconds.size();
+		for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
+			if (*it > lengthInSeconds){
+				--numProperOnsets;
+			}
+			else {	// since the vector is sorted, we know that there are no more exceeding the proper length
+				break;
+			}
+		}
+		onsetsInSeconds.resize(numProperOnsets);
+		
+	}
+	// filter out redundant onsets (can be defined by onsets which are too close together)
+	{
+		auto new_end = std::unique(onsetsInSeconds.begin(), onsetsInSeconds.end(), [minimumOnsetDeltaSeconds](float a, float b){
+			return (b - a) < minimumOnsetDeltaSeconds;
+		});
+		onsetsInSeconds.erase(new_end, onsetsInSeconds.end());	// erase from new end to original end
+	}
+}
+
+inline void normalizeOnsets(std::vector<float> &onsetsInSeconds, float lengthInSeconds) {
+	std::transform(onsetsInSeconds.begin(), onsetsInSeconds.end(),	// formerly terminated via begin() + numProperOnsets
+				   onsetsInSeconds.begin(), [=](float f)
+				{
+					double res = f / lengthInSeconds;
+					assert(res <= 1.f);
+					return res;
+				});
+}
+inline void denormalizeOnsets(std::vector<float> &normalizedOnsets, float lengthInSeconds) {
+	std::transform(normalizedOnsets.begin(), normalizedOnsets.end(),
+				   normalizedOnsets.begin(), [=](float f)
+				{
+					return f * lengthInSeconds;
+				});
+}
+
 vecVecReal truncate(vecVecReal const &V, size_t trunc);
 vecVecReal transpose(vecVecReal const &V);
 
@@ -86,7 +115,7 @@ vecReal binwiseStatistic(vecVecReal const &V, Func statisticFunc) {
 	return results;
 }
 
-void writeEventsToWav(vecReal wave, std::vector<float> onsetsInSeconds, std::string_view ogPath, Analyzer analyzer);
+void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer);
 
 }	// namespace analysis
 }	// namespace nvs
