@@ -58,7 +58,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
-//	waveformAndPositionComponent.addChangeListener(this);
+	waveformAndPositionComponent.hideSlider();
 	
 	gui_lfo.setOnUpdateCallback([&](double x, double y){
 		// set navigator of timbre space component
