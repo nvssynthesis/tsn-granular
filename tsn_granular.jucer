@@ -6,7 +6,7 @@
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source"
-              defines="TSN&#10;_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS">
+              defines="TSN&#10;_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS" pluginFormats="buildAU,buildStandalone,buildVST3">
   <MAINGROUP id="HJxsOe" name="tsn_granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
       <GROUP id="{281DBBC8-56F5-5F7F-83DB-3BCAB903CB65}" name="Plugin">
@@ -43,6 +43,10 @@
                 file="slicer_granular/Source/Gui/EnvelopeParameterPage.cpp"/>
           <FILE id="VcXb4N" name="EnvelopeParameterPage.h" compile="0" resource="0"
                 file="slicer_granular/Source/Gui/EnvelopeParameterPage.h"/>
+          <FILE id="OiXPT2" name="ScannerParameterPage.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Gui/ScannerParameterPage.cpp"/>
+          <FILE id="sqq7LY" name="ScannerParameterPage.h" compile="0" resource="0"
+                file="slicer_granular/Source/Gui/ScannerParameterPage.h"/>
           <FILE id="fAu6uS" name="TabbedPages.cpp" compile="1" resource="0" file="slicer_granular/Source/Gui/TabbedPages.cpp"/>
           <FILE id="t6Fnno" name="TabbedPages.h" compile="0" resource="0" file="slicer_granular/Source/Gui/TabbedPages.h"/>
           <FILE id="mjkWTL" name="WaveformComponent.cpp" compile="1" resource="0"
@@ -160,7 +164,7 @@
                        macOSDeploymentTarget="13.0" osxCompatibility="13.0 SDK"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="tsn_granular" macOSDeploymentTarget="13.0"
                        osxCompatibility="13.0 SDK" enablePluginBinaryCopyStep="1" customXcodeFlags="LD_RUNPATH_SEARCH_PATHS=/opt/homebrew/Cellar/sdl2/2.28.5/lib"
-                       optimisation="6"/>
+                       optimisation="3"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../Applications/JUCE/modules"/>
