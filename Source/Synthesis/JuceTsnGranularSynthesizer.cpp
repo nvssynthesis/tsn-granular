@@ -12,6 +12,11 @@
 #include "../Synthesis/TsnGranularSynth.h"
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthSound.h"
 
+
+// TODO:
+// make generic function that can apply incoming arguments to generic function of tsnGuts of all voices, regardless of number of args
+
+
 JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer()
 {
 	clearVoices();
@@ -33,10 +38,9 @@ JuceTsnGranularSynthesizer::JuceTsnGranularSynthesizer()
 void JuceTsnGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
-		juce::SynthesiserVoice *voice = getVoice(voiceIdx);
-		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(voice)){
-			auto *granularSynthGuts = granularVoice->getGranularSynthGuts();
-			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>(granularSynthGuts)){
+		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
+			
+			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
 				tsnGuts->loadOnsets(onsets);
 			}
 		}
@@ -46,8 +50,7 @@ void JuceTsnGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 void JuceTsnGranularSynthesizer::setWaveEvent(size_t index) {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
-		juce::SynthesiserVoice *voice = getVoice(voiceIdx);
-		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(voice)){
+		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 			
 			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
 				tsnGuts->setWaveEvent(index);
@@ -60,8 +63,7 @@ void JuceTsnGranularSynthesizer::setWaveEvents(std::array<size_t, 4> indices, st
 {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
-		juce::SynthesiserVoice *voice = getVoice(voiceIdx);
-		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(voice)){
+		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 			
 			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
 				tsnGuts->setWaveEvents(indices, weights);
