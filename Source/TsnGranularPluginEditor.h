@@ -22,7 +22,7 @@ public:
 	void resized() override;
 	//===============================================================================
 	void paintOnsetMarkersAndTimbrePoints(std::vector<float> const &onsets,
-					  std::vector<std::vector<float>> const &PCA);
+					  std::vector<std::vector<float>> const &timbreSpaceRepresentation);
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;

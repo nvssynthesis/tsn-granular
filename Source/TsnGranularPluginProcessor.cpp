@@ -117,18 +117,6 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 	}
 }
 
-std::vector<float> TsnGranularAudioProcessor::getOnsets() const {
-	return _analyzer.getOnsets();
-}
-
-std::vector<std::vector<float>> TsnGranularAudioProcessor::getOnsetwiseTimbres() const {
-	return _analyzer.getOnsetwiseTimbreMeasurements();
-}
-
-std::vector<std::vector<float>> TsnGranularAudioProcessor::getPCA() const {
-	return _analyzer.getPCA();
-}
-
 void TsnGranularAudioProcessor::writeEvents(){
 	auto const buffer = sampleManagementGuts.sampleBuffer;
 	auto const waveSpan = std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples());

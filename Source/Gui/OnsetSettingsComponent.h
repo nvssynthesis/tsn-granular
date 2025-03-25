@@ -30,6 +30,11 @@ private:
 	nvs::analysis::onsetSettings _onsetSettings;
 	
 	NonAutomatableTitledSlider silenceThresholdSlider;
+	
+	// need some sort of checkmark buttons in a list for features to include
+	
+	// need some sort of mutually exclusive checkmark buttons in a list for dimensionality reduction type to use
+	
 	juce::TextButton applyButton;
 	juce::TextButton recalculateOnsetsButton;
 

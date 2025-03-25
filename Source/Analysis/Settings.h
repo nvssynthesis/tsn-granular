@@ -21,6 +21,33 @@ struct analysisSettings {
 	Real sampleRate {44100.f};
 	int frameSize {1024};
 	int hopSize {512};
+	
+	enum Features_e {
+		BFCC,
+		pitch,
+		pitchConfidence
+	};
+	std::set<Features_e> featuresSet {
+		BFCC,
+		pitch
+	};
+	enum DimensionalityReduction_e {
+		noReduction = 0,
+		PCA = 1
+	};
+	DimensionalityReduction_e dimensionalityReduction { noReduction };
+	
+	const static inline std::map<Features_e, std::string>
+	featuresMap {
+		{BFCC, "BFCC"},
+		{pitch, "Pitch"},
+		{pitchConfidence, "Pitch Confidence"}
+	};
+	const static inline std::map<DimensionalityReduction_e, std::string>
+	dimensionalityReductionMap {
+		{noReduction, "No Reduction"},
+		{PCA, "PCA"}
+	};
 };
 struct onsetSettings
 {

@@ -17,7 +17,7 @@ OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsnG
 	_owner(owner)
 {
 	// update onsetSettings from those of the processor
-	_onsetSettings = proc.getOnsetSettings();
+	_onsetSettings = proc.getAnalyzer().getOnsetSettings();
 	silenceThresholdSlider.setValue(_onsetSettings.silenceThreshold);
 
 	addAndMakeVisible(&silenceThresholdSlider);
@@ -72,10 +72,10 @@ void OnsetSettingsComponent::sliderValueChanged (juce::Slider* slider) {
 }
 void OnsetSettingsComponent::buttonClicked(juce::Button *button) {
 	if (button == &applyButton){
-		proc.setOnsetSettings(_onsetSettings);
+		proc.getAnalyzer().setOnsetSettings(_onsetSettings);
 	}
 	else if (button == &recalculateOnsetsButton){
-		proc.setOnsetSettings(_onsetSettings);
+		proc.getAnalyzer().setOnsetSettings(_onsetSettings);
 		proc.askForAnalysis();
 	}
 }

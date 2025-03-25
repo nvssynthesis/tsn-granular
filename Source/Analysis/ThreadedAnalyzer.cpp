@@ -79,5 +79,21 @@ void ThreadedAnalyzer::run() {
 	sendChangeMessage();
 }
 	
+vecVecReal ThreadedAnalyzer::getTimbreSpaceRepresentation() const {
+	switch (_analyzer._analysisSettings.dimensionalityReduction) {
+			
+		case analysisSettings::PCA:
+			return _outputPCA;
+			break;
+			
+		case analysisSettings::noReduction:
+			return _outputOnsetwiseTimbreMeasurements;
+			break;
+		
+		default:
+			assert (false);
+	}
+}
+
 }	// namespace analysis
 }	// namespace nvs

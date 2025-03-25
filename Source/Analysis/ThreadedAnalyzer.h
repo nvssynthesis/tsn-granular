@@ -23,19 +23,15 @@ public:
 	~ThreadedAnalyzer(){
 		stopThread(100);
 	}
-	void run() override;
-
 	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
-	
+	void run() override;
+	//===============================================================================
+	vecVecReal getTimbreSpaceRepresentation() const;
+
 	inline vecReal getOnsets() const {
 		return _outputOnsets;
 	}
-	inline vecVecReal getOnsetwiseTimbreMeasurements() const {
-		return _outputOnsetwiseTimbreMeasurements;
-	}
-	inline vecVecReal getPCA() const {
-		return _outputPCA;
-	}
+	//===============================================================================
 	inline void setAnalysisSettings(analysisSettings settings){
 		_analyzer._analysisSettings = settings;
 	}
@@ -60,12 +56,15 @@ public:
 	bfccSettings getBFCCSettings() const {
 		return _analyzer._bfccSettings;
 	}
+	//===============================================================================
 	Analyzer &getAnalyzer() {
 		return _analyzer;
 	}
+	//===============================================================================
 	size_t getFilenameHash() const {
 		return _filenameHash;
 	}
+	//===============================================================================
 private:
 	Analyzer _analyzer;
 	

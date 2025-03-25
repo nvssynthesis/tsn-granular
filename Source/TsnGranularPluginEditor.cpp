@@ -77,7 +77,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	{	// on initial construction, this should do nothing. however, it should also take care of the case where you close and open the plugin window.
-		paintOnsetMarkersAndTimbrePoints(audioProcessor.getOnsets(), audioProcessor.getPCA());	// is this really the best place for it though? think about in resized() maybe.
+		auto const &a = audioProcessor.getAnalyzer();
+		paintOnsetMarkersAndTimbrePoints(a.getOnsets(), a.getTimbreSpaceRepresentation());	// is this really the best place for it though? think about in resized() maybe.
 	}
 	
 	constrainer.setMinimumSize(620, 500);
@@ -122,14 +123,14 @@ void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &normal
 	if (verbose){
 		p.writeToLog("Editor: Drawing waveform markers\n");
 	}
-	double const sr = p.getAnalysisSettings().sampleRate;
+	double const sr = p.getAnalyzer().getAnalysisSettings().sampleRate;
 	for (auto onset : normalizedOnsets) {
 		wc.addMarker(onset);
 	}
 }
-void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vector<std::vector<float>> const &PCA, Slicer_granularAudioProcessor &p, bool verbose = true){
+void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vector<std::vector<float>> const &timbreSpaceRepresentation, Slicer_granularAudioProcessor &p, bool verbose = true){
 	if (verbose){
-		p.writeToLog("Editor: Drawing PCA points\n");
+		p.writeToLog("Editor: Drawing timbre space points\n");
 	}
 	size_t constexpr nDim {5};
 	std::array<size_t, nDim> constexpr dimensions {
@@ -141,18 +142,20 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	};
 	std::array<float, nDim> normalizers;
 	for (int i = 0; i < nDim; ++i) {
-	auto const range = nvs::analysis::calculateRangeOfDimension(PCA, dimensions[i]);
+	auto const range = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, dimensions[i]);
 		normalizers[i] = nvs::analysis::calculateNormalizationMultiplier(range);
 	}
-	for (std::vector<float> const &pcaFrame : PCA) {
+	for (std::vector<float> const &timbreFrame : timbreSpaceRepresentation) {
+		assert (timbreFrame.size() >= nDim);
+		
 		// just some bull as a placeholder for actual timbral analysis
 		#pragma message("need proper normalization")
-		juce::Point<float> const p(pcaFrame[dimensions[0]] * normalizers[0],
-								   pcaFrame[dimensions[1]] * normalizers[1]);
+		juce::Point<float> const p(timbreFrame[dimensions[0]] * normalizers[0],
+								   timbreFrame[dimensions[1]] * normalizers[1]);
 		std::array<float, 3> const color {
-			( pcaFrame[dimensions[2]] * normalizers[2] ),
-			( pcaFrame[dimensions[3]] * normalizers[3] ),
-			( pcaFrame[dimensions[4]] * normalizers[4] )
+			( timbreFrame[dimensions[2]] * normalizers[2] ),
+			( timbreFrame[dimensions[3]] * normalizers[3] ),
+			( timbreFrame[dimensions[4]] * normalizers[4] )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
@@ -163,17 +166,17 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	}
 }
 void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
-													 std::vector<std::vector<float>> const &PCA) {
+													 std::vector<std::vector<float>> const &timbreSpaceRepresention) {
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 	drawWaveformMarkers(waveformAndPositionComponent.wc, normalizedOnsets, audioProcessor);
-	drawTimbreSpacePoints(timbreSpaceComponent, PCA, GranularEditorCommon::audioProcessor);
+	drawTimbreSpacePoints(timbreSpaceComponent, timbreSpaceRepresention, GranularEditorCommon::audioProcessor);
 	repaint();
 }
 
 void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
 	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
-	if (audioProcessor.getOnsets().size()){
+	if (audioProcessor.getAnalyzer().getOnsets().size()){
 		audioProcessor.setWaveEvent(pIdx);
 	}
 }
@@ -268,7 +271,7 @@ void TsnGranularAudioProcessorEditor::resized()
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		paintOnsetMarkersAndTimbrePoints(a->getOnsets(), a->getPCA());
+		paintOnsetMarkersAndTimbrePoints(a->getOnsets(), a->getTimbreSpaceRepresentation());
 		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
 	}
 	else {
