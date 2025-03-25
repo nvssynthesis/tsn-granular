@@ -76,6 +76,9 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	gui_lfo.start();
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
+	{	// on initial construction, this should do nothing. however, it should also take care of the case where you close and open the plugin window.
+		paintOnsetMarkersAndTimbrePoints(audioProcessor.getOnsets(), audioProcessor.getPCA());	// is this really the best place for it though? think about in resized() maybe.
+	}
 	
 	constrainer.setMinimumSize(620, 500);
 	setSize (680, 950);
@@ -197,8 +200,9 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 		tg.fillAll();
 	}
 
-	g.drawImage(backgroundImage, getLocalBounds().toFloat());
-	
+	auto const b = getLocalBounds();
+	g.drawImage(backgroundImage, b.toFloat());
+	displayName(g, b);
 }
 
 void TsnGranularAudioProcessorEditor::resized()
@@ -212,7 +216,7 @@ void TsnGranularAudioProcessorEditor::resized()
 								   false);
 	backgroundImage = toBeBackground;
 	
-	int const smallPad = 10;
+	int const smallPad = 12;
 	localBounds.reduce(smallPad, smallPad);
 	
 	int x(0), y(0);
