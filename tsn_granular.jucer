@@ -154,8 +154,8 @@
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" extraCompilerFlags="-I/opt/homebrew/Cellar&#10;-I/opt/homebrew/Cellar/mlpack/4.2.0/include&#10;-I/opt/homebrew/Cellar/eigen/3.4.0_1/include&#10;-I/opt/homebrew/Cellar/armadillo/12.6.1/include&#10;-v&#10;-ftemplate-backtrace-limit=0"
-               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.22/lib&#10;-L/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static&#10;-L../../aubio/build/src"
-               externalLibraries="essentia&#10;tensorflow&#10;tag&#10;avcodec&#10;avdevice&#10;avfilter&#10;avformat&#10;avresample&#10;avutil&#10;postproc&#10;swresample&#10;swscale&#10;samplerate&#10;chromaprint&#10;yaml&#10;fmt&#10;sdl2&#10;aubio"
+               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.22_5/lib&#10;-L/opt/homebrew/lib&#10;-Wl,-rpath,/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static&#10;-L../../aubio/build/src&#10;"
+               externalLibraries="essentia&#10;tensorflow&#10;tag&#10;avcodec&#10;avdevice&#10;avfilter&#10;avformat&#10;avresample&#10;avutil&#10;postproc&#10;swresample&#10;swscale&#10;samplerate&#10;chromaprint&#10;yaml&#10;fmt&#10;sdl2"
                xcodeValidArchs="arm64" appSandboxOptions="com.apple.security.files.user-selected.read-only"
                appSandbox="1" hardenedRuntimeOptions="com.apple.security.cs.allow-dyld-environment-variables,com.apple.security.cs.disable-library-validation"
                hardenedRuntime="1" appSandboxInheritance="1">
