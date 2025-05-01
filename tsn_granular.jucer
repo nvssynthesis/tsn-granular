@@ -69,6 +69,10 @@
               file="Source/Gui/OnsetSettingsComponent.h"/>
         <FILE id="R039nD" name="OnsetSettingsComponent.cpp" compile="1" resource="0"
               file="Source/Gui/OnsetSettingsComponent.cpp"/>
+        <FILE id="m6FRh7" name="TimbreSpaceSettingsComponent.cpp" compile="1"
+              resource="0" file="Source/Gui/TimbreSpaceSettingsComponent.cpp"/>
+        <FILE id="nEaHE5" name="TimbreSpaceSettingsComponent.h" compile="0"
+              resource="0" file="Source/Gui/TimbreSpaceSettingsComponent.h"/>
         <FILE id="EnbI2m" name="SettingsWindow.h" compile="0" resource="0"
               file="Source/Gui/SettingsWindow.h"/>
         <FILE id="ESH6Vv" name="SettingsWindow.cpp" compile="1" resource="0"

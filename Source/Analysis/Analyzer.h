@@ -10,8 +10,10 @@
 
 #pragma once
 #include <optional>
+#include <type_traits>
 #include "OnsetAnalysis/OnsetAnalysis.h"
 #include "Analysis/TimbreAnalysis/TimbreAnalysis.h"
+#include "../../slicer_granular/Source/misc_util.h"
 #include <JuceHeader.h>
 
 namespace nvs {
@@ -34,8 +36,31 @@ enum class Features {
 	
 	Periodicity,
 	Loudness,
-	f0
+	f0,
+	
+	NumFeatures
 };
+constexpr int NumBFCC = 13;
+
+typedef nvs::util::Iterator<Features, Features::bfcc0, Features::f0> featuresIterator;
+
+inline juce::String toString(Features f){
+	if (int(f) < NumBFCC){
+		juce::String s = "bfcc";
+		s += int(f);
+		return s;
+	}
+	switch (f) {
+		case Features::Periodicity:
+			return "periodicity";
+		case Features::Loudness:
+			return "Loudness";
+		case Features::f0:
+			return "f0";
+		default:
+			return "";
+	}
+}
 
 const std::set<Features> bfccSet {
 	Features::bfcc0,
@@ -53,7 +78,6 @@ const std::set<Features> bfccSet {
 	Features::bfcc12,
 };
 
-constexpr int NumBFCC = 13;
 
 inline bool isBFCC(Features f) {
 	int i = static_cast<int>(f);
@@ -65,8 +89,11 @@ enum class Statistic {
 	Median,
 	Variance,
 	Skewness,
-	Kurtosis
+	Kurtosis,
+	NumStatistics
 };
+typedef nvs::util::Iterator<Statistic, Statistic::Mean, Statistic::Kurtosis> statisticIterator;
+
 
 template <typename T>
 struct EventwiseStatistics {

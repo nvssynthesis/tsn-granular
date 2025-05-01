@@ -11,6 +11,7 @@
 #pragma once
 #include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
+#include "Gui/TimbreSpaceSettingsComponent.h"
 
 class SettingsWindow	:	public juce::DocumentWindow
 {
@@ -20,6 +21,8 @@ public:
 	
 private:
 	juce::ComponentBoundsConstrainer constrainer;
-	OnsetSettingsComponent onsetSettingsComponent;
+//	OnsetSettingsComponent onsetSettingsComponent;
+//	TimbreSpaceSettingsComponent timbreSpaceSettingsComponent;
+	
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsWindow);
 };

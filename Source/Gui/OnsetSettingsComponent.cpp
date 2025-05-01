@@ -8,13 +8,12 @@
 
 #include "OnsetSettingsComponent.h"
 
-OnsetSettingsComponent::OnsetSettingsComponent(juce::DocumentWindow &owner, TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
+OnsetSettingsComponent::OnsetSettingsComponent(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
 	silenceThresholdSlider(juce::Slider::SliderStyle::LinearVertical, this, "silence threshold"),
 	applyButton("Apply"),
-	recalculateOnsetsButton("Recalculate Onsets"),
-	_owner(owner)
+	recalculateOnsetsButton("Recalculate Onsets")
 {
 	// update onsetSettings from those of the processor
 	_onsetSettings = proc.getAnalyzer().getOnsetSettings();
@@ -36,16 +35,16 @@ void OnsetSettingsComponent::paint(juce::Graphics &g) {
 	g.fillAll();
 }
 void OnsetSettingsComponent::placeMe(int const topPad, int const leftPad){
-	juce::Rectangle<int> bounds = _owner.getBounds();
-	
-	int const barPad = _owner.getTitleBarHeight();
-	int const compHeight = bounds.getHeight() - barPad - topPad*2;
-	int const compWidth = bounds.getWidth() - leftPad*2;
-	bounds.setHeight(compHeight);
-	bounds.setX(leftPad);
-	bounds.setWidth(compWidth);
-	bounds.setY(barPad + topPad);
-	setBounds(bounds);
+//	juce::Rectangle<int> bounds = _owner.getBounds();
+//
+//	int const barPad = _owner.getTitleBarHeight();
+//	int const compHeight = bounds.getHeight() - barPad - topPad*2;
+//	int const compWidth = bounds.getWidth() - leftPad*2;
+//	bounds.setHeight(compHeight);
+//	bounds.setX(leftPad);
+//	bounds.setWidth(compWidth);
+//	bounds.setY(barPad + topPad);
+//	setBounds(bounds);
 }
 
 void OnsetSettingsComponent::resized() {
