@@ -38,28 +38,47 @@ std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(vecReal const &wave, s
 }
 
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal const &waveEvent) {
-	auto p_tmp = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, _analysisSettings, _pitchSettings);
+	auto const p_tmp = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, _analysisSettings, _pitchSettings);
+	auto const p_mean = mean(p_tmp.pitches);
 	
 	EventwisePitchDescription descr {
+		.mean = p_mean,
 		.median = essentia::median(p_tmp.pitches),
-		.range{},
-		.slope{}
+		.variance = essentia::variance(p_tmp.pitches, p_mean),
+		.skewness = essentia::skewness(p_tmp.pitches, p_mean),
+		.kurtosis = essentia::kurtosis(p_tmp.pitches, p_mean)
 	};
 	return descr;
 }
 
+#pragma message("doesnt work")
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  const &waveEvent) {
-	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);
+	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);	// bfccs per frame
 	
-	EventwiseBFCCDescription descr {
-		.median {binwiseStatistic(b_tmp, essentia::median<Real>)},
-		.range {},
-		.slope {}
-	};
-	return descr;
+	vecReal const means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
+	vecReal const  medians = essentia::medianFrames(b_tmp);
+	vecReal const  variances = essentia::varianceFrames(b_tmp);
+	vecReal const  skewnesses = essentia::skewnessFrames(b_tmp);
+	vecReal const  kurtoses = essentia::kurtosisFrames(b_tmp);
+	
+	size_t N = b_tmp[0].size();
+	std::vector<EventwiseStatistics<Real>> descriptions;
+	descriptions.reserve(N);
+	
+	for (size_t i = 0; i < N; ++i) {
+		descriptions.push_back({
+			.mean 	   = means[i],
+			.median    = medians[i],
+			.variance  = variances[i],
+			.skewness  = skewnesses[i],
+			.kurtosis  = kurtoses[i]
+		});
+	}
+
+	return descriptions;
 }
 
-std::optional<vecVecReal> Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds){
+std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds){
 	if ((!wave.size()) || (!onsetsInSeconds.size())){
 		return std::nullopt;
 	}
@@ -67,21 +86,15 @@ std::optional<vecVecReal> Analyzer::calculateOnsetwiseTimbreSpace(vecReal const 
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, _analysisSettings, _splitSettings);
 #pragma message("probably need some normalization, possibly based on variance")
 	
-	vecVecReal timbre_points;
+	std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
 	
 	for (vecReal const &e : events){
-		std::vector<float> event_measurements;
+		FeatureContainer<EventwiseStatistics<Real>> f;
 		
-		EventwiseBFCCDescription bfcc_descr = calculateEventwiseBFCCDescription(e);
-		event_measurements.insert(event_measurements.end(),
-								  bfcc_descr.median.begin(), bfcc_descr.median.end());
-
+		f.bfccs = calculateEventwiseBFCCDescription(e);
+		f.f0 = calculateEventwisePitchDescription(e);
 		
-		EventwisePitchDescription pitch_descr = calculateEventwisePitchDescription(e);
-		auto const pitch_median = pitch_descr.median;
-		event_measurements.push_back(pitch_median);
-		
-		timbre_points.push_back(event_measurements);
+		timbre_points.push_back(f);
 
 		std::cout << "got BFCCs for event\n";
 	}
@@ -89,11 +102,19 @@ std::optional<vecVecReal> Analyzer::calculateOnsetwiseTimbreSpace(vecReal const 
 	return timbre_points;
 }
 
-std::optional<vecVecReal> Analyzer::calculatePCA(vecVecReal const &V){
-	if (V.size() < 2){	// can't perform PCA with 1 sample
+std::optional<vecVecReal> Analyzer::calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::set<Features> featuresToUse, Statistic statToUse) {
+	if (allFeatures.size() < 2){	// can't perform PCA with 1 sample
 		return std::nullopt;
 	}
-	vecVecReal pca = nvs::analysis::PCA(V, ess_hold.standardFactory);
+	// gather desired features into vecVecReal
+	vecVecReal V;
+	V.reserve(allFeatures.size());
+	
+	for (auto const &f : allFeatures){
+		V.push_back(extractFeatures(f, featuresToUse, Statistic::Median));
+	}
+	
+	vecVecReal pca = nvs::analysis::PCA(V, ess_hold.standardFactory, 6);
 	std::cout << "calculated PCAs\n";
 	return pca;
 }

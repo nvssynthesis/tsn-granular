@@ -123,7 +123,6 @@ void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &normal
 	if (verbose){
 		p.writeToLog("Editor: Drawing waveform markers\n");
 	}
-	double const sr = p.getAnalyzer().getAnalysisSettings().sampleRate;
 	for (auto onset : normalizedOnsets) {
 		wc.addMarker(onset);
 	}
@@ -166,11 +165,22 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	}
 }
 void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
-													 std::vector<std::vector<float>> const &timbreSpaceRepresention) {
+								 std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>> const &timbreSpaceRepresention)
+{
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 	drawWaveformMarkers(waveformAndPositionComponent.wc, normalizedOnsets, audioProcessor);
-	drawTimbreSpacePoints(timbreSpaceComponent, timbreSpaceRepresention, GranularEditorCommon::audioProcessor);
+	
+	std::vector<std::vector<float>> eventwiseTimbrePoints;
+	eventwiseTimbrePoints.reserve(timbreSpaceRepresention.size());
+	
+	
+	auto featureSet = nvs::analysis::bfccSet;	// may modify this, but it's a good starting point
+	for (auto const &t : timbreSpaceRepresention) {
+		std::vector<float> v = nvs::analysis::extractFeatures(t, featureSet, nvs::analysis::Statistic::Median);
+		eventwiseTimbrePoints.push_back(v);
+	}
+	drawTimbreSpacePoints(timbreSpaceComponent, eventwiseTimbrePoints, GranularEditorCommon::audioProcessor);
 	repaint();
 }
 

@@ -34,7 +34,7 @@ vecVecReal
 calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory,
 		 analysisSettings an_settings, bfccSettings bfcc_settings);
 
-vecVecReal PCA(vecVecReal const &V, standardFactory const &factory);
+vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_features_out);
 
 std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim);
 Real calculateNormalizationMultiplier(std::pair<Real, Real> range);

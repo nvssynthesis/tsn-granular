@@ -219,19 +219,25 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		assert(frame.size() < preSz);
 	}
 #endif
+	// normalize by 0th BFCC
+#if 0
+	for (std::vector<float> &frame : BFCCs[0]){
+		for (int i=1; i < frame.size(); ++i){
+			frame[i] /= frame[0];
+		}
+	}
+#endif
 	return BFCCs[0];	// the only dimension that was used
 }
 
-vecVecReal PCA(vecVecReal const &V, standardFactory const &factory){
+vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_features_out){
 	namespace ess_std = essentia::standard;
 	
-	constexpr int nDim = 6;
-	const std::string namespaceIn {"BFCC"};
-	const std::string namespaceOut {"BFCC pca"};
-
+	const std::string namespaceIn {"data"};
+	const std::string namespaceOut {"pca"};
 
 	ess_std::Algorithm* PCA = factory.create("PCA",
-											 "dimensions", nDim,
+											 "dimensions", num_features_out,
 											 "namespaceIn", namespaceIn,
 											 "namespaceOut", namespaceOut);
 	

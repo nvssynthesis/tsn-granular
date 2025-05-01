@@ -26,7 +26,7 @@ public:
 	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
 	void run() override;
 	//===============================================================================
-	vecVecReal getTimbreSpaceRepresentation() const;
+	std::vector<FeatureContainer<EventwiseStatistics<Real>>> getTimbreSpaceRepresentation() const;
 
 	inline vecReal getOnsets() const {
 		return _outputOnsets;
@@ -71,7 +71,7 @@ private:
 	vecReal _inputWave;
 	
 	vecReal _outputOnsets;
-	vecVecReal _outputOnsetwiseTimbreMeasurements;
+	std::vector<FeatureContainer<EventwiseStatistics<Real>>> _outputOnsetwiseTimbreMeasurements;
 	vecVecReal _outputPCA;
 	
 	size_t _filenameHash;

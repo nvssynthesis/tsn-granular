@@ -62,7 +62,10 @@ void ThreadedAnalyzer::run() {
 	}
 	// perform PCA analysis
 	fmt::print("ThreadedAnalyzer: performing pca analysis\n");
-	auto PCAopt = _analyzer.calculatePCA(*timbreMeasurementsOpt);
+	vecVecReal eventwiseBFCCs;
+	eventwiseBFCCs.reserve(timbreMeasurementsOpt->size());
+
+	auto PCAopt = _analyzer.calculatePCA(*timbreMeasurementsOpt, bfccSet, Statistic::Median);
 	jassert(PCAopt.has_value());
 	
 	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer._analysisSettings.sampleRate);
@@ -79,19 +82,19 @@ void ThreadedAnalyzer::run() {
 	sendChangeMessage();
 }
 	
-vecVecReal ThreadedAnalyzer::getTimbreSpaceRepresentation() const {
+std::vector<FeatureContainer<EventwiseStatistics<Real>>> ThreadedAnalyzer::getTimbreSpaceRepresentation() const {
 	switch (_analyzer._analysisSettings.dimensionalityReduction) {
 			
 		case analysisSettings::PCA:
-			return _outputPCA;
-			break;
+			jassertfalse;	// need to engineer good way to do this
+			return {};
 			
 		case analysisSettings::noReduction:
 			return _outputOnsetwiseTimbreMeasurements;
-			break;
 		
 		default:
-			assert (false);
+			jassertfalse;
+			return {};
 	}
 }
 
