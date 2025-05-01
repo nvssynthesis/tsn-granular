@@ -78,7 +78,8 @@ EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  co
 	return descriptions;
 }
 
-std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds){
+std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>>
+Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds){
 	if ((!wave.size()) || (!onsetsInSeconds.size())){
 		return std::nullopt;
 	}

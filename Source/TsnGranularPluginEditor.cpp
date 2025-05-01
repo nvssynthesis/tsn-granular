@@ -165,7 +165,7 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	}
 }
 void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
-								 std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>> const &timbreSpaceRepresention)
+	std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>> const &timbreSpaceRepresention)
 {
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
