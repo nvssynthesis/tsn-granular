@@ -102,7 +102,7 @@ void TsnGranularAudioProcessorEditor::closeAllWindows()
 //==============================================================================
 void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	int const intensity = 70;
-	auto* settingsWindow = new SettingsWindow (audioProcessor, *this, juce::Colour(intensity, intensity, intensity));
+	auto* settingsWindow = new SettingsWindow (audioProcessor, juce::Colour(intensity, intensity, intensity));
 	windows.add (settingsWindow);
 
 	juce::Rectangle<int> area (0, 0, 500, 400);

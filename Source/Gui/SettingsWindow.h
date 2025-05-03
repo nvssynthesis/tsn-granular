@@ -12,17 +12,20 @@
 #include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
 #include "Gui/TimbreSpaceSettingsComponent.h"
+#include "../Analysis/Settings.h"
 
-class SettingsWindow	:	public juce::DocumentWindow
+class SettingsWindow  : public juce::DocumentWindow
 {
 public:
-	SettingsWindow(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed, juce::Colour backgroundColour);
-	void closeButtonPressed();
-	
+	SettingsWindow (TsnGranularAudioProcessor& processor, juce::Colour backgroundColour);
+
+	void closeButtonPressed() override;
+
 private:
+	TsnGranularAudioProcessor& proc;
+	std::unique_ptr<juce::TabbedComponent> tabs;
 	juce::ComponentBoundsConstrainer constrainer;
-//	OnsetSettingsComponent onsetSettingsComponent;
-//	TimbreSpaceSettingsComponent timbreSpaceSettingsComponent;
-	
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SettingsWindow);
+
+	// Create a component containing all controls for one branch
+	juce::Component* createPageForBranch (juce::ValueTree& settingsVT, const juce::String& branchName, const std::map<juce::String,nvs::analysis::AnySpec>& specMap);
 };

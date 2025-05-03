@@ -20,7 +20,6 @@ class OnsetSettingsComponent	:	public juce::Component,
 public:
 	OnsetSettingsComponent(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed);
 	void paint(juce::Graphics &g) override;
-	void placeMe(int const topPad, int const leftPad);
 	void resized() override;
 private:
 	TsnGranularAudioProcessor& proc;

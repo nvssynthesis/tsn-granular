@@ -1,7 +1,7 @@
 #include "TsnGranularPluginProcessor.h"
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
-
+#include "Analysis/Settings.h"
 #include "JucePluginDefines.h"
 
 //==============================================================================
@@ -17,7 +17,7 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 ,	_analyzer(this)			// effectively adding this as listener to the analyzer
 ,	gui_lfo(apvts, 20.0)	// processor owns it, but editor facilitates communication from lfo > timbre space
 {
-	if (dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
+	if (dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
 		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
 	}
 	else {
@@ -28,6 +28,9 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 #else
 	writeToLog("TsnGranularAudioProcessor RELEASE MODE\n");
 #endif
+	
+	juce::ValueTree settingsVT = nonAutomatableState.getOrCreateChildWithName("Settings", nullptr);
+	nvs::analysis::initializeSettingsBranches(settingsVT);
 }
 
 TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
@@ -40,42 +43,16 @@ juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
 	return ed;
 }
 
-
 void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	loggingGuts.fileLogger.logMessage("TSN processor: setStateInformation");
-	// Restore parameters from memory block
-	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
-
-	if (xmlState.get() != nullptr){
-		if (xmlState->hasTagName (apvts.state.getType())){
-			apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
-
-			juce::Value sampleFilePath = apvts.state.getPropertyAsValue(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, nullptr, true);
-			juce::File const sampleFile = juce::File(sampleFilePath.toString());
-			loadAudioFile(sampleFile, true);
-		}
-	}
+	Slicer_granularAudioProcessor::setStateInformation(data, sizeInBytes);
 }
 //==============================================================================
 
 void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	writeToLog("TSN: loadAudioFile\n");
-	const juce::SpinLock::ScopedLockType lock(audioBlockLock);
-	loggingGuts.fileLogger.logMessage("                                          ...locked");
-
-	readInAudioFileToBuffer(f);
-	granular_synth_juce->setAudioBlock(sampleManagementGuts.sampleBuffer, sampleManagementGuts.lastFileSampleRate, f.getFullPathName().hash());	// maybe this could just go inside readInAudioFileToBuffer()
-	{
-		juce::Value sampleFilePathValue = apvts.state.getPropertyAsValue(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, nullptr, true);
-		sampleFilePathValue.setValue(f.getFullPathName());
-		sampleManagementGuts.sampleFilePath = sampleFilePathValue.toString();
-		apvts.state.setProperty(sampleManagementGuts.audioFilePathValueTreeStateIdentifier, sampleFilePathValue, nullptr);
-	}
-	if (notifyEditor){
-		loggingGuts.fileLogger.logMessage("Processor: sending change message from loadAudioFile");
-		juce::MessageManager::callAsync([this]() { sampleManagementGuts.sendChangeMessage(); });
-	}
+	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
+	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
 	{	// limit tmp scope
 		double const sr = sampleManagementGuts.lastFileSampleRate;
 		auto anSettingsTmp = _analyzer.getAnalysisSettings();
@@ -88,14 +65,14 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 
 void TsnGranularAudioProcessor::setWaveEvent(size_t index)
 {
-	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(granular_synth_juce.get())){
+	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
 		tsn_synth_juce->setWaveEvent(index);
 	}
 }
 
 void TsnGranularAudioProcessor::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights)
 {
-	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(granular_synth_juce.get())){
+	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
 		tsn_synth_juce->setWaveEvents(indices, weights);
 	}
 }
@@ -111,7 +88,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 		return;
 	}
 	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
-						 sampleManagementGuts.sampleFilePath.hash());
+						 getSampleFilePath().hash());
 	if (_analyzer.startThread(juce::Thread::Priority::high)){
 		writeToLog("analyzer onset thread started");
 	}
@@ -124,7 +101,7 @@ void TsnGranularAudioProcessor::writeEvents(){
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	// any reason to use getPropertyAsValue instead?
-	juce::String audioFilePath = apvts.state.getProperty(sampleManagementGuts.audioFilePathValueTreeStateIdentifier);
+	juce::String audioFilePath = nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleFilePath");
 	
 	std::vector<float> onsetsTmp = _analyzer.getOnsets();
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), _analyzer.getAnalyzer()._analysisSettings.sampleRate));
@@ -139,7 +116,7 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		// then load onsets into synth
 		auto onsets = _analyzer.getOnsets();
 		if (onsets.size()){
-			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(granular_synth_juce.get())){
+			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
 				tsn_granular_synth->loadOnsets(onsets);
 			}
 			else {
@@ -154,7 +131,7 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 }
 
 void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-	auto const buffer_fn_hash = granular_synth_juce->getFilenameHash();
+	auto const buffer_fn_hash = _granularSynth->getFilenameHash();
 	auto const analysis_fn_hash = _analyzer.getFilenameHash();
 	if (analysis_fn_hash != buffer_fn_hash) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
@@ -162,7 +139,7 @@ void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
 			buffer.clear (i, 0, buffer.getNumSamples());
 		}
 		
-		writeToLog("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early");
+		logRateLimited("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early", 1200);
 		return;
 	}
 	Slicer_granularAudioProcessor::processBlock (buffer, midiMessages);

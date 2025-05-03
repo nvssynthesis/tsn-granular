@@ -34,21 +34,8 @@ void OnsetSettingsComponent::paint(juce::Graphics &g) {
 	g.setColour(juce::Colour(intensity, intensity, intensity));
 	g.fillAll();
 }
-void OnsetSettingsComponent::placeMe(int const topPad, int const leftPad){
-//	juce::Rectangle<int> bounds = _owner.getBounds();
-//
-//	int const barPad = _owner.getTitleBarHeight();
-//	int const compHeight = bounds.getHeight() - barPad - topPad*2;
-//	int const compWidth = bounds.getWidth() - leftPad*2;
-//	bounds.setHeight(compHeight);
-//	bounds.setX(leftPad);
-//	bounds.setWidth(compWidth);
-//	bounds.setY(barPad + topPad);
-//	setBounds(bounds);
-}
 
 void OnsetSettingsComponent::resized() {
-	placeMe(10, 10);			// top now +10 +10
 	int const pad = 10;
 	int const sliderWidth = getWidth() / 10;
 	int const sliderHeight = getHeight() - 2*pad;
