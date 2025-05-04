@@ -68,7 +68,8 @@ void ThreadedAnalyzer::run() {
 	auto PCAopt = _analyzer.calculatePCA(*timbreMeasurementsOpt, bfccSet, Statistic::Median);
 	jassert(PCAopt.has_value());
 	
-	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer._analysisSettings.sampleRate);
+	float analysisSampleRate = _analyzer.getAnalyzedFileSampleRate();
+	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), analysisSampleRate);
 	// filter onsets here
 	filterOnsets(onsetOpt.value(), lengthInSeconds);
 	// normalize onsets here
@@ -83,19 +84,7 @@ void ThreadedAnalyzer::run() {
 }
 	
 std::vector<FeatureContainer<EventwiseStatistics<Real>>> ThreadedAnalyzer::getTimbreSpaceRepresentation() const {
-	switch (_analyzer._analysisSettings.dimensionalityReduction) {
-			
-		case analysisSettings::PCA:
-			jassertfalse;	// need to engineer good way to do this
-			return {};
-			
-		case analysisSettings::noReduction:
-			return _outputOnsetwiseTimbreMeasurements;
-		
-		default:
-			jassertfalse;
-			return {};
-	}
+	return _outputOnsetwiseTimbreMeasurements;
 }
 
 }	// namespace analysis

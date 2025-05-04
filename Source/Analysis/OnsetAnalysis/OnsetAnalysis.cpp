@@ -28,12 +28,16 @@ vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real co
 }
 
 array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
-						  streamingFactory const &factory, analysisSettings const settings,
-						  std::function<bool(void)> runLoopCallback){
-	auto const input_sr = settings.sampleRate;
-	auto const internal_sr = 44100.f;
-	auto const framesize = settings.frameSize;
-	auto const hopsize = settings.hopSize;
+						  streamingFactory const &factory, juce::ValueTree settingsTree,
+						  std::function<bool(void)> runLoopCallback)
+{
+	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
+	auto const input_sr     = (float) presetInfoTree.getProperty ("sampleRate");
+	auto analysisTree   = settingsTree.getChildWithName ("Analysis");
+	auto const internal_sr  = 44100.0f;
+	auto const framesize    = (int)   analysisTree.getProperty ("frameSize");
+	auto const hopsize      = (int)   analysisTree.getProperty ("hopSize");
+
 
 	vectorInput *inVec = new vectorInput(&waveform);
 	
@@ -156,70 +160,108 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	return onsetsMatrix;
 }
 
+std::vector<juce::String> getOnsetWeightKeys()
+{
+	std::vector<juce::String> keys;
+	keys.reserve (onsetSpecs.size());
+
+	for (auto& kv : onsetSpecs)
+	{
+		const auto& key = kv.first;
+		if (key.startsWith ("weight_"))
+			keys.push_back (key);
+	}
+
+	// Optional: sort them if you want a consistent order
+	std::sort (keys.begin(), keys.end());
+	return keys;
+}
+
 #pragma message("make this work with StreamingFactory")
-vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory,
-						analysisSettings const anSettings, onsetSettings const onSettings)
+vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory, juce::ValueTree settingsTree)
 {
 	/* assuming that the onsetAnalysisMatrix was derived from the above onsetAnalysis,
 	 (which is beyond likely in this codebase because it's not so trivial to construct that array2dReal),
 	 the sample rate of the signal will have already been converted to 44100 before the analysis.
 	 */
-	float frameRate = 44100.f / static_cast<float>(anSettings.hopSize);
+	auto analysisTree = settingsTree.getChildWithName ("Analysis");
+	auto onsetTree    = settingsTree.getChildWithName ("Onset");
 
-	essentia::standard::Algorithm* onsetDetectionSeconds = factory.create("Onsets",
-									  "frameRate", frameRate,
-									  "silenceThreshold", onSettings.silenceThreshold,
-									  "alpha", onSettings.alpha, // proportion of the mean included to reject smaller peaks-filters very short onsets
-									  "delay", onSettings.numFrames_shortOnsetFilter); // number of frames used to compute the threshold-size of short-onset filter
+	float frameRate = 44100.f / (float) analysisTree.getProperty ("hopSize");
 
-	vecReal weights(6);
-	for (int i = 0; i < weights.size(); ++i){
-		if (onSettings.weights[i] != nullptr)
-			weights[i] = *onSettings.weights[i];
+	essentia::standard::Algorithm* onsetDetectionSeconds = factory.create (
+		"Onsets",
+		  "frameRate",       frameRate,
+		  "silenceThreshold",(float) onsetTree.getProperty ("silenceThreshold"),
+		  "alpha",           (float) onsetTree.getProperty ("alpha"), // proportion of the mean included to reject smaller peaks-filters very short onsets
+		  "delay",           (int)   onsetTree.getProperty ("numFrames_shortOnsetFilter") // number of frames used to compute the threshold-size of short-onset filter
+	);
+
+	vecReal weights;
+	auto weightKeys = getOnsetWeightKeys();
+	weights.reserve (weightKeys.size());
+	for (auto& key : weightKeys) {
+		weights.push_back ((float) onsetTree.getProperty (key));
 	}
+	
 	vecReal onsets;
 	onsetDetectionSeconds->input("detections").set(onsetAnalysisMatrix);
 	onsetDetectionSeconds->input("weights").set(weights);
 	onsetDetectionSeconds->output("onsets").set(onsets);
 	
 	onsetDetectionSeconds->compute();
+	
+	for (int i = 1; i < onsets.size(); ++i) {
+		assert(onsets[i - 1] < onsets[i]);
+	}
+	
 	return onsets;
 }
 
 vecVecReal featuresForSbic(vecReal const &waveform,
 						   AlgorithmFactory const &factory,
-						   analysisSettings const anSettings, bfccSettings const &bfSettings,
-						   std::function<bool(void)> runLoopCallback = [](){return true;}){
+						   juce::ValueTree settingsTree,
+						   std::function<bool(void)> runLoopCallback)
+{
 	vectorInput *inVec = new vectorInput(&waveform);
-	Algorithm* frameCutter	=	factory.create("FrameCutter",
-											   "frameSize", anSettings.frameSize,
-											   "hopSize", anSettings.hopSize,
-											   "lastFrameToEndOfFile", true,
-											   "silentFrames", "keep",
-											   "startFromZero", true,
-											   "validFrameThresholdRatio", 0.f);
-	Algorithm* windowing	=	factory.create("Windowing",
-											   "normalized", false,
-											   "size", anSettings.frameSize,
-											   "zeroPadding", anSettings.frameSize,
-											   "type", "hann",
-											   "zeroPhase", false);
-	Algorithm* spectrum		=	factory.create("PowerSpectrum",
-											   "size", anSettings.frameSize * 2);
-	Algorithm* bfcc			= 	factory.create("BFCC",
-											   "sampleRate", anSettings.sampleRate,
-											   "dctType", bfSettings.dctType,
-											   "highFrequencyBound", bfSettings.highFrequencyBound,
-											   "lowFrequencyBound", bfSettings.lowFrequencyBound,
-											   "inputSize", anSettings.frameSize + 1,
-											   "liftering", bfSettings.liftering,
-											   "normalize", bfSettings.getNormalizeTypeAsString(),
-											   "numberBands", bfSettings.numBands,
-											   "numberCoefficients", bfSettings.numCoefficients,
-											   "weighting", bfSettings.getWeightingTypeAsString(),
-											   "type", "power",
-											   "logType", "dbpow"	// use dbpow if working with power
-											   );
+	
+	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
+	auto analysisTree = settingsTree.getChildWithName ("Analysis");
+	auto bfccTree     = settingsTree.getChildWithName ("BFCC");
+	
+	Algorithm* frameCutter = factory.create ("FrameCutter",
+		"frameSize",               (int)    analysisTree.getProperty ("frameSize"),
+		"hopSize",                 (int)    analysisTree.getProperty ("hopSize"),
+		"lastFrameToEndOfFile",    true,
+		"silentFrames",            std::string ("keep"),
+		"startFromZero",           true,
+		"validFrameThresholdRatio",(float) analysisTree.getProperty ("validFrameThresholdRatio", 0.0)
+	);
+	
+	Algorithm* windowing = factory.create ("Windowing",
+		"normalized", false,
+		"size",        (int)    analysisTree.getProperty ("frameSize"),
+		"zeroPadding", (int)    analysisTree.getProperty ("frameSize"),
+		"type",        bfccTree.getProperty ("windowingType", "hann").toString().toStdString(),
+		"zeroPhase",   false
+	);
+	Algorithm* spectrum = factory.create ("PowerSpectrum",
+		"size", (int) analysisTree.getProperty ("frameSize") * 2
+	);
+	Algorithm* bfcc = factory.create ("BFCC",
+		"sampleRate",           (float) presetInfoTree.getProperty ("sampleRate",    44100.0),
+		"dctType",              (int)    bfccTree.getProperty ("dctType",       2),
+		"highFrequencyBound",   (float) bfccTree.getProperty ("highFrequencyBound", 11000.0),
+		"lowFrequencyBound",    (float) bfccTree.getProperty ("lowFrequencyBound",   20.0),
+		"inputSize",            (int)    analysisTree.getProperty ("frameSize") + 1,
+		"liftering",            (int)    bfccTree.getProperty ("liftering",    0),
+		"normalize",            bfccTree.getProperty("normalize", "unit_sum").toString().toStdString(),
+		"numberBands",          (int)    bfccTree.getProperty ("numBands",      40),
+		"numberCoefficients",   (int)    bfccTree.getProperty ("numCoefficients", 13),
+		"weighting",            bfccTree.getProperty("weightingType","linear").toString().toStdString(),
+		"type",                 "power",
+		"logType",              "dbpow"
+	);
 	Algorithm* barkFrameAccumulator = factory.create("VectorRealAccumulator");
 	Algorithm* bfccFrameAccumulator = factory.create("VectorRealAccumulator");
 	
@@ -254,15 +296,18 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 	return BFCCs[0];	// the only dimension that was used
 }
 
-vecReal sBic(array2dReal featureMatrix, standardFactory const &factory,
-			 analysisSettings const anSettings, sBicSettings const &settings){
-	standard::Algorithm* sbic = factory.create("SBic",
-											   "cpw", settings.complexityPenaltyWeight,
-											   "inc1", settings.incrementFirstPass,
-											   "inc2", settings.incrementSecondPass,
-											   "minLength", settings.minSegmentLengthFrames,
-											   "size1", settings.sizeFirstPass,
-											   "size2", settings.sizeSecondPass);
+vecReal sBic(array2dReal featureMatrix, standardFactory const &factory, juce::ValueTree settingsTree){
+	auto sBicTree = settingsTree.getChildWithName ("sBic");
+
+	standard::Algorithm* sbic = factory.create (
+		"SBic",
+		  "cpw",       (float) sBicTree.getProperty ("complexityPenaltyWeight"),
+		  "inc1",      (int)    sBicTree.getProperty ("incrementFirstPass"),
+		  "inc2",      (int)    sBicTree.getProperty ("incrementSecondPass"),
+		  "minLength", (int)    sBicTree.getProperty ("minSegmentLengthFrames"),
+		  "size1",     (int)    sBicTree.getProperty ("sizeFirstPass"),
+		  "size2",     (int)    sBicTree.getProperty ("sizeSecondPass")
+	);
 	// "cpw" 1.5, "inc1" 60, "inc2" 20, "minLength" 10, "size1" 300, size2" 200
 	vecReal segmentationVec;
 	sbic->input("features").set(featureMatrix);
@@ -273,7 +318,7 @@ vecReal sBic(array2dReal featureMatrix, standardFactory const &factory,
 
 vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds,
 							   streamingFactory const &factory,
-							   analysisSettings const anSettings, splitSettings const spSettings,
+							   juce::ValueTree settingsTree,
 							   std::function<bool(void)> runLoopCallback){
 	size_t const numOnsets {onsetsInSeconds.size()};
 	assert(numOnsets);
@@ -285,13 +330,16 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	std::copy(onsetsInSeconds.begin() + 1, onsetsInSeconds.end(), endTimes.begin());
 	assert(onsetsInSeconds[1] == endTimes[0]);
 	
-	Real endOfFile = static_cast<Real>((wave.size() - 1)) / anSettings.sampleRate;
+	float sampleRate = settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
+	assert (sampleRate > 22000.f);
+	
+	Real endOfFile = static_cast<Real>((wave.size() - 1)) / sampleRate;
 	endTimes.back() = endOfFile;
 	assert(*(onsetsInSeconds.end() - 1) == *(endTimes.end() - 2));
 
 	Algorithm* slicer = factory.create("Slicer",
 									   "timeUnits", "seconds",
-									   "sampleRate", anSettings.sampleRate,
+									   "sampleRate", sampleRate,
 									   "startTimes", onsetsInSeconds,
 									   "endTimes", endTimes);
 	
@@ -313,13 +361,15 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	
 	assert(waveEvents.size());
 	
+	auto splitSettings = settingsTree.getChildWithName("Split");
+	
 	for (int i = 0; i < waveEvents.size(); ++i){
 		size_t currentLength = waveEvents[i].size();
-		size_t fadeInSamps = std::min(spSettings.fadeInSamps, currentLength);
+		size_t fadeInSamps = std::min(size_t((int)splitSettings.getProperty("fadeInSamps")), currentLength);
 		for (int j = 0; j < fadeInSamps; ++j){
 			waveEvents[i][j] = waveEvents[i][j] * ((Real)j / (Real)fadeInSamps);
 		}
-		size_t fadeOutSamps = std::min(spSettings.fadeOutSamps, currentLength);
+		size_t fadeOutSamps = std::min(size_t((int)splitSettings.getProperty("fadeOutSamps")), currentLength);
 		for (int j = 0; j < fadeOutSamps; ++j){
 			size_t currentIdx = (currentLength - 1) - j;
 			waveEvents[i][currentIdx] = waveEvents[i][currentIdx] * ((Real)j / (Real)fadeOutSamps);
@@ -330,13 +380,15 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 }
 
 void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory,
-			  analysisSettings const settings,
+			  juce::ValueTree settingsTree,
 			  std::function<bool(void)> runLoopCallback)
 {
+	float sr = (float)settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
+	jassert (sr > 20000.f);
 	Algorithm* writer = factory.create("MonoWriter",
 									   "filename", std::string(name) + ".wav",
 									   "format", "wav",
-									   "sampleRate", settings.sampleRate);
+									   "sampleRate", sr);
 	vectorInput *waveInput = new vectorInput(&wave);
 	*waveInput >> writer->input("audio");
 	
@@ -350,7 +402,7 @@ void writeWav(vecReal const &wave, std::string_view name, streamingFactory const
 	n.clear();
 }
 void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory,
-			   analysisSettings const settings, std::function<bool(void)> runLoopCallback)
+			   juce::ValueTree settingsTree, std::function<bool(void)> runLoopCallback)
 {
 	int idx = 0;
 	std::string name(defName);
@@ -359,7 +411,7 @@ void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFacto
 		strIdx = std::to_string(idx);
 		name += strIdx;					// add index to name
 		
-		writeWav(wave, name, factory, settings, runLoopCallback);
+		writeWav(wave, name, factory, settingsTree, runLoopCallback);
 		
 		name.erase(name.back() - strIdx.length(), name.back());	// remove index from name
 	}

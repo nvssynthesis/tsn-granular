@@ -177,6 +177,7 @@ extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
 		case Statistic::Variance: ptr = &EventwiseStatistics<Real>::variance;	break;
 		case Statistic::Skewness: ptr = &EventwiseStatistics<Real>::skewness;	break;
 		case Statistic::Kurtosis: ptr = &EventwiseStatistics<Real>::kurtosis;	break;
+		default: jassertfalse;
 	}
 	
 	std::vector<Real> out;
@@ -189,7 +190,7 @@ extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
 
 class Analyzer {
 private:
-	nvs::ess::EssentiaInitializer ess_init;
+	nvs::ess::EssentiaInitializer ess_init;	  // this MUST be initialized before EssentiaHolder.
 public:
 	Analyzer();
 	
@@ -198,14 +199,13 @@ public:
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
 	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets);
 	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::set<Features> featuresToUse, Statistic statToUse);
-
+	void updateSettings(juce::ValueTree newSettings);
+	void setAnalyzedFileSampleRate(float sampleRate);
+	float getAnalyzedFileSampleRate() const;
+	juce::ValueTree &getSettings();
 	nvs::ess::EssentiaHolder ess_hold;
-	
-	analysisSettings _analysisSettings;
-	pitchSettings _pitchSettings {};
-	onsetSettings _onsetSettings;
-	splitSettings _splitSettings;
-	bfccSettings _bfccSettings;
+private:
+	juce::ValueTree settingsTree;
 };
 
 inline double getLengthInSeconds(auto lengthInSamples, auto sampleRate){

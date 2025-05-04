@@ -7,7 +7,7 @@
 //
 
 #include "OnsetSettingsComponent.h"
-
+/*
 OnsetSettingsComponent::OnsetSettingsComponent(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
 :	proc(p),
 	editor(ed),
@@ -65,3 +65,4 @@ void OnsetSettingsComponent::buttonClicked(juce::Button *button) {
 		proc.askForAnalysis();
 	}
 }
+*/

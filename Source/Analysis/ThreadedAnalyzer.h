@@ -32,29 +32,9 @@ public:
 		return _outputOnsets;
 	}
 	//===============================================================================
-	inline void setAnalysisSettings(analysisSettings settings){
-		_analyzer._analysisSettings = settings;
-	}
-	inline void setOnsetSettings(onsetSettings settings){
-		_analyzer._onsetSettings = settings;
-	}
-	inline void setSplitSettings(splitSettings settings){
-		_analyzer._splitSettings = settings;
-	}
-	inline void setBFCCSettings(bfccSettings settings){
-		_analyzer._bfccSettings = settings;
-	}
-	analysisSettings getAnalysisSettings() const {
-		return _analyzer._analysisSettings;
-	}
-	onsetSettings getOnsetSettings() const {
-		return _analyzer._onsetSettings;
-	}
-	splitSettings getSplitSettings() const {
-		return _analyzer._splitSettings;
-	}
-	bfccSettings getBFCCSettings() const {
-		return _analyzer._bfccSettings;
+	inline void updateSettings(juce::ValueTree settingsTree){
+		jassert( settingsTree.hasType("Settings") );
+		_analyzer.updateSettings(settingsTree);
 	}
 	//===============================================================================
 	Analyzer &getAnalyzer() {

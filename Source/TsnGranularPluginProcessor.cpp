@@ -45,7 +45,23 @@ juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
 
 void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	Slicer_granularAudioProcessor::setStateInformation(data, sizeInBytes);
+	Slicer_granularAudioProcessor::setStateInformation(data, sizeInBytes);	// loads preset info & synthesis parameters
+	
+	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+
+	if (xmlState == nullptr || ! xmlState->hasTagName ("PluginState")){
+		return;
+	}
+	
+	juce::ValueTree root = juce::ValueTree::fromXml (*xmlState);
+
+	juce::ValueTree nonAuto = root.getChildWithName ("NonAutomatable");
+	juce::ValueTree settings = nonAuto.getChildWithName("Settings");
+	if (!nvs::analysis::verifySettingsStructure(settings)){
+		writeToLog("In setStateInformation: Settings tree invalid. Not overwriting constructed default settings.\n");
+		return;
+	}
+	nonAutomatableState = nonAuto;
 }
 //==============================================================================
 
@@ -53,13 +69,7 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 	writeToLog("TSN: loadAudioFile\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
-	{	// limit tmp scope
-		double const sr = sampleManagementGuts.lastFileSampleRate;
-		auto anSettingsTmp = _analyzer.getAnalysisSettings();
-		anSettingsTmp.sampleRate = static_cast<float>(sr);
-		_analyzer.setAnalysisSettings(anSettingsTmp);
-		askForAnalysis();
-	}
+	askForAnalysis();
 	writeToLog("TSN: loadAudioFile exiting");
 }
 
@@ -89,6 +99,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 	}
 	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
 						 getSampleFilePath().hash());
+	_analyzer.updateSettings(nonAutomatableState.getChildWithName("Settings"));
 	if (_analyzer.startThread(juce::Thread::Priority::high)){
 		writeToLog("analyzer onset thread started");
 	}
@@ -102,10 +113,13 @@ void TsnGranularAudioProcessor::writeEvents(){
 	
 	// any reason to use getPropertyAsValue instead?
 	juce::String audioFilePath = nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleFilePath");
-	
+	float sr = 	nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleRate");
+
 	std::vector<float> onsetsTmp = _analyzer.getOnsets();
-	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), _analyzer.getAnalyzer()._analysisSettings.sampleRate));
-	nvs::analysis::writeEventsToWav(wave, onsetsTmp, audioFilePath.toStdString(), _analyzer.getAnalyzer());
+	auto analyzer = _analyzer.getAnalyzer();
+
+	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
+	nvs::analysis::writeEventsToWav(wave, onsetsTmp, audioFilePath.toStdString(), analyzer);
 }
 
 void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {

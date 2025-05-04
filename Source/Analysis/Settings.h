@@ -32,8 +32,6 @@ struct BoolWithDefault
 	bool defaultValue;
 };
 
-// 2) Extend the variant
-
 using AnySpec = std::variant<
 	RangeWithDefault<int>,
 	RangeWithDefault<double>,
@@ -62,9 +60,11 @@ struct NumericRanges
 
 static const std::map<juce::String, AnySpec> analysisSpecs
 {
-	{ "sampleRate",    RangeWithDefault<double>{ {8000.0,192000.0,1.0,1.0}, 44100.0 } },
 	{ "frameSize",     RangeWithDefault<int>{   makePowerOfTwoRange(64, 8192), 1024 } },
-	{ "hopSize",       RangeWithDefault<int>{   makePowerOfTwoRange(16, 4096),  512 } }
+	{ "hopSize",       RangeWithDefault<int>{   makePowerOfTwoRange(16, 4096),  512 } },
+	{ "windowingType",  ChoiceWithDefault{ 	{"hann", "hamming", "hannnsgcq",
+		"triangular", "square", "blackmanharris62", "blackmanharris70",
+		"blackmanharris74", 	"blackmanharris92"}, /* default: */		"hann" 		} }
 };
 
 static const std::map<juce::String, AnySpec> bfccSpecs
@@ -85,12 +85,12 @@ static const std::map<juce::String, AnySpec> onsetSpecs
 	{ "silenceThreshold",         RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.2f } },
 	{ "alpha",                    RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
 	{ "numFrames_shortOnsetFilter",RangeWithDefault<int>{   {1,64,1,1},          5 } },
-	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } },
-	{ "weight_complex",           RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } },
-	{ "weight_complexPhase",      RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } },
-	{ "weight_flux",              RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } },
-	{ "weight_melFlux",           RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } },
-	{ "weight_rms",               RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0},  1.0 } }
+	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
+	{ "weight_complex",           RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
+	{ "weight_complexPhase",      RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
+	{ "weight_flux",              RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
+	{ "weight_melFlux",           RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
+	{ "weight_rms",               RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } }
 };
 
 static const std::map<juce::String, AnySpec> sBicSpecs
@@ -129,15 +129,12 @@ static const std::map<juce::String, const std::map<juce::String,AnySpec>*>
 	{ "Split",    &splitSpecs    }
 };
 inline void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
-										const juce::String& branchName)
-{
+										const juce::String& branchName)  {
 	auto branchVT = settingsVT.getOrCreateChildWithName (branchName, nullptr);
 
-	if (auto it = specsByBranch.find (branchName); it != specsByBranch.end())
-	{
+	if (auto it = specsByBranch.find (branchName); it != specsByBranch.end()) {
 		auto const& specMap = *it->second;
-		for (auto const& kv : specMap)
-		{
+		for (auto const& kv : specMap) {
 			auto prop = kv.first;
 			auto const& anySpec = kv.second;
 
@@ -145,16 +142,13 @@ inline void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
 				using SpecT = std::decay_t<decltype(spec)>;
 
 				if constexpr (std::is_same_v<SpecT, RangeWithDefault<int>> ||
-							  std::is_same_v<SpecT, RangeWithDefault<double>>)
-				{
+							  std::is_same_v<SpecT, RangeWithDefault<double>>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
-				else if constexpr (std::is_same_v<SpecT, ChoiceWithDefault>)
-				{
+				else if constexpr (std::is_same_v<SpecT, ChoiceWithDefault>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
-				else if constexpr (std::is_same_v<SpecT, BoolWithDefault>)
-				{
+				else if constexpr (std::is_same_v<SpecT, BoolWithDefault>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
 			}, anySpec);
@@ -164,141 +158,36 @@ inline void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
 
 
 inline void initializeSettingsBranches(juce::ValueTree& settingsVT){
-	for (auto& [branchName, _] : specsByBranch)
-	{
+	for (auto& [branchName, _] : specsByBranch) {
 		ensureBranchAndInitializeDefaults (settingsVT, branchName);
 	}
 }
 
-
-
-using essentia::Real;
-
-// settings structs
-struct analysisSettings {
-	Real sampleRate {44100.f};
-	int frameSize {1024};
-	int hopSize {512};
-
-	enum DimensionalityReduction_e {
-		noReduction = 0,
-		PCA = 1
-	};
-	DimensionalityReduction_e dimensionalityReduction { noReduction };
-	const static inline std::map<DimensionalityReduction_e, std::string>
-	dimensionalityReductionMap {
-		{noReduction, "No Reduction"},
-		{PCA, "PCA"}
-	};
-};
-struct onsetSettings
+inline bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 {
-	Real silenceThreshold {0.2f};
-	Real alpha {0.1f};
-	unsigned int numFrames_shortOnsetFilter {5};
-	
-	Real weight_hfc {1.f};
-	Real weight_complex {1.f};
-	Real weight_complexPhase {1.f};
-	Real weight_flux {1.f};
-	Real weight_melFlux {1.f};
-	Real weight_rms {1.f};
-	
-	std::array<Real*, 6> weights {
-		&weight_hfc,
-		&weight_complex,
-		&weight_complexPhase,
-		&weight_flux,
-		&weight_melFlux,
-		&weight_rms
-	};
-};
-struct bfccSettings
-{
-	Real highFrequencyBound {11000.f};
-	Real lowFrequencyBound {0.f};
-	//	int inputSize {1025};	get automatically from incoming spectrum
-	
-	int liftering {0};
-	int numBands {40};
-	int numCoefficients{13};
-	
-	enum normalize_e {
-		unit_sum = 0,
-		unit_max
-	};
-	normalize_e normType {normalize_e::unit_max};
-	enum spectrumType_e {
-		magnitude = 0,
-		power
-	};
-	spectrumType_e specType {spectrumType_e::power};
-	enum weightingType_e {
-		warping = 0,
-		linear
-	};
-	weightingType_e weightType {weightingType_e::linear};
-	enum dctType_e {
-		typeII = 2,
-		typeIII = 3
-	};
-	int dctType {dctType_e::typeII};
+	if (! settingsVT.isValid()){
+		return false;
+	}
+	for (auto const& [branchName, specMapPtr] : specsByBranch) {
+		auto branchId = juce::Identifier (branchName);
+		auto branchVT = settingsVT.getChildWithName (branchId);
 
-	const static inline std::map<normalize_e, std::string>
-	normMap {
-		{unit_sum, "unit_sum"},
-		{unit_max, "unit_max"}
-	};
-	const static inline std::map<spectrumType_e, std::string>
-	spectrumTypeMap {
-		{magnitude, "magnitude"},
-		{power, "power"}
-	};
-	const static inline	std::map<weightingType_e, std::string>
-	weightingTypeMap {
-		{warping, "warping"},
-		{linear, "linear"}
-	};
-	
-	std::string getNormalizeTypeAsString() const {return normMap.at(normType);}
-	std::string getSpectrumTypeAsString() const {return spectrumTypeMap.at(specType);}
-	std::string getWeightingTypeAsString() const {return weightingTypeMap.at(weightType);}
-};
-struct sBicSettings
-{
-	Real complexityPenaltyWeight {1.5f};
-	int incrementFirstPass {60};	// min: 1
-	int incrementSecondPass {20};
-	int minSegmentLengthFrames {10};
-	int sizeFirstPass {300};
-	int sizeSecondPass {200};
-};
-struct pitchSettings
-{
-	enum pitchDetectionAlgorithm_e {
-		yin = 0,
-		pYin,
-		chroma
-	};
-	pitchDetectionAlgorithm_e algo {pitchDetectionAlgorithm_e::yin};
-	bool interpolate {true};
-	Real maxFrequency {22050.f};
-	Real minFrequency {20.f};
-	Real tolerance {0.15f};
-	
-	const static inline std::map<pitchDetectionAlgorithm_e, std::string>
-	pitchDetectionAlgorithmMap {
-		{yin, "PitchYin"},
-		{pYin, "PitchYinProbabilistic"},
-		{chroma, "Chromagram"}
-	};
-	std::string getPitchDetectionAlgoAsString() const { return pitchDetectionAlgorithmMap.at(algo); }
-};
-struct splitSettings
-{
-	size_t fadeInSamps {0};
-	size_t fadeOutSamps {0};
-};
+		// check branch validity
+		if (! branchVT.isValid()) {
+			return false; // missing entire branch
+		}
+
+		// check every parameter key inside that branch
+		for (auto const& [propertyName, spec] : *specMapPtr) {
+			juce::Identifier propertyId (propertyName);
+			if (! branchVT.getChildWithName (propertyId).isValid()) {
+				return false; // missing this setting
+			}
+		}
+	}
+
+	return true;
+}
 
 }	// namespace analysis
 }	// namespace nvs

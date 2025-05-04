@@ -16,29 +16,54 @@ namespace nvs {
 namespace analysis {
 
 Analyzer::Analyzer()
-:	ess_hold(ess_init)
-{}
+:	ess_init()
+,	ess_hold(ess_init)
+,	settingsTree("Settings")
+{
+	initializeSettingsBranches(settingsTree);
+}
 
+void Analyzer::updateSettings(juce::ValueTree newSettings){
+	// verify tree structure
+	
+	settingsTree = newSettings;
+}
+juce::ValueTree &Analyzer::getSettings() {
+	return settingsTree;
+}
+
+void Analyzer::setAnalyzedFileSampleRate(float sampleRate){
+	auto s = settingsTree.getParent().toXmlString();
+	std::cout << "Set analyzed sr, parent tree is originally: " << s << "\n";
+	settingsTree.getParent().getChildWithName("PresetInfo").setProperty("sampleRate", sampleRate, nullptr);
+}
+float Analyzer::getAnalyzedFileSampleRate() const{
+	auto s = settingsTree.getParent().toXmlString();
+	std::cout << "Get analyzed sr, parent tree is: " << s << "\n";
+	return settingsTree.getParent().getChildWithName("PresetInfo").getProperty("sampleRate");
+}
 
 std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(vecReal const &wave, std::function<bool(void)> runLoopCallback){
 	if (!wave.size()){
 		return std::nullopt;
 	}
 	
-	analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, _analysisSettings, runLoopCallback);
+	analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settingsTree, runLoopCallback);
 	std::cout << "analyzed onsets\n";
 	essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 	
 #pragma message("it is a problem that we have not the ability to inject a runLoopCallback here, since onsetsInSeconds uses StandardFactory instead of StreamingFactory")
 	
-	std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, _analysisSettings, _onsetSettings);	// needs namespace qualifier to not call itself
+	std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, settingsTree);	// needs namespace qualifier to not call itself
 	std::cout << "calculated onsets in seconds\n";
 
+	
+	
 	return onsetsInSeconds;
 }
 
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal const &waveEvent) {
-	auto const p_tmp = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, _analysisSettings, _pitchSettings);
+	auto const p_tmp = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, settingsTree);
 	auto const p_mean = mean(p_tmp.pitches);
 	
 	EventwisePitchDescription descr {
@@ -53,7 +78,8 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal c
 
 #pragma message("doesnt work")
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  const &waveEvent) {
-	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, _analysisSettings, _bfccSettings);	// bfccs per frame
+	std::cout << "calc bfcc descr tree: " << settingsTree.toXmlString() << "\n";
+	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, settingsTree);	// bfccs per frame
 	
 	vecReal const means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
 	vecReal const  medians = essentia::medianFrames(b_tmp);
@@ -84,7 +110,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 		return std::nullopt;
 	}
 	
-	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, _analysisSettings, _splitSettings);
+	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settingsTree);
 #pragma message("probably need some normalization, possibly based on variance")
 	
 	std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
@@ -158,10 +184,11 @@ void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSec
 	juce::String const base_name(ogPath.data());
 	base_name.dropLastCharacters(4);
 	
+	auto settingsTree = analyzer.getSettings();
 //	denormalizeOnsets(normalizedOnsets, getLengthInSeconds(wave.size(), analyzer._analysisSettings.sampleRate));
 //	auto const &onsetsInSeconds = normalizedOnsets;	// merely renaming because now normalizedOnsets are in fact not normalized; they are in seconds.
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds,
-														   analyzer.ess_hold.factory, analyzer._analysisSettings, analyzer._splitSettings);
+														   analyzer.ess_hold.factory, settingsTree);
 	juce::WavAudioFormat format;
 	std::unique_ptr<juce::AudioFormatWriter> writer;
 
@@ -180,7 +207,7 @@ void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSec
 //			buffer.applyGainRamp(0, static_cast<int>(e.size())-10, 10, 1.f, 0.f);	// fade out 10 samps
 		
 		writer.reset (format.createWriterFor (new juce::FileOutputStream (outFile),	// OutputStream* streamToWriteTo,
-											  analyzer._analysisSettings.sampleRate,//	double sampleRateToUse
+											  analyzer.getAnalyzedFileSampleRate(), // double sampleRateToUse
 											  buffer.getNumChannels(),		//	unsigned int numberOfChannels
 											  24,							//	int bitsPerSample
 											  {},							//	const StringPairArray& metadataValues

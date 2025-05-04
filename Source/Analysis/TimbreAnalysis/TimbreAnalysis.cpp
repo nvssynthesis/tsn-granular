@@ -14,13 +14,20 @@ namespace nvs {
 namespace analysis {
 
 namespace {
-std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, analysisSettings an_settings){
+std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, juce::ValueTree settingsTree){
 #ifdef INCLUDE_AUBIO
 	size_t const N = waveSpan.size();
 	
 	int const num_wins = (N <= win_sz) ? 1 : ceil(N - win_sz) / hop_sz + 1;
 	
-	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast", /*buf_size*/ an_settings.win_sz, /*hop_size*/ an_settings.hop_sz, /*sample_rate*/ an_settings.sampleRate);
+	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
+	auto analysisTree = settingsTree.getChildWithName("Analysis");
+	
+	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast",
+		/*buf_size*/ analysisTree.getProperty("frameSize").toInt(),
+		/*hop_size*/ analysisTree.getProperty("hopSize").toInt(),
+		/*sample_rate*/ presetInfoTree.getProperty("sampleRate").toFloat());
+
 	if (!pDetector){
 		return {};
 	}
@@ -68,36 +75,57 @@ std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, analys
 #endif
 }
 
-PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, analysisSettings an_settings, pitchSettings pitch_settings){
+PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree){
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	vectorInput *inVec = new vectorInput(&wave);
 	
-	Algorithm* frameCutter	=	factory.create("FrameCutter",
-											   "frameSize", an_settings.frameSize,
-											   "hopSize", an_settings.hopSize,
-											   "lastFrameToEndOfFile", true,
-											   "silentFrames", "keep",
-											   "startFromZero", true,
-											   "validFrameThresholdRatio", 0.f);
+	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
+	auto analysisTree = settingsTree.getChildWithName ("Analysis");
+	auto pitchTree    = settingsTree.getChildWithName ("Pitch");
+	auto bfccTree = settingsTree.getChildWithName ("BFCC");
+
 	
-	Algorithm* windowing	=	factory.create("Windowing",
-											   "normalized", false,
-											   "size", an_settings.frameSize,
-											   "zeroPadding", an_settings.frameSize,
-											   "type", "hann",
-											   "zeroPhase", false);
+	Algorithm* frameCutter = factory.create ("FrameCutter",
+		"frameSize",            (int)  analysisTree.getProperty("frameSize"),
+		"hopSize",              (int)  analysisTree.getProperty("hopSize"),
+		"lastFrameToEndOfFile", true,
+		"silentFrames",         "keep",
+		"startFromZero",        true,
+		"validFrameThresholdRatio", (double) analysisTree.getProperty("validFrameThresholdRatio")
+	);
 	
-	Algorithm* pitchDet	=	factory.create(pitch_settings.getPitchDetectionAlgoAsString(),
-										   "frameSize", an_settings.frameSize,
-										   "interpolate", pitch_settings.interpolate,
-										   "maxFrequency", pitch_settings.maxFrequency,
-										   "minFrequency", pitch_settings.minFrequency,
-										   "sampleRate", an_settings.sampleRate,
-										   "tolerance", pitch_settings.tolerance
-										   );
+
+	Algorithm* windowing = factory.create ("Windowing",
+		"normalized", false,
+		"size",        (int)    analysisTree.getProperty("frameSize"),
+		"zeroPadding", (int)    analysisTree.getProperty("frameSize"),
+		"type",        analysisTree.getProperty("windowingType").toString().toStdString(),
+		"zeroPhase",   false
+	);
+	
+	float sr = (float) presetInfoTree.getProperty("sampleRate");
+	jassert (sr > 20000.f);
+	auto maxFrequency = (float) pitchTree.getProperty ("maxFrequency");
+	auto minFrequency = (float) pitchTree.getProperty ("minFrequency");
+	auto tolerance = (float) pitchTree.getProperty ("tolerance");
+	
+	std::string pitchAlgoStr = pitchTree.getProperty ("pitchDetectionAlgorithm").toString().toStdString();
+	
+	std::map<std::string, std::string> pitchAlgoNicknameMap {
+		{"yin", "PitchYin"}
+	};	// for now we only handle this
+	
+	Algorithm* pitchDet = factory.create (pitchAlgoNicknameMap[pitchAlgoStr],
+		"frameSize",    (int)    analysisTree.getProperty ("frameSize"),
+		"interpolate",  (bool)   pitchTree.getProperty ("interpolate"),
+		"maxFrequency", maxFrequency,
+		"minFrequency", minFrequency,
+		"sampleRate",   sr,
+		"tolerance",    tolerance
+	);
 	
 	Algorithm* pitchFrameAccumulator = factory.create("RealAccumulator");
 	Algorithm* pitchConfidenceFrameAccumulator = factory.create("RealAccumulator");
@@ -126,63 +154,105 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 }
 }	// anonymous namespace
 
-PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, analysisSettings an_settings, pitchSettings pitch_settings){
-	switch (pitch_settings.algo) {
-		case pitchSettings::pitchDetectionAlgorithm_e::yin:
-			return calculatePitchesEssentiaYin(waveEvent, factory, an_settings, pitch_settings);
-			break;
-		default:
-			assert(false);
+PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
+													 streamingFactory const& factory,
+													 juce::ValueTree settingsTree)
+{
+	auto pitchTree = settingsTree.getChildWithName ("Pitch");
+	auto algo      = pitchTree.getProperty ("pitchDetectionAlgorithm").toString();
+
+	if (algo == "yin") {
+		return calculatePitchesEssentiaYin (waveEvent, factory, settingsTree);
+	}
+	else if (algo == "pYin") {
+		jassertfalse;  // not implemented
+		return {};
+//		return calculatePitchesEssentiaPYin (waveEvent, factory, settingsTree);
+	}
+	else if (algo == "chroma") {
+		jassertfalse;  // not implemented
+		return {};
+//		return calculatePitchesEssentiaChroma (waveEvent, factory, settingsTree);
+	}
+	else {
+		jassertfalse;  // unknown algorithm
+		return {};
 	}
 }
 
-vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, analysisSettings an_settings, bfccSettings bfcc_settings)
+vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree)
 {
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	bfccSettings::spectrumType_e specType = bfcc_settings.specType;
-	std::string const specAlgoStr  = (specType == bfccSettings::spectrumType_e::power) ? "PowerSpectrum" : "Spectrum";
-	std::string const specInputStr = (specType == bfccSettings::spectrumType_e::power) ? "signal" : "frame";
-	std::string const specOutputStr = (specType == bfccSettings::spectrumType_e::power) ? "powerSpectrum" : "spectrum";
+	float sampleRate  = (float) settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
 
+	auto analysisTree = settingsTree.getChildWithName ("Analysis");
+	auto bfccTree     = settingsTree.getChildWithName ("BFCC");
+	
+	 int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
+	 int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
+
+	// Compute the spectrum→algorithm mapping from the BFCC tree:
+	auto spectrumTypeStr = ((juce::String) bfccTree.getProperty ("spectrumType")).toStdString();
+	// If your stored property is e.g. "power" or "magnitude", branch on that:
+	bool isPower = (spectrumTypeStr == "power");
+
+	std::string specAlgoStr   = isPower ? "PowerSpectrum" : "Spectrum";
+	std::string specInputStr  = isPower ? "signal"        : "frame";
+	std::string specOutputStr = isPower ? "powerSpectrum" : "spectrum";
+	
 	
 	vectorInput *inVec = new vectorInput(&wave);
 	
-	Algorithm* frameCutter	=	factory.create("FrameCutter",
-											   "frameSize", an_settings.frameSize,
-											   "hopSize", an_settings.hopSize,
-											   "lastFrameToEndOfFile", true,
-											   "silentFrames", "keep",
-											   "startFromZero", true,
-											   "validFrameThresholdRatio", 0.f);
+	Algorithm* frameCutter = factory.create (
+		"FrameCutter",
+		  "frameSize",               frameSize,
+		  "hopSize",                 hopSize,
+		  "lastFrameToEndOfFile",    true,
+		  "silentFrames",            "keep",
+		  "startFromZero",           true,
+		  "validFrameThresholdRatio", 0.0
+	);
 	
-	Algorithm* windowing	=	factory.create("Windowing",
-											   "normalized", false,
-											   "size", an_settings.frameSize,
-											   "zeroPadding", an_settings.frameSize,
-											   "type", "hann",
-											   "zeroPhase", false);
+	jassert (analysisTree.hasProperty("windowingType"));
+	std::string windowType = analysisTree.getProperty("windowingType").toString().toStdString();
+	Algorithm* windowing = factory.create (
+		"Windowing",
+		  "normalized",  false,
+		  "size",        frameSize,
+		  "zeroPadding", frameSize,
+		  "type",        windowType,
+		  "zeroPhase",   false
+	);
 	
-	Algorithm* spectrum 	= 	factory.create(specAlgoStr,
-											   "size", an_settings.frameSize * 2);
+	Algorithm* spectrum = factory.create (
+		specAlgoStr,
+		  "size", frameSize * 2
+	);
 	
-	Algorithm*  bfcc 		= 	factory.create("BFCC",
-												"dctType", bfcc_settings.dctType,
-												"highFrequencyBound", bfcc_settings.highFrequencyBound,
-												"inputSize", an_settings.frameSize + 1,
-												"liftering", bfcc_settings.liftering,
-												"logType", "dbamp",	// logarithmic compression type. Use 'dbpow' if working with power and 'dbamp' if working with magnitudes
-												"lowFrequencyBound", bfcc_settings.lowFrequencyBound,
-												"normalize", bfcc_settings.getNormalizeTypeAsString(),
-												"numberBands", bfcc_settings.numBands,
-												"numberCoefficients", bfcc_settings.numCoefficients,
-												"sampleRate", an_settings.sampleRate,
-												"type", bfcc_settings.getSpectrumTypeAsString(),
-												"weighting", bfcc_settings.getWeightingTypeAsString()
-												);
 	
+	std::map<juce::String, int> dctTypeStringToInt {
+		{ "typeII",  2 },
+		{ "typeIII", 3 }
+	};
+	
+	Algorithm* bfcc = factory.create (
+		"BFCC",
+		  "dctType",             dctTypeStringToInt[bfccTree.getProperty ("dctType").toString()],
+		  "highFrequencyBound",  (double) bfccTree.getProperty ("highFrequencyBound"),
+		  "inputSize",           frameSize + 1,
+		  "liftering",           (int)    bfccTree.getProperty ("liftering"),
+		  "logType",             std::string ("dbamp"),
+		  "lowFrequencyBound",   (double) bfccTree.getProperty ("lowFrequencyBound"),
+		  "normalize",           ((juce::String) bfccTree.getProperty ("normalize")).toStdString(),
+		  "numberBands",         (int)    bfccTree.getProperty ("numBands"),
+		  "numberCoefficients",  (int)    bfccTree.getProperty ("numCoefficients"),
+		  "sampleRate",          sampleRate,
+		  "type",                ((juce::String) bfccTree.getProperty ("spectrumType")).toStdString(),
+		  "weighting",           ((juce::String) bfccTree.getProperty ("weightingType")).toStdString()
+	);
 	
 	Algorithm* barkFrameAccumulator = factory.create("VectorRealAccumulator");
 	Algorithm* bfccFrameAccumulator = factory.create("VectorRealAccumulator");
