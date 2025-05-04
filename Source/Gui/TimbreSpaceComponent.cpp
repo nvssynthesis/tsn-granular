@@ -161,8 +161,10 @@ void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timb
 }	// anonymous namespace
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
-	g.fillAll(juce::Colour(juce::Colours::rebeccapurple).withMultipliedLightness(1.6f));
-	
+	g.fillAll(juce::Colour(juce::Colours::black).withMultipliedLightness(1.6f).withAlpha(0.f));
+	g.setColour(juce::Colours::transparentWhite);
+	g.drawRect(getLocalBounds(), 1);
+			   
 	// keep these out of the following scope as long as i want to reuse them for the navigator
 	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
 	auto const w = r_bounds.getWidth();

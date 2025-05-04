@@ -33,13 +33,9 @@ juce::ValueTree &Analyzer::getSettings() {
 }
 
 void Analyzer::setAnalyzedFileSampleRate(float sampleRate){
-	auto s = settingsTree.getParent().toXmlString();
-	std::cout << "Set analyzed sr, parent tree is originally: " << s << "\n";
 	settingsTree.getParent().getChildWithName("PresetInfo").setProperty("sampleRate", sampleRate, nullptr);
 }
 float Analyzer::getAnalyzedFileSampleRate() const{
-	auto s = settingsTree.getParent().toXmlString();
-	std::cout << "Get analyzed sr, parent tree is: " << s << "\n";
 	return settingsTree.getParent().getChildWithName("PresetInfo").getProperty("sampleRate");
 }
 
@@ -78,7 +74,6 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal c
 
 #pragma message("doesnt work")
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  const &waveEvent) {
-	std::cout << "calc bfcc descr tree: " << settingsTree.toXmlString() << "\n";
 	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, settingsTree);	// bfccs per frame
 	
 	vecReal const means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames

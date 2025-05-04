@@ -29,17 +29,21 @@ public:
 protected:
 private:
 	juce::ComponentBoundsConstrainer constrainer;
-	juce::Image backgroundImage;
 	
 	nvs::nav::GUILFO &gui_lfo;
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {
 		juce::Colours::darkgrey,
-		juce::Colours::darkred,
+		juce::Colours::transparentBlack,
 		juce::Colours::darkgrey
 	};
 	size_t colourOffsetIndex {0};
+	
+	void drawBackground();
+
+	juce::Image  backgroundImage;
+	bool backgroundNeedsUpdate;
 	
 	juce::TextButton askForAnalysisButton;
 	juce::TextButton writeWavsButton;

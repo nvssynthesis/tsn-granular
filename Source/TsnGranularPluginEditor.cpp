@@ -19,6 +19,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 ,	GranularEditorCommon (p)
 ,	gui_lfo(p.getGUILFO())	// processor owns it, but editor facilitates communication from lfo > timbre space
 ,	timbreSpaceComponent(p.getAPVTS())
+,	backgroundNeedsUpdate(true)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
@@ -127,6 +128,34 @@ void drawWaveformMarkers(WaveformComponent &wc, std::vector<float> const &normal
 		wc.addMarker(onset);
 	}
 }
+
+std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
+	std::vector<float> allX, vecOut;
+	allX.reserve (points.size());
+	vecOut.reserve (points.size());
+	for (auto& p : points){
+		allX.push_back (p);
+	}
+	std::sort (allX.begin(), allX.end());
+	
+	
+	for (auto const& p : points)
+	{
+		// find first index ≥ p.x
+		auto idx = (int)(std::lower_bound (allX.begin(),
+										   allX.end(),
+										   p)
+						 - allX.begin());
+		float quantile = (float) idx / (float)(allX.size() - 1);
+		
+		// optional: you can still gamma‑tweak the quantile
+		float gamma    = 0.8f;             // <1 stretches mid‑values
+		float t        = std::pow (quantile, gamma);
+		vecOut.push_back(t);
+	}
+	return vecOut;
+}
+
 void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vector<std::vector<float>> const &timbreSpaceRepresentation, Slicer_granularAudioProcessor &p, bool verbose = true){
 	if (verbose){
 		p.writeToLog("Editor: Drawing timbre space points\n");
@@ -148,12 +177,45 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		auto y01 = (x - range.first) / (range.second - range.first);
 		return juce::jmap(y01, -1.f, 1.f);
 	};
-	for (std::vector<float> const &timbreFrame : timbreSpaceRepresentation) {
+	auto squash = [](float xNorm) -> float
+	{
+		return std::asinh(10.0*xNorm) / (float)(M_PI);
+	};
+	auto foo = [&](float x, std::pair<float, float> range) -> float
+	{
+		return squash(normalizer(x, range));
+	};
+	
+	std::vector<float> allDim0, allDim1;
+	allDim0.reserve(timbreSpaceRepresentation.size());
+	allDim1.reserve(timbreSpaceRepresentation.size());
+	for (auto const& frame : timbreSpaceRepresentation){
+		allDim0.push_back(frame[0]);
+		allDim1.push_back(frame[1]);
+	}
+	std::vector<float> histoEqualizedD0 = getHistoEqualizationVec(allDim0);
+	std::vector<float> histoEqualizedD1 = getHistoEqualizationVec(allDim1);
+
+	bool shapeNL = false;	// squeeze 2d points by asinh
+	
+	
+	for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
+		std::vector<float> const &timbreFrame = timbreSpaceRepresentation[i];
+		
 		assert (timbreFrame.size() >= nDim);
 		
 		// just some bull as a placeholder for actual timbral analysis
-		juce::Point<float> const p(normalizer(timbreFrame[dimensions[0]], ranges[0]),
-								   normalizer(timbreFrame[dimensions[1]], ranges[1]));
+		juce::Point<float> p;
+		if (shapeNL){
+			p = juce::Point<float>(foo(timbreFrame[dimensions[0]], ranges[0]),
+									   foo(timbreFrame[dimensions[1]], ranges[1]));
+		}
+		else {	// use histogram equalization
+			float const &equalizedX  = histoEqualizedD0[i];
+			float const &equalizedY  = histoEqualizedD1[i];
+			p = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
+								    juce::jmap(equalizedY, -1.f, 1.f));
+		}
 		std::array<float, 3> const color {
 			( normalizer(timbreFrame[dimensions[2]], ranges[2]) ),
 			( normalizer(timbreFrame[dimensions[3]], ranges[3]) ),
@@ -201,36 +263,88 @@ void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
 	setReadBoundsFromChosenPoint();
 }
 //==============================================================================
-void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
+void TsnGranularAudioProcessorEditor::drawBackground()
 {
-	if (true){
-		juce::Graphics tg(backgroundImage);
+	float const w = (float)getWidth();
+	float const h = (float)getHeight();
+
+	// rebuild our off‑screen image
+	backgroundImage = juce::Image (juce::Image::ARGB, (int)w, (int)h, true);
+	juce::Graphics tg (backgroundImage);
+
+	// start with solid black
+	tg.fillAll (juce::Colours::black);
+
+	auto& r = juce::Random::getSystemRandom();
+
+	const int numLayers = 11;
+	for (int i = 0; i < numLayers; ++i)
+	{
+		float x1 = r.nextFloat() * w;
+		float y1 = r.nextFloat() * h;
+		float x2 = r.nextFloat() * w;
+		float y2 = r.nextFloat() * h;
 		
-		juce::Colour upperLeftColour  = gradientColors[(colourOffsetIndex + 0) % gradientColors.size()];
-		upperLeftColour = upperLeftColour.interpolatedWith(juce::Colours::darkred, 0.7f);
-		juce::Colour lowerRightColour = gradientColors[(colourOffsetIndex + gradientColors.size()-1) % gradientColors.size()];
-		lowerRightColour = lowerRightColour.interpolatedWith(juce::Colours::darkred, 0.7f);
-		juce::ColourGradient cg(upperLeftColour, 0, 0, lowerRightColour, getWidth(), getHeight(), true);
-		cg.addColour(0.5, gradientColors[(colourOffsetIndex + 1) % gradientColors.size()]);
-		tg.setGradientFill(cg);
-		tg.fillAll();
+		// two random vivid colours
+		auto c1 = juce::Colour::greyLevel( r.nextFloat() );
+		auto c2 = juce::Colour::greyLevel( r.nextFloat() );
+
+		juce::ColourGradient grad (c1, x1, y1,
+								  c2, x2, y2,
+								  false);
+		
+		for (double g = r.nextFloat() * 0.05; g < 1.0; g += r.nextFloat() * 0.09 + 0.03){
+			grad.addColour (g, c1.interpolatedWith (c2, r.nextFloat()));
+		}
+		// draw it at the correct opacity *and* over the full image
+		float opacity = 0.1f + r.nextFloat() * 0.2f;  // 0.1–0.3
+		tg.setGradientFill (grad);
+		tg.setOpacity       (opacity);
+		tg.fillRect         (0.0f, 0.0f, w, h);    // ← critical fix!
 	}
 
-	auto const b = getLocalBounds();
-	g.drawImage(backgroundImage, b.toFloat());
-	displayName(g, b);
+//	 optional radial vignette to darken the very edges
+	{
+		juce::Colour inner = juce::Colour::fromHSV (r.nextFloat(), 1.0f, 1.0f, 0.07f);
+		juce::Colour outer = juce::Colours::black;
+
+		auto cx = w * 0.5f;
+		auto cy = h * 0.5f;
+		juce::ColourGradient rad (inner, cx, cy,
+								 outer, cx + w*0.7f, cy + h*0.7f,
+								 true);
+
+		tg.setOpacity (0.2f);
+		tg.setGradientFill (rad);
+		tg.fillEllipse (-w*0.3f, -h*0.3f, w*1.6f, h*1.6f);
+	}
+}
+void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
+{
+	if ( backgroundNeedsUpdate
+	  || backgroundImage.getWidth()  != getWidth()
+	  || backgroundImage.getHeight() != getHeight() )
+	{
+		drawBackground();
+		backgroundNeedsUpdate = false;
+	}
+
+	// draw cached image
+	g.drawImage (backgroundImage, getLocalBounds().toFloat());
+	displayName (g, getLocalBounds());
 }
 
 void TsnGranularAudioProcessorEditor::resized()
 {
+	backgroundNeedsUpdate = true;
 	constrainer.checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
-	
-	juce::Image const toBeBackground(juce::Image::PixelFormat::RGB,
-								   localBounds.getWidth(),
-								   localBounds.getHeight(),
-								   false);
-	backgroundImage = toBeBackground;
+//
+//	juce::Image const toBeBackground(juce::Image::PixelFormat::RGB,
+//								   localBounds.getWidth(),
+//								   localBounds.getHeight(),
+//								   false);
+//	backgroundImage = toBeBackground;
 	
 	int const smallPad = 12;
 	localBounds.reduce(smallPad, smallPad);
