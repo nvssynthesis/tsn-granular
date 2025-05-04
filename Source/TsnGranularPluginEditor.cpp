@@ -139,22 +139,25 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		3,
 		4
 	};
-	std::array<float, nDim> normalizers;
+	std::array<std::pair<float, float>, nDim> ranges;
 	for (int i = 0; i < nDim; ++i) {
-	auto const range = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, dimensions[i]);
-		normalizers[i] = nvs::analysis::calculateNormalizationMultiplier(range);
+		ranges[i] = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, dimensions[i]);
 	}
+	auto normalizer = [](float x, std::pair<float, float> range) -> float
+	{
+		auto y01 = (x - range.first) / (range.second - range.first);
+		return juce::jmap(y01, -1.f, 1.f);
+	};
 	for (std::vector<float> const &timbreFrame : timbreSpaceRepresentation) {
 		assert (timbreFrame.size() >= nDim);
 		
 		// just some bull as a placeholder for actual timbral analysis
-		#pragma message("need proper normalization")
-		juce::Point<float> const p(timbreFrame[dimensions[0]] * normalizers[0],
-								   timbreFrame[dimensions[1]] * normalizers[1]);
+		juce::Point<float> const p(normalizer(timbreFrame[dimensions[0]], ranges[0]),
+								   normalizer(timbreFrame[dimensions[1]], ranges[1]));
 		std::array<float, 3> const color {
-			( timbreFrame[dimensions[2]] * normalizers[2] ),
-			( timbreFrame[dimensions[3]] * normalizers[3] ),
-			( timbreFrame[dimensions[4]] * normalizers[4] )
+			( normalizer(timbreFrame[dimensions[2]], ranges[2]) ),
+			( normalizer(timbreFrame[dimensions[3]], ranges[3]) ),
+			( normalizer(timbreFrame[dimensions[4]], ranges[4]) )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
