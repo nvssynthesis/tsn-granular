@@ -52,7 +52,6 @@ private:
 	
 	vecReal _outputOnsets;
 	std::vector<FeatureContainer<EventwiseStatistics<Real>>> _outputOnsetwiseTimbreMeasurements;
-	vecVecReal _outputPCA;
 	
 	size_t _filenameHash;
 	size_t _eventualFilenameHash;

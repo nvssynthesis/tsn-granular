@@ -92,6 +92,7 @@
         <FILE id="ejIgLF" name="AnalysisUsing.h" compile="0" resource="0" file="Source/Analysis/AnalysisUsing.h"/>
         <FILE id="hf00dz" name="EssentiaSetup.h" compile="0" resource="0" file="Source/Analysis/EssentiaSetup.h"/>
         <FILE id="aJfBvh" name="Settings.h" compile="0" resource="0" file="Source/Analysis/Settings.h"/>
+        <FILE id="IGwmeV" name="Settings.cpp" compile="1" resource="0" file="Source/Analysis/Settings.cpp"/>
         <GROUP id="{ADF69AE1-3F4C-10B0-6C49-34B6EFCBAEF2}" name="OnsetAnalysis">
           <FILE id="qAP1UX" name="OnsetAnalysis.cpp" compile="1" resource="0"
                 file="Source/Analysis/OnsetAnalysis/OnsetAnalysis.cpp"/>

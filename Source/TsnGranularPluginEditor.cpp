@@ -157,11 +157,50 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	return vecOut;
 }
 
-void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vector<std::vector<float>> const &timbreSpaceRepresentation, Slicer_granularAudioProcessor &p, bool verbose = true){
+void TsnGranularAudioProcessorEditor::updateAndDrawTimbreSpacePoints(std::vector<std::vector<float>> const &timbreSpaceRepresentation, bool verbose)
+{	/** to be called when the actual analyzed timbre space changes  */
 	if (verbose){
-		p.writeToLog("Editor: Drawing timbre space points\n");
+		audioProcessor.writeToLog("Editor: Drawing timbre space points\n");
 	}
-	size_t constexpr nDim {5};
+	
+	{
+		timbreSpaceNeededData.ranges.clear();
+		timbreSpaceNeededData.ranges.reserve(timbreSpaceRepresentation.size());
+		for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
+			timbreSpaceNeededData.ranges[i] = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, i);
+		}
+	}
+	{
+		std::vector<float> allDim0, allDim1;
+		allDim0.reserve(timbreSpaceRepresentation.size());
+		allDim1.reserve(timbreSpaceRepresentation.size());
+		for (auto const& frame : timbreSpaceRepresentation){
+			allDim0.push_back(frame[0]);	// e.g. bfcc0
+			allDim1.push_back(frame[1]);	// e.g. bfcc1
+		}
+		timbreSpaceNeededData.histoEqualizedD0 = getHistoEqualizationVec(allDim0);
+		timbreSpaceNeededData.histoEqualizedD1 = getHistoEqualizationVec(allDim1);
+	}
+	timbreSpaceNeededData.timbreSpaceRepresentation = &timbreSpaceRepresentation;
+	
+	drawTimbreSpacePoints(verbose);
+}
+void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
+{	/** to be called when we only want to change the view of the timbre points (which will also need to happen when the timbre space itself changes) */
+	if (timbreSpaceNeededData.timbreSpaceRepresentation == nullptr){
+		audioProcessor.writeToLog("drawTimbreSpacePoints: timbreSpaceNeededData null, returning...");
+		return;
+	}
+	
+	auto normalizer = [](float x, std::pair<float, float> range) -> float
+	{
+		auto y01 = (x - range.first) / (range.second - range.first);
+		return juce::jmap(y01, -1.f, 1.f);
+	};
+	auto squash = [](float xNorm) -> float { return std::asinh(10.0*xNorm) / (float)(M_PI); };
+	auto foo = [&](float x, std::pair<float, float> range) -> float { return squash(normalizer(x, range)); };
+	
+	constexpr size_t nDim {5};
 	std::array<size_t, nDim> constexpr dimensions {
 		0,
 		1,
@@ -169,47 +208,20 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		3,
 		4
 	};
-	std::array<std::pair<float, float>, nDim> ranges;
-	for (int i = 0; i < nDim; ++i) {
-		ranges[i] = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, dimensions[i]);
-	}
-	auto normalizer = [](float x, std::pair<float, float> range) -> float
-	{
-		auto y01 = (x - range.first) / (range.second - range.first);
-		return juce::jmap(y01, -1.f, 1.f);
-	};
-	auto squash = [](float xNorm) -> float
-	{
-		return std::asinh(10.0*xNorm) / (float)(M_PI);
-	};
-	auto foo = [&](float x, std::pair<float, float> range) -> float
-	{
-		return squash(normalizer(x, range));
-	};
 	
-	std::vector<float> allDim0, allDim1;
-	allDim0.reserve(timbreSpaceRepresentation.size());
-	allDim1.reserve(timbreSpaceRepresentation.size());
-	for (auto const& frame : timbreSpaceRepresentation){
-		allDim0.push_back(frame[0]);
-		allDim1.push_back(frame[1]);
-	}
-	std::vector<float> histoEqualizedD0 = getHistoEqualizationVec(allDim0);
-	std::vector<float> histoEqualizedD1 = getHistoEqualizationVec(allDim1);
-
-	
-	for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
-		std::vector<float> const &timbreFrame = timbreSpaceRepresentation[i];
+	std::vector<std::vector<float>> const &timbreSpaceRepr = *(timbreSpaceNeededData.timbreSpaceRepresentation);
+	for (int i = 0; i < timbreSpaceRepr.size(); ++i) {
+		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
 		
 		assert (timbreFrame.size() >= nDim);
 		
-		// just some bull as a placeholder for actual timbral analysis
 
-		auto pNL = juce::Point<float>(foo(timbreFrame[dimensions[0]], ranges[0]),
-									   foo(timbreFrame[dimensions[1]], ranges[1]));
-	// use histogram equalization
-		float const &equalizedX  = histoEqualizedD0[i];
-		float const &equalizedY  = histoEqualizedD1[i];
+		auto pNL = juce::Point<float>(foo(timbreFrame[dimensions[0]], timbreSpaceNeededData.ranges[0]),
+									   foo(timbreFrame[dimensions[1]], timbreSpaceNeededData.ranges[1]));
+		// histogram equalization
+		float const &equalizedX  = timbreSpaceNeededData.histoEqualizedD0[i];
+		float const &equalizedY  = timbreSpaceNeededData.histoEqualizedD1[i];
+		
 		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
 								juce::jmap(equalizedY, -1.f, 1.f));
 	
@@ -217,16 +229,18 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		juce::Point<float> p = c * pNL + (1.f - c) * pHE;
 		
 		std::array<float, 3> const color {
-			( normalizer(timbreFrame[dimensions[2]], ranges[2]) ),
-			( normalizer(timbreFrame[dimensions[3]], ranges[3]) ),
-			( normalizer(timbreFrame[dimensions[4]], ranges[4]) )
+			( normalizer(timbreFrame[dimensions[2]], timbreSpaceNeededData.ranges[2]) ),
+			( normalizer(timbreFrame[dimensions[3]], timbreSpaceNeededData.ranges[3]) ),
+			( normalizer(timbreFrame[dimensions[4]], timbreSpaceNeededData.ranges[4]) )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
 		// the Nth member of onsets.
 		float const padding_scalar = 0.95f;
 		timbreSpaceComponent.add5DPoint(p * padding_scalar, color);
-		fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
+		if (verbose){
+			fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
+		}
 	}
 }
 void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
@@ -245,7 +259,7 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vect
 		std::vector<float> v = nvs::analysis::extractFeatures(t, featureSet, nvs::analysis::Statistic::Median);
 		eventwiseTimbrePoints.push_back(v);
 	}
-	drawTimbreSpacePoints(timbreSpaceComponent, eventwiseTimbrePoints, GranularEditorCommon::audioProcessor);
+	updateAndDrawTimbreSpacePoints(eventwiseTimbrePoints);
 	repaint();
 }
 

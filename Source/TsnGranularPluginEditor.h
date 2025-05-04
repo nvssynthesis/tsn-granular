@@ -31,6 +31,14 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 	
 	nvs::nav::GUILFO &gui_lfo;
+	struct TimbreSpaceNeededData {
+		std::vector<std::pair<float, float>> ranges; // min, max per dimension
+		std::vector<float> histoEqualizedD0, histoEqualizedD1;
+		std::vector<std::vector<float>> const *timbreSpaceRepresentation;	// the raw full timbre space
+	};
+	TimbreSpaceNeededData timbreSpaceNeededData;
+	void updateAndDrawTimbreSpacePoints(std::vector<std::vector<float>> const &timbreSpaceRepresentation, bool verbose = true);
+	void drawTimbreSpacePoints(bool verbose = true);
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {

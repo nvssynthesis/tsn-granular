@@ -29,7 +29,6 @@ void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
 	_outputOnsets.clear();
 	_outputOnsetwiseTimbreMeasurements.clear();
-	_outputPCA.clear();
 	if (!(_inputWave.data() && _inputWave.size())){
 		return;
 	}
@@ -65,9 +64,6 @@ void ThreadedAnalyzer::run() {
 	vecVecReal eventwiseBFCCs;
 	eventwiseBFCCs.reserve(timbreMeasurementsOpt->size());
 
-	auto PCAopt = _analyzer.calculatePCA(*timbreMeasurementsOpt, bfccSet, Statistic::Median);
-	jassert(PCAopt.has_value());
-	
 	float analysisSampleRate = _analyzer.getAnalyzedFileSampleRate();
 	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), analysisSampleRate);
 	// filter onsets here
@@ -77,7 +73,6 @@ void ThreadedAnalyzer::run() {
 	
 	_outputOnsets = onsetOpt.value();
 	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt.value();
-	_outputPCA = PCAopt.value();
 	_filenameHash = _eventualFilenameHash;	// successful completion of each field updates the effective hash to that corresponding to the filepath used.
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();

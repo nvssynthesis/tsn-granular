@@ -62,6 +62,15 @@ inline juce::String toString(Features f){
 	}
 }
 
+inline std::vector<juce::String> buildFeatureChoiceVec() {
+	std::vector<juce::String> features;
+	features.reserve(static_cast<size_t>(Features::NumFeatures));
+	for (auto f : featuresIterator()){
+		features.push_back(toString(f));
+	}
+	return features;
+}
+
 const std::set<Features> bfccSet {
 	Features::bfcc0,
 	Features::bfcc1,
@@ -279,4 +288,3 @@ void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSec
 
 }	// namespace analysis
 }	// namespace nvs
-
