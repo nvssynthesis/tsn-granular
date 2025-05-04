@@ -39,9 +39,7 @@ struct NavLFOParamsComponent	:	public juce::Component
 		}
 	}
 private:
-	std::array<AttachedSlider,
-			static_cast<size_t>(params_e::count_nav_lfo_params) - static_cast<size_t>(params_e::count_envelope_params) - 1
-		> sliderArray;
+	std::array<AttachedSlider, NUM_NAVIGATION_PARAMS> sliderArray;
 };
 
 struct NavLFOPage :	public juce::Component

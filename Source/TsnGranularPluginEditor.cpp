@@ -55,7 +55,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 		fmt::print("current id: {}", id);
 	};
 	
-	tabbedPages.addTab ("Navigation LFO Parameters", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS()), true);
+	// exclusive to TSN
+	tabbedPages.addTab ("Navigation LFO", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS()), true);
 
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
@@ -196,8 +197,6 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 	std::vector<float> histoEqualizedD0 = getHistoEqualizationVec(allDim0);
 	std::vector<float> histoEqualizedD1 = getHistoEqualizationVec(allDim1);
 
-	bool shapeNL = false;	// squeeze 2d points by asinh
-	
 	
 	for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
 		std::vector<float> const &timbreFrame = timbreSpaceRepresentation[i];
@@ -205,17 +204,18 @@ void drawTimbreSpacePoints(TimbreSpaceComponent &timbreSpaceComponent, std::vect
 		assert (timbreFrame.size() >= nDim);
 		
 		// just some bull as a placeholder for actual timbral analysis
-		juce::Point<float> p;
-		if (shapeNL){
-			p = juce::Point<float>(foo(timbreFrame[dimensions[0]], ranges[0]),
+
+		auto pNL = juce::Point<float>(foo(timbreFrame[dimensions[0]], ranges[0]),
 									   foo(timbreFrame[dimensions[1]], ranges[1]));
-		}
-		else {	// use histogram equalization
-			float const &equalizedX  = histoEqualizedD0[i];
-			float const &equalizedY  = histoEqualizedD1[i];
-			p = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
-								    juce::jmap(equalizedY, -1.f, 1.f));
-		}
+	// use histogram equalization
+		float const &equalizedX  = histoEqualizedD0[i];
+		float const &equalizedY  = histoEqualizedD1[i];
+		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
+								juce::jmap(equalizedY, -1.f, 1.f));
+	
+		float c = 0.5f;
+		juce::Point<float> p = c * pNL + (1.f - c) * pHE;
+		
 		std::array<float, 3> const color {
 			( normalizer(timbreFrame[dimensions[2]], ranges[2]) ),
 			( normalizer(timbreFrame[dimensions[3]], ranges[3]) ),
