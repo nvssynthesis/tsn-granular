@@ -12,6 +12,7 @@
 */
 
 class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
+,											public juce::ValueTree::Listener	// to listen for timbre space settings change, to redraw points
 ,											public GranularEditorCommon
 {
 public:
@@ -21,24 +22,23 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintOnsetMarkersAndTimbrePoints(std::vector<float> const &onsets,
-					  std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>> const &timbreSpaceRepresentation);
+	void paintOnsetMarkersAndTimbrePoints(std::vector<float> const &onsets);
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
+	void valueTreePropertyChanged (juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
 protected:
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 	
 	nvs::nav::GUILFO &gui_lfo;
-	struct TimbreSpaceNeededData {
-		std::vector<std::pair<float, float>> ranges; // min, max per dimension
-		std::vector<float> histoEqualizedD0, histoEqualizedD1;
-		std::vector<std::vector<float>> const *timbreSpaceRepresentation;	// the raw full timbre space
-	};
-	TimbreSpaceNeededData timbreSpaceNeededData;
-	void updateAndDrawTimbreSpacePoints(std::vector<std::vector<float>> const &timbreSpaceRepresentation, bool verbose = true);
+	
+	void updateAndDrawTimbreSpacePoints(bool verbose = true);
 	void drawTimbreSpacePoints(bool verbose = true);
+	struct TimbreSpaceDrawingSettings {
+		float histoEqualize_NL_map_proportion {0.0f};
+	};
+	TimbreSpaceDrawingSettings timbreSpaceDrawingSettings;
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {

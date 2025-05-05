@@ -26,6 +26,9 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 ,	positionQuantizeStrengthComboBox("Position Quantize Strength")
 ,	audioProcessor(p)
 {
+	setSize (680, 950);
+	setResizable(true, true);
+	
 	addAndMakeVisible(grainBusyDisplay);
 	addAndMakeVisible (fileComp);
 	addAndMakeVisible(askForAnalysisButton);
@@ -78,19 +81,28 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	gui_lfo.start();
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
+	
+#pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
 	{	// on initial construction, this should do nothing. however, it should also take care of the case where you close and open the plugin window.
-		auto const &a = audioProcessor.getAnalyzer();
-		paintOnsetMarkersAndTimbrePoints(a.getOnsets(), a.getTimbreSpaceRepresentation());	// is this really the best place for it though? think about in resized() maybe.
+//		auto const &a = audioProcessor.getAnalyzer();
+//		auto onsetOpt = a.getOnsets();
+//		auto timbreOpt = a.getTimbreSpaceRepresentation();
+//		if (!(onsetOpt.has_value()) || !(timbreOpt.has_value())){
+//			audioProcessor.writeToLog("mouse listener: empty optional, returning.\n");
+//			return;
+//		}
+//		paintOnsetMarkersAndTimbrePoints(onsetOpt.value(), timbreOpt.value());	// is this really the best place for it though? think about in resized() maybe.
 	}
 	
+	audioProcessor.getNonAutomatableState().addListener(this);
+	
 	constrainer.setMinimumSize(620, 500);
-	setSize (680, 950);
-	setResizable(true, true);
 }
 
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
+	audioProcessor.getNonAutomatableState().removeListener (this);
 	gui_lfo.stop();
 }
 //==============================================================================
@@ -157,17 +169,20 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	return vecOut;
 }
 
-void TsnGranularAudioProcessorEditor::updateAndDrawTimbreSpacePoints(std::vector<std::vector<float>> const &timbreSpaceRepresentation, bool verbose)
+void TsnGranularAudioProcessorEditor::updateAndDrawTimbreSpacePoints(bool verbose)
 {	/** to be called when the actual analyzed timbre space changes  */
-	if (verbose){
-		audioProcessor.writeToLog("Editor: Drawing timbre space points\n");
+	if (verbose){ audioProcessor.writeToLog("Editor: Updating timbre space points\n"); }
+	if (audioProcessor.getTimbreSpaceNeededData().eventwiseExtractedTimbrePoints.size() == 0){
+		audioProcessor.writeToLog("updateAndDrawTimbreSpacePoints: timbreSpaceNeededData empty, returning...");
+		return;
 	}
-	
+	auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
+	auto &timbreSpaceRepresentation = timbreSpaceNeededData.eventwiseExtractedTimbrePoints;
 	{
 		timbreSpaceNeededData.ranges.clear();
 		timbreSpaceNeededData.ranges.reserve(timbreSpaceRepresentation.size());
 		for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
-			timbreSpaceNeededData.ranges[i] = nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, i);
+			timbreSpaceNeededData.ranges.push_back(nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, i));
 		}
 	}
 	{
@@ -181,16 +196,22 @@ void TsnGranularAudioProcessorEditor::updateAndDrawTimbreSpacePoints(std::vector
 		timbreSpaceNeededData.histoEqualizedD0 = getHistoEqualizationVec(allDim0);
 		timbreSpaceNeededData.histoEqualizedD1 = getHistoEqualizationVec(allDim1);
 	}
-	timbreSpaceNeededData.timbreSpaceRepresentation = &timbreSpaceRepresentation;
-	
 	drawTimbreSpacePoints(verbose);
 }
 void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 {	/** to be called when we only want to change the view of the timbre points (which will also need to happen when the timbre space itself changes) */
-	if (timbreSpaceNeededData.timbreSpaceRepresentation == nullptr){
-		audioProcessor.writeToLog("drawTimbreSpacePoints: timbreSpaceNeededData null, returning...");
+	auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
+	if (timbreSpaceNeededData.eventwiseExtractedTimbrePoints.size() == 0){
+		audioProcessor.writeToLog("drawTimbreSpacePoints: timbreSpaceNeededData empty, returning...");
 		return;
 	}
+	std::vector<std::vector<float>> const &timbreSpaceRepr = timbreSpaceNeededData.eventwiseExtractedTimbrePoints;
+	std::vector<std::pair<float, float>> const &ranges = timbreSpaceNeededData.ranges;
+	if (!(timbreSpaceRepr.size() == ranges.size())){
+		audioProcessor.writeToLog("drawTimbreSpacePoints: point size mismatch, exiting early");
+	}
+
+	if (verbose){ audioProcessor.writeToLog("Editor: Drawing timbre space points\n"); }
 	
 	auto normalizer = [](float x, std::pair<float, float> range) -> float
 	{
@@ -209,12 +230,11 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 		4
 	};
 	
-	std::vector<std::vector<float>> const &timbreSpaceRepr = *(timbreSpaceNeededData.timbreSpaceRepresentation);
+	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 	for (int i = 0; i < timbreSpaceRepr.size(); ++i) {
 		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
 		
 		assert (timbreFrame.size() >= nDim);
-		
 
 		auto pNL = juce::Point<float>(foo(timbreFrame[dimensions[0]], timbreSpaceNeededData.ranges[0]),
 									   foo(timbreFrame[dimensions[1]], timbreSpaceNeededData.ranges[1]));
@@ -225,7 +245,8 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
 								juce::jmap(equalizedY, -1.f, 1.f));
 	
-		float c = 0.5f;
+		float c = timbreSpaceDrawingSettings.histoEqualize_NL_map_proportion;
+		jassert (0.0 <= c && c <= 1.0);
 		juce::Point<float> p = c * pNL + (1.f - c) * pHE;
 		
 		std::array<float, 3> const color {
@@ -243,29 +264,21 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 		}
 	}
 }
-void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets,
-	std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>> const &timbreSpaceRepresention)
+
+void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vector<float> const &normalizedOnsets)
 {
 	waveformAndPositionComponent.wc.removeMarkers(WaveformComponent::MarkerType::Onset);
-	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
 	drawWaveformMarkers(waveformAndPositionComponent.wc, normalizedOnsets, audioProcessor);
 	
-	std::vector<std::vector<float>> eventwiseTimbrePoints;
-	eventwiseTimbrePoints.reserve(timbreSpaceRepresention.size());
-	
-	
-	auto featureSet = nvs::analysis::bfccSet;	// may modify this, but it's a good starting point
-	for (auto const &t : timbreSpaceRepresention) {
-		std::vector<float> v = nvs::analysis::extractFeatures(t, featureSet, nvs::analysis::Statistic::Median);
-		eventwiseTimbrePoints.push_back(v);
-	}
-	updateAndDrawTimbreSpacePoints(eventwiseTimbrePoints);
+	updateAndDrawTimbreSpacePoints();
 	repaint();
 }
 
 void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
 	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
-	if (audioProcessor.getAnalyzer().getOnsets().size()){
+	auto const onsetOpt = audioProcessor.getAnalyzer().getOnsets();
+
+	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
 		audioProcessor.setWaveEvent(pIdx);
 	}
 }
@@ -410,12 +423,29 @@ void TsnGranularAudioProcessorEditor::resized()
 }
 
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
+	auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		// now we can simply check on our own analyzer, don't even need to use source qua source
-		paintOnsetMarkersAndTimbrePoints(a->getOnsets(), a->getTimbreSpaceRepresentation());
+		auto onsetsOpt = a->getOnsets();
+		timbreSpaceNeededData.fullTimbreSpace = a->stealTimbreSpaceRepresentation();
+		timbreSpaceNeededData.extract();
+		if (onsetsOpt.has_value() and timbreSpaceNeededData.fullTimbreSpace.has_value()){
+			paintOnsetMarkersAndTimbrePoints(onsetsOpt.value());
+		}
 		audioProcessor.writeToLog("editor: change listener callback: got timbre data to paint\n");
 	}
 	else {
 		GranularEditorCommon::changeListenerCallback(source);
+	}
+}
+void TsnGranularAudioProcessorEditor::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &property) {
+	std::cout << "value tree changed!!!!!\n";
+	if (alteredTree.hasType("TimbreSpace")){
+		std::cout << "tree changed! redrawing points...\n";
+		timbreSpaceDrawingSettings.histoEqualize_NL_map_proportion = (double)alteredTree.getProperty("HistogramEqualization");
+		drawTimbreSpacePoints();
+	}
+	else {
+		std::cout << "what tree?\n";
 	}
 }

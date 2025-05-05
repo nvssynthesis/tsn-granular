@@ -208,10 +208,13 @@ public:
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
 	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets);
 	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::set<Features> featuresToUse, Statistic statToUse);
-	void updateSettings(juce::ValueTree newSettings);
+	
 	void setAnalyzedFileSampleRate(float sampleRate);
 	float getAnalyzedFileSampleRate() const;
+
+	void updateSettings(juce::ValueTree newSettings);
 	juce::ValueTree &getSettings();
+	
 	nvs::ess::EssentiaHolder ess_hold;
 private:
 	juce::ValueTree settingsTree;

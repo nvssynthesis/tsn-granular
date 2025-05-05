@@ -25,10 +25,24 @@ void ThreadedAnalyzer::updateWave(std::span<float const> wave, size_t eventualFi
 	_eventualFilenameHash = eventualFilenameHash;
 }
 
+
+
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
-	_outputOnsets.clear();
-	_outputOnsetwiseTimbreMeasurements.clear();
+	if (!_outputOnsets){
+		_outputOnsets.emplace();    // default‑construct an empty vector
+	}
+	else {
+		_outputOnsets->clear();
+	}
+	
+	if (!_outputOnsetwiseTimbreMeasurements){
+		_outputOnsetwiseTimbreMeasurements.emplace();    // default‑construct empty vector
+	}
+	else {
+		_outputOnsetwiseTimbreMeasurements->clear();
+	}
+	
 	if (!(_inputWave.data() && _inputWave.size())){
 		return;
 	}
@@ -54,32 +68,16 @@ void ThreadedAnalyzer::run() {
 	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt);
 	jassert (timbreMeasurementsOpt.has_value());
 	
-	if (timbreMeasurementsOpt.value().size() <= 1){
-		fmt::print("Threaded Analyzer: too few onsetwise BFCCs to calculate PCA... returning\n");
-		sendChangeMessage();
-		return;
-	}
-	// perform PCA analysis
-	fmt::print("ThreadedAnalyzer: performing pca analysis\n");
-	vecVecReal eventwiseBFCCs;
-	eventwiseBFCCs.reserve(timbreMeasurementsOpt->size());
-
-	float analysisSampleRate = _analyzer.getAnalyzedFileSampleRate();
-	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), analysisSampleRate);
-	// filter onsets here
+	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer.getAnalyzedFileSampleRate());
+	
 	filterOnsets(onsetOpt.value(), lengthInSeconds);
-	// normalize onsets here
 	normalizeOnsets(onsetOpt.value(), lengthInSeconds);
 	
-	_outputOnsets = onsetOpt.value();
-	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt.value();
+	_outputOnsets = onsetOpt;
+	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt;
 	_filenameHash = _eventualFilenameHash;	// successful completion of each field updates the effective hash to that corresponding to the filepath used.
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();
-}
-	
-std::vector<FeatureContainer<EventwiseStatistics<Real>>> ThreadedAnalyzer::getTimbreSpaceRepresentation() const {
-	return _outputOnsetwiseTimbreMeasurements;
 }
 
 }	// namespace analysis

@@ -26,9 +26,14 @@ public:
 	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
 	void run() override;
 	//===============================================================================
-	std::vector<FeatureContainer<EventwiseStatistics<Real>>> getTimbreSpaceRepresentation() const;
+	inline std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> stealTimbreSpaceRepresentation()
+	{
+		auto ret = std::move(_outputOnsetwiseTimbreMeasurements);
+		_outputOnsetwiseTimbreMeasurements.reset();
+		return ret;
+	}
 
-	inline vecReal getOnsets() const {
+	inline std::optional<vecReal> getOnsets() const {
 		return _outputOnsets;
 	}
 	//===============================================================================
@@ -50,8 +55,8 @@ private:
 	
 	vecReal _inputWave;
 	
-	vecReal _outputOnsets;
-	std::vector<FeatureContainer<EventwiseStatistics<Real>>> _outputOnsetwiseTimbreMeasurements;
+	std::optional<vecReal> _outputOnsets;
+	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> _outputOnsetwiseTimbreMeasurements;
 	
 	size_t _filenameHash;
 	size_t _eventualFilenameHash;

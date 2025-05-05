@@ -14,10 +14,10 @@
 class TsnGranularAudioProcessor  : public Slicer_granularAudioProcessor
 ,									private juce::ChangeListener
 {
+	struct TimbreSpaceNeededData;
 public:
 	//==============================================================================
 	TsnGranularAudioProcessor();
-	~TsnGranularAudioProcessor() override;
 	//==============================================================================
 	juce::AudioProcessorEditor* createEditor() override;
 	void setStateInformation (const void* data, int sizeInBytes) override;
@@ -41,13 +41,26 @@ public:
 	nvs::analysis::ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
 	}
-	
+	TimbreSpaceNeededData &getTimbreSpaceNeededData() {
+		return timbreSpaceNeededData;
+	}
 	void writeEvents();
 private:
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
 	nvs::nav::GUILFO gui_lfo;
+	
+	struct TimbreSpaceNeededData {
+		std::vector<std::pair<float, float>> ranges {}; // min, max per dimension
+		std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
 
+		std::optional<std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>>>  fullTimbreSpace;	// gets stolen FROM analyzer to save memory
+		std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
+		
+		void extract();
+	};
+	TimbreSpaceNeededData timbreSpaceNeededData;
+	
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessor)

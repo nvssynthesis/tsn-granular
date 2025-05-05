@@ -33,13 +33,14 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 	nvs::analysis::initializeSettingsBranches(settingsVT);
 }
 
-TsnGranularAudioProcessor::~TsnGranularAudioProcessor()
-{}
 
 //==============================================================================
 juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
 	TsnGranularAudioProcessorEditor* ed = new TsnGranularAudioProcessorEditor (*this);
 	_analyzer.addChangeListener(ed);
+	
+	nonAutomatableState.addListener(ed);
+
 	return ed;
 }
 
@@ -62,6 +63,8 @@ void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 		return;
 	}
 	nonAutomatableState = nonAuto;
+	
+	writeToLog("setStateInformation successful; nonAutomatableState reassigned");
 }
 //==============================================================================
 
@@ -106,6 +109,11 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 }
 
 void TsnGranularAudioProcessor::writeEvents(){
+	auto const onsetsOpt = _analyzer.getOnsets();
+	if (!onsetsOpt.has_value()){
+		writeToLog("writeEvents failed: onsets optional does not contain value");
+		return;
+	}
 	auto const buffer = sampleManagementGuts.sampleBuffer;
 	auto const waveSpan = std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples());
 	std::vector<float> wave(waveSpan.size());
@@ -115,7 +123,7 @@ void TsnGranularAudioProcessor::writeEvents(){
 	juce::String audioFilePath = nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleFilePath");
 	float sr = 	nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleRate");
 
-	std::vector<float> onsetsTmp = _analyzer.getOnsets();
+	std::vector<float> onsetsTmp = onsetsOpt.value();
 	auto analyzer = _analyzer.getAnalyzer();
 
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
@@ -128,22 +136,38 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		// then load onsets into synth
-		auto onsets = _analyzer.getOnsets();
-		if (onsets.size()){
+		auto onsetsOpt = _analyzer.getOnsets();
+		
+		if (onsetsOpt.has_value() and onsetsOpt->size()){
 			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
-				tsn_granular_synth->loadOnsets(onsets);
+				tsn_granular_synth->loadOnsets(onsetsOpt.value());
+				writeToLog("TsnGranularAudioProcessor::changeListenerCallback: loaded onsets successfully");
 			}
 			else {
 				writeToLog("TsnGranularAudioProcessor::changeListenerCallback failed dynamic cast to TsnGranular");
 			}
 		}
-		writeToLog("processor: change listener callback: got things\n");
+		else {
+			writeToLog("TsnGranularAudioProcessor::changeListenerCallback: either onsets optional has no value or has 0 size");
+		}
 	}
 	else {
-		writeToLog("processor: dynamic cast unsuccessful");
+		writeToLog("TsnGranularAudioProcessor::changeListenerCallback: dynamic cast from ChangeBroadcaster to ThreadedAnalyzer unsuccessful");
 	}
 }
-
+void TsnGranularAudioProcessor::TimbreSpaceNeededData::extract() {
+	if (!fullTimbreSpace.has_value()){
+		std::cerr << "TsnGranularAudioProcessorEditor::TimbreSpaceNeededData::extract: timbre space empty, early exit\n";
+	}
+	eventwiseExtractedTimbrePoints.clear();
+	eventwiseExtractedTimbrePoints.reserve(fullTimbreSpace->size());
+	
+	auto featureSet = nvs::analysis::bfccSet;	// may modify this, but it's a good starting point
+	for (auto const &t : fullTimbreSpace.value()) {
+		std::vector<float> v = nvs::analysis::extractFeatures(t, featureSet, nvs::analysis::Statistic::Median);
+		eventwiseExtractedTimbrePoints.push_back(v);
+	}
+}
 void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
 	auto const buffer_fn_hash = _granularSynth->getFilenameHash();
 	auto const analysis_fn_hash = _analyzer.getFilenameHash();
