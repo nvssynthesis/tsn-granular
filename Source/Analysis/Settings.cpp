@@ -40,11 +40,11 @@ const std::map<juce::String, AnySpec> analysisSpecs
 
 const std::map<juce::String, AnySpec> bfccSpecs
 {
-	{ "highFrequencyBound",  RangeWithDefault<double>{ {20.0,24000.0,1.0,1.0}, 11000.0 } },
-	{ "lowFrequencyBound",   RangeWithDefault<double>{ {0.0,5000.0,1.0,1.0},    20.0 } },
+	{ "highFrequencyBound",  RangeWithDefault<double>{ {20.0,24000.0,1.0,1.0}, 8000.0 } },
+	{ "lowFrequencyBound",   RangeWithDefault<double>{ {0.0,5000.0,1.0,1.0},    120.0 } },
 	{ "liftering",           RangeWithDefault<int>{   {0,100,1,1},            0 } },
 	{ "numBands",            RangeWithDefault<int>{   {1,128,1,1},           40 } },
-	{ "numCoefficients",     RangeWithDefault<int>{   {1,64,1,1},            13 } },
+	{ "numCoefficients",     RangeWithDefault<int>{   {5,26,1,1},            13 } },
 	{ "normalize",           ChoiceWithDefault{ {"unit_sum", "unit_max"},     "unit_sum" } },
 	{ "spectrumType",        ChoiceWithDefault{ {"magnitude", "power"},       "power"    } },
 	{ "weightingType",       ChoiceWithDefault{ {"warping",  "linear"},       "warping"  } },
@@ -55,13 +55,13 @@ const std::map<juce::String, AnySpec> onsetSpecs
 {
 	{ "silenceThreshold",         RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.2f } },
 	{ "alpha",                    RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
-	{ "numFrames_shortOnsetFilter",RangeWithDefault<int>{   {1,64,1,1},          5 } },
-	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
-	{ "weight_complex",           RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
-	{ "weight_complexPhase",      RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
-	{ "weight_flux",              RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
-	{ "weight_melFlux",           RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } },
-	{ "weight_rms",               RangeWithDefault<double>{ {0.0,1.0,0.1f,1.0},  1.0 } }
+	{ "numFrames_shortOnsetFilter",RangeWithDefault<int>  { { 1,  64,  1,   1 },    5 } },
+	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
+	{ "weight_complex",           RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
+	{ "weight_complexPhase",      RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
+	{ "weight_flux",              RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
+	{ "weight_melFlux",           RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
+	{ "weight_rms",               RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } }
 };
 
 const std::map<juce::String, AnySpec> sBicSpecs
@@ -78,9 +78,9 @@ const std::map<juce::String, AnySpec> pitchSpecs
 {
 	{ "pitchDetectionAlgorithm",  ChoiceWithDefault{ {"yin","pYin","chroma"}, "yin" } },
 	{ "interpolate",              BoolWithDefault{ true } },
-	{ "maxFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0}, 22050.0 } },
-	{ "minFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0}, 20.0    } },
-	{ "tolerance",                RangeWithDefault<double>{ {0.0, 1.0,  0.001f, 1.0},  0.15 } }
+	{ "maxFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0}, 4000.0 } },
+	{ "minFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0},  140.0 } },
+	{ "tolerance",                RangeWithDefault<double>{ {0.0, 1.0,  0.001f, 1.0},   0.15 } }
 };
 
 const std::map<juce::String, AnySpec> splitSpecs

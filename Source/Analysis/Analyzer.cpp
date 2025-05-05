@@ -105,12 +105,17 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 		return std::nullopt;
 	}
 	
+	const double startMs = juce::Time::getMillisecondCounterHiRes();
+	auto   startTimeStr = juce::Time::getCurrentTime().toString (true, true, true, true);
+	std::cout << "calculateOnsetwiseTimbreSpace start: " << startTimeStr << "\n";
+	
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settingsTree);
 #pragma message("probably need some normalization, possibly based on variance")
 	
 	std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
 	
-	for (vecReal const &e : events){
+	for (size_t i = 0; i < events.size(); ++i) {
+		auto const &e = events[i];
 		FeatureContainer<EventwiseStatistics<Real>> f;
 		
 		f.bfccs = calculateEventwiseBFCCDescription(e);
@@ -118,9 +123,17 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 		
 		timbre_points.push_back(f);
 
-		std::cout << "got BFCCs for event\n";
+		std::cout << "got timbre description #" << i << "/" << events.size() << "\n";
 	}
 	std::cout << "calculated all BFCCs\n";
+	
+	const double endMs   = juce::Time::getMillisecondCounterHiRes();
+	auto   endTimeStr   = juce::Time::getCurrentTime().toString (true, true);
+	const double elapsed = (endMs - startMs) * 0.001f;  // in seconds
+
+	std::cout << "calculateOnsetwiseTimbreSpace end:   " << endTimeStr << "\n";
+	std::cout << "\t\t\t Elapsed time:   " << juce::String (elapsed, 3) << " seconds\n";
+	
 	return timbre_points;
 }
 
