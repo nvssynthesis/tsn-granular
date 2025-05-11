@@ -291,9 +291,28 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	juce::Image image(juce::Image::ARGB, 16, 16, true);
 	juce::Graphics g(image);
 	
-	g.setColour(p3ToColour(biuni(_uvz)));
-	g.fillEllipse(image.getBounds().toFloat());
+	juce::Path triPath;
+	auto b = image.getBounds();
+	
+	auto x0 = b.getX();
+	auto x1 = x0 + (0.05 * b.getWidth());
+	auto x2 = x0 + (0.45 * b.getWidth());
+	auto x3 = x0 + b.getWidth();
 
+	auto y0 = b.getY();
+	auto y1 = y0 + (0.86 * b.getHeight());
+	auto y2 = y0 +  b.getHeight();
+	
+	using Line = juce::Line<float>;
+	using Point = juce::Point<float>;
+	triPath.startNewSubPath (Point(x1, y0));	// A
+	triPath.lineTo        	(Point(x0, y2));	// B
+	triPath.lineTo        	(Point(x2, y1));	// C
+	triPath.closeSubPath();						// back to A
+	
+	g.setColour(p3ToColour(biuni(_uvz)));
+	g.fillPath  (triPath);
+	
 	_image = image;
 }
 
