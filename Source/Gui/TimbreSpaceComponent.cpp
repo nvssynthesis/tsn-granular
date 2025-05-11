@@ -247,11 +247,6 @@ void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	};
 	
 	setLfoOffsetParamsFromPoint(_apvts, p2D_norm);
-
-	setCurrentPointFromNearest(p5D);
-	if (currentPointIdx != lastPointIdx){
-		repaint();
-	}
 }
 
 void TimbreSpaceComponent::mouseDrag(const juce::MouseEvent &event) {

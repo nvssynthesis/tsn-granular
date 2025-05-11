@@ -76,6 +76,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 			._p3D{0.f, 0.f, 0.f}
 		};
 		timbreSpaceComponent.setCurrentPointFromNearest(p5);
+//		size_t currentPointIdx = timbreSpaceComponent.getCurrentPointIdx();
 		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	});
@@ -288,6 +289,10 @@ void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
 
 	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
 		audioProcessor.setWaveEvent(pIdx);
+		auto onsets = onsetOpt.value();
+		assert (pIdx < onsets.size());
+		
+		waveformAndPositionComponent.highlight(std::make_pair(onsets[pIdx], onsets[pIdx + 1]));
 	}
 }
 
