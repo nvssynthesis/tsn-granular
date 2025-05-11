@@ -227,7 +227,8 @@ public:
 	
 	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent);
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
-	
+	EventwiseStatistics<float> calculateEventwiseLoudness(vecReal const &v);
+
 	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
 																										  RunLoopStatus& rls, ShouldExitFn shouldExit);
 	

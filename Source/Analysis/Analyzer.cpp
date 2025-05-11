@@ -72,7 +72,21 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(vecReal c
 	return descr;
 }
 
-#pragma message("doesnt work")
+EventwiseStatistics<float> Analyzer::calculateEventwiseLoudness(vecReal const &waveEvent){
+	vecReal l_tmp = calculateLoudnesses(waveEvent, ess_hold.factory, settingsTree);
+	
+	auto const l_mean = mean(l_tmp);
+	
+	EventwisePitchDescription descr {
+		.mean = l_mean,
+		.median = essentia::median(l_tmp),
+		.variance = essentia::variance(l_tmp, l_mean),
+		.skewness = essentia::skewness(l_tmp, l_mean),
+		.kurtosis = essentia::kurtosis(l_tmp, l_mean)
+	};
+	return descr;
+}
+
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  const &waveEvent) {
 	vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, settingsTree);	// bfccs per frame
 	
@@ -122,6 +136,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 		
 		f.bfccs = calculateEventwiseBFCCDescription(e);
 		f.f0 = calculateEventwisePitchDescription(e);
+		f.loudness = calculateEventwiseLoudness(e);
 		
 		timbre_points.push_back(f);
 

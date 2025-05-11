@@ -180,6 +180,64 @@ PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
 	}
 }
 
+vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree)
+{
+	size_t const waveSize = waveSpan.size();
+	vecReal wave(waveSize);
+	wave.assign(waveSpan.begin(), waveSpan.end());
+	
+	float sampleRate  = (float) settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
+
+	auto analysisTree = settingsTree.getChildWithName ("Analysis");
+	int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
+	int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
+
+	vectorInput *inVec = new vectorInput(&wave);
+//	Algorithm* equalLoudnessFilter = factory.create(
+//		"EqualLoudness",
+//		"sampleRate", sampleRate
+//	);	// not using yet 
+	Algorithm* frameCutter = factory.create (
+		"FrameCutter",
+		"frameSize",               frameSize,
+		"hopSize",                 hopSize,
+		"lastFrameToEndOfFile",    true,
+		"silentFrames",            "keep",
+		"startFromZero",           true,
+		"validFrameThresholdRatio", 0.0
+	);
+	jassert (analysisTree.hasProperty("windowingType"));
+	std::string windowType = analysisTree.getProperty("windowingType").toString().toStdString();
+	Algorithm* windowing = factory.create (
+		"Windowing",
+		  "normalized",  false,
+		  "size",        frameSize,
+		  "zeroPadding", frameSize,
+		  "type",        windowType,
+		  "zeroPhase",   false
+	);
+	Algorithm* loudness = factory.create("Loudness");
+	
+	Algorithm* loudnessFrameAccumulator = factory.create("RealAccumulator");
+	
+	std::vector<vecReal> loudnesses;
+	VectorOutput<vecReal> *pitchAccumOutput = new VectorOutput<vecReal>(&loudnesses);
+	
+	*inVec												>>		frameCutter->input("signal");
+	frameCutter->output("frame")						>>		windowing->input("frame");
+	windowing->output("frame")							>>		loudness->input("signal");
+	loudness->output("loudness")						>>		loudnessFrameAccumulator->input("data");
+	loudnessFrameAccumulator->output("array")			>>		pitchAccumOutput->input("data");
+	
+	Network n(inVec);
+	n.run();
+	n.clear();
+	
+	assert(loudnesses.size() == 1);
+	
+	return loudnesses[0];
+}
+
 vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree)
 {
 	size_t const waveSize = waveSpan.size();
@@ -191,8 +249,8 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 	auto analysisTree = settingsTree.getChildWithName ("Analysis");
 	auto bfccTree     = settingsTree.getChildWithName ("BFCC");
 	
-	 int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
-	 int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
+	int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
+	int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
 
 	// Compute the spectrum→algorithm mapping from the BFCC tree:
 	auto spectrumTypeStr = ((juce::String) bfccTree.getProperty ("spectrumType")).toStdString();

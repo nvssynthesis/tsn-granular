@@ -30,6 +30,8 @@ struct PitchesAndConfidences {
 
 PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, juce::ValueTree settingsTree);
 
+vecReal calculateLoudnesses(std::span<Real const> wavespan, streamingFactory const &factory, juce::ValueTree settingsTree);
+
 vecVecReal
 calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree);
 
