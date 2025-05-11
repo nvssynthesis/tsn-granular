@@ -39,12 +39,12 @@ float Analyzer::getAnalyzedFileSampleRate() const{
 	return settingsTree.getParent().getChildWithName("PresetInfo").getProperty("sampleRate");
 }
 
-std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(vecReal const &wave, std::function<bool(void)> runLoopCallback){
+std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit){
 	if (!wave.size()){
 		return std::nullopt;
 	}
 	
-	analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settingsTree, runLoopCallback);
+	analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settingsTree, rls, shouldExit);
 	std::cout << "analyzed onsets\n";
 	essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 	
@@ -100,7 +100,7 @@ EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(vecReal  co
 }
 
 std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>>
-Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds){
+Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> const &onsetsInSeconds, RunLoopStatus& rls, ShouldExitFn shouldExit){
 	if ((!wave.size()) || (!onsetsInSeconds.size())){
 		return std::nullopt;
 	}
@@ -109,11 +109,13 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 	auto   startTimeStr = juce::Time::getCurrentTime().toString (true, true, true, true);
 	std::cout << "calculateOnsetwiseTimbreSpace start: " << startTimeStr << "\n";
 	
-	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settingsTree);
+	rls.set("Splitting Wave into Events...");
+	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settingsTree, rls, shouldExit);
 #pragma message("probably need some normalization, possibly based on variance")
 	
 	std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
 	
+	rls.set("Calculating timbre descriptions per event...");
 	for (size_t i = 0; i < events.size(); ++i) {
 		auto const &e = events[i];
 		FeatureContainer<EventwiseStatistics<Real>> f;
@@ -124,6 +126,8 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 		timbre_points.push_back(f);
 
 		std::cout << "got timbre description #" << i << "/" << events.size() << "\n";
+		
+		rls.set((double)i / (double)events.size());
 	}
 	std::cout << "calculated all BFCCs\n";
 	
@@ -183,7 +187,7 @@ vecVecReal transpose(vecVecReal const &V){
 }
 
 
-void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer)
+void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer, RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
 	if ( !wave.size() | !onsetsInSeconds.size() ){
 		std::cerr << "unsuccessful write; wave or onsets of size 0\n";
@@ -196,7 +200,7 @@ void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSec
 //	denormalizeOnsets(normalizedOnsets, getLengthInSeconds(wave.size(), analyzer._analysisSettings.sampleRate));
 //	auto const &onsetsInSeconds = normalizedOnsets;	// merely renaming because now normalizedOnsets are in fact not normalized; they are in seconds.
 	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds,
-														   analyzer.ess_hold.factory, settingsTree);
+														   analyzer.ess_hold.factory, settingsTree, rls, shouldExit);
 	juce::WavAudioFormat format;
 	std::unique_ptr<juce::AudioFormatWriter> writer;
 

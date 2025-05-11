@@ -27,6 +27,9 @@ public:
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
 	void valueTreePropertyChanged (juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
+	ProgressIndicator &getProgressIndicator() {
+		return timbreSpaceComponent.getProgressIndicator();
+	}
 protected:
 private:
 	juce::ComponentBoundsConstrainer constrainer;

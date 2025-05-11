@@ -11,10 +11,11 @@
 #pragma once
 #include <optional>
 #include <type_traits>
-#include "OnsetAnalysis/OnsetAnalysis.h"
-#include "Analysis/TimbreAnalysis/TimbreAnalysis.h"
-#include "../../slicer_granular/Source/misc_util.h"
 #include <JuceHeader.h>
+#include "RunLoopStatus.h"
+#include "OnsetAnalysis/OnsetAnalysis.h"
+#include "TimbreAnalysis/TimbreAnalysis.h"
+#include "../../slicer_granular/Source/misc_util.h"
 
 namespace nvs {
 namespace analysis {
@@ -222,10 +223,14 @@ private:
 public:
 	Analyzer();
 	
-	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, std::function<bool(void)> runLoopCallback=[](){return true;});
+	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit);
+	
 	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent);
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
-	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets);
+	
+	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
+																										  RunLoopStatus& rls, ShouldExitFn shouldExit);
+	
 	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::vector<Features> featuresToUse, Statistic statToUse);
 	
 	void setAnalyzedFileSampleRate(float sampleRate);
@@ -306,7 +311,7 @@ vecReal binwiseStatistic(vecVecReal const &V, Func statisticFunc) {
 	return results;
 }
 
-void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer);
+void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer, RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 }	// namespace analysis
 }	// namespace nvs

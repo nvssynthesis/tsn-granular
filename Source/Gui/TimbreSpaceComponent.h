@@ -19,6 +19,14 @@
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
 */
 
+struct ProgressIndicator	:	public juce::Component
+{
+	void paint(juce::Graphics &g) override;
+	void resized() override;
+
+	double progress {0.0};
+};
+
 namespace {
 constexpr bool inRange0_1(float x){
 	return ( (x >= 0.f) && (x <= 1.f) );
@@ -27,7 +35,7 @@ constexpr bool inRangeM1_1(float x){
 	return ( (x >= -1.f) && (x <= 1.f) );
 }
 }
-class TimbreSpaceComponent	:	public juce::Component
+class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
 {
 public:
 	using timbre2DPoint = juce::Point<float>;
@@ -50,8 +58,10 @@ public:
 	
 	
 	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts)
-	:	_apvts{apvts}
-	{}
+	:	_apvts{apvts} {}
+	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
+	void exitSignalSent() override;
+	
 	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
 	void add5DPoint(float x, float y, float z, float w, float v);
 	void clear();
@@ -74,11 +84,16 @@ public:
 	void setNavigatorPoint(timbre2DPoint p){
 		nav._p2D = p;
 	}
+	ProgressIndicator &getProgressIndicator(){
+		return progressIndicator;
+	}
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	
 	void add2DPoint(float x, float y);
 	void add2DPoint(timbre2DPoint p);
+	
+	ProgressIndicator progressIndicator;
 	
 	struct TSNMouse
 	{

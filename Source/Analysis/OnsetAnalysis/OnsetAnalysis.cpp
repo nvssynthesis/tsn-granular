@@ -29,7 +29,7 @@ vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real co
 
 array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  streamingFactory const &factory, juce::ValueTree settingsTree,
-						  std::function<bool(void)> runLoopCallback)
+						  RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
 	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
 	auto const input_sr     = (float) presetInfoTree.getProperty ("sampleRate");
@@ -141,8 +141,9 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	
 	Network n(inVec);
 	n.runPrepare();
+	
 	while (n.runStep()){
-		if (!runLoopCallback()){
+		if (shouldExit()) {
 			break;
 		}
 	}
@@ -221,7 +222,7 @@ vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactor
 vecVecReal featuresForSbic(vecReal const &waveform,
 						   AlgorithmFactory const &factory,
 						   juce::ValueTree settingsTree,
-						   std::function<bool(void)> runLoopCallback)
+						   RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
 	vectorInput *inVec = new vectorInput(&waveform);
 	
@@ -283,7 +284,7 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 	Network n(inVec);
 	n.runPrepare();
 	while (n.runStep()){
-		if (!runLoopCallback()){
+		if (shouldExit()){
 			break;
 		}
 	}
@@ -319,7 +320,7 @@ vecReal sBic(array2dReal featureMatrix, standardFactory const &factory, juce::Va
 vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds,
 							   streamingFactory const &factory,
 							   juce::ValueTree settingsTree,
-							   std::function<bool(void)> runLoopCallback){
+							   RunLoopStatus& rls, ShouldExitFn shouldExit){
 	size_t const numOnsets {onsetsInSeconds.size()};
 	assert(numOnsets);
 	if (numOnsets == 1){	// only 1 event
@@ -353,7 +354,7 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	Network n(waveInput);
 	n.runPrepare();
 	while (n.runStep()){
-		if (!runLoopCallback()){
+		if (shouldExit()){
 			break;
 		}
 	}
@@ -381,7 +382,7 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 
 void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory,
 			  juce::ValueTree settingsTree,
-			  std::function<bool(void)> runLoopCallback)
+			  RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
 	float sr = (float)settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
 	jassert (sr > 20000.f);
@@ -395,14 +396,14 @@ void writeWav(vecReal const &wave, std::string_view name, streamingFactory const
 	Network n(waveInput);
 	n.runPrepare();
 	while (n.runStep()){
-		if (!runLoopCallback()){
+		if (shouldExit()){
 			break;
 		}
 	}
 	n.clear();
 }
 void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory,
-			   juce::ValueTree settingsTree, std::function<bool(void)> runLoopCallback)
+			   juce::ValueTree settingsTree, RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
 	int idx = 0;
 	std::string name(defName);
@@ -411,7 +412,7 @@ void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFacto
 		strIdx = std::to_string(idx);
 		name += strIdx;					// add index to name
 		
-		writeWav(wave, name, factory, settingsTree, runLoopCallback);
+		writeWav(wave, name, factory, settingsTree, rls, shouldExit);
 		
 		name.erase(name.back() - strIdx.length(), name.back());	// remove index from name
 	}

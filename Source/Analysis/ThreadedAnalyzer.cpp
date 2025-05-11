@@ -46,16 +46,20 @@ void ThreadedAnalyzer::run() {
 	if (!(_inputWave.data() && _inputWave.size())){
 		return;
 	}
+	rls.set(0.0);
+	// let any sub-step know if we’ve been asked to exit:
+	auto shouldExit = [this]() {
+		bool retval = threadShouldExit();
+		if (retval){
+			std::cout << "ThreadedAnalyzer: exit requested \n";
+		}
+		return retval;;
+	};
+
 	
 	// perform onset analysis
-	fmt::print("ThreadedAnalyzer: performing onset analysis\n");
-	auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, [&](){
-		if (threadShouldExit()){
-			fmt::print("ONSET CALCULATION EXITED EARLY\n");
-			return false;
-		}
-		return true;
-	});
+	rls.set("Calculating Onsets...");
+	auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, rls, shouldExit);
 	jassert (onsetOpt.has_value());
 
 	if (!onsetOpt.value().size()){
@@ -64,8 +68,8 @@ void ThreadedAnalyzer::run() {
 		return;
 	}
 	// perform onsetwise BFCC analysis
-	fmt::print("ThreadedAnalyzer: performing bfcc analysis\n");
-	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt);
+	rls.set("Calculating Onsetwise TimbreSpace...");
+	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt, rls, shouldExit);
 	jassert (timbreMeasurementsOpt.has_value());
 	
 	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer.getAnalyzedFileSampleRate());

@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="gXPk7b" name="tsn_granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              version="0.1.5" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
+              version="0.1.6" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source"
@@ -83,6 +83,7 @@
               file="Source/Gui/TimbreSpaceComponent.cpp"/>
       </GROUP>
       <GROUP id="{4D89421A-9B73-C464-6F0A-912A784F3BFA}" name="Analysis">
+        <FILE id="Fepifz" name="RunLoopStatus.h" compile="0" resource="0" file="Source/Analysis/RunLoopStatus.h"/>
         <FILE id="hMG2pR" name="Analyzer.h" compile="0" resource="0" file="Source/Analysis/Analyzer.h"/>
         <FILE id="qXebNS" name="Analyzer.cpp" compile="1" resource="0" file="Source/Analysis/Analyzer.cpp"/>
         <FILE id="j0zBe4" name="ThreadedAnalyzer.h" compile="0" resource="0"

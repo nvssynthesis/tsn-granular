@@ -10,6 +10,7 @@
 
 #include "TimbreSpaceComponent.h"
 #include "../slicer_granular/Source/params.h"
+#include "Analysis/ThreadedAnalyzer.h"
 
 //===============================================timbre5DPoint=================================================
 bool TimbreSpaceComponent::timbre5DPoint::operator==(timbre5DPoint const &other) const {
@@ -210,7 +211,6 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(nav._p2D, w, h), 2.f));
 	}
 }
-void TimbreSpaceComponent::resized() {}
 
 void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose) {
 	if (verbose) {
@@ -287,6 +287,46 @@ void TimbreSpaceComponent::updateCursor() {
 	juce::MouseCursor customCursor(mouseImage, mouseImage.getWidth() / 2, mouseImage.getHeight() / 2);
 	setMouseCursor(customCursor);
 }
+
+void TimbreSpaceComponent::resized() {
+	auto const b = getLocalBounds();
+	auto const proportionRect = juce::Rectangle<float> {0.1f, 0.05f,
+														0.8f, 0.05f};
+	auto progressBounds = b.getProportion(proportionRect);
+	progressIndicator.setBounds(progressBounds);
+}
+
+void ProgressIndicator::paint(juce::Graphics &g) {
+	g.setColour(juce::Colours::black);
+	auto const b = getLocalBounds();
+	g.drawRect(b, 2.f);
+	
+	int partialW = b.getWidth() * progress;
+	auto progressBar = b.withWidth(partialW);
+	g.fillRect(progressBar);
+}
+void ProgressIndicator::resized() {
+	
+}
+void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* source) {
+	if (auto *a = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
+		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
+		addAndMakeVisible(progressIndicator);
+		progressIndicator.progress = a->getProgress();
+		std::cout << "PROGRESS: " << progressIndicator.progress << '\n';
+		progressIndicator.repaint();
+	}
+	else if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+		std::cout << "timbre space comp: ThreadedAnalyzer: CHANGE listener: hiding progress indicator\n";
+		progressIndicator.setVisible(false);
+	}
+}
+void TimbreSpaceComponent::exitSignalSent() {
+	std::cout << "timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator\n";
+	progressIndicator.setVisible(false);
+}
+
+
 void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	juce::Image image(juce::Image::ARGB, 16, 16, true);
 	juce::Graphics g(image);

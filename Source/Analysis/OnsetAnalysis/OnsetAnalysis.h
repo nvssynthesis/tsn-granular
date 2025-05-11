@@ -22,10 +22,10 @@ vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real co
 //===================================================================================
 
 array2dReal calculateOnsetsMatrix(vecReal const &waveform, streamingFactory const &factory, juce::ValueTree settingsTree,
-									std::function<bool(void)> runLoopCallback=[](){return true;});
+								  RunLoopStatus& rls, ShouldExitFn shouldExit);
 vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory, juce::ValueTree settingsTree);
 vecVecReal featuresForSbic(vecReal const &waveform, AlgorithmFactory const &factory,  juce::ValueTree settingsTree,
-									std::function<bool(void)> runLoopCallback=[](){return true;});
+						   RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 inline array2dReal vecVecToArray2dReal(vecVecReal const &vv){
 	return essentia::transpose(essentia::vecvecToArray2D(vv));
@@ -33,11 +33,11 @@ inline array2dReal vecVecToArray2dReal(vecVecReal const &vv){
 
 vecReal sBic(array2dReal featureMatrix, standardFactory const &factory, juce::ValueTree settingsTree);
 vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds, streamingFactory const &factory, juce::ValueTree settingsTree,
-								std::function<bool(void)> runLoopCallback=[](){return true;});
+							   RunLoopStatus& rls, ShouldExitFn shouldExit);
 void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory, juce::ValueTree settingsTree,
-								std::function<bool(void)> runLoopCallback=[](){return true;});
+			  RunLoopStatus& rls, ShouldExitFn shouldExit);
 void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory, juce::ValueTree settingsTree,
-			   std::function<bool(void)> runLoopCallback=[](){return true;});
+			   RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 }	// namespace analysis
 }	// namespace nvs

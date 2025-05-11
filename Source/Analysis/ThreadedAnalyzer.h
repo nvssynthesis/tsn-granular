@@ -50,6 +50,8 @@ public:
 		return _filenameHash;
 	}
 	//===============================================================================
+	void stopAnalysis() { signalThreadShouldExit(); }
+	RunLoopStatus &getStatus() noexcept { return rls; }
 private:
 	Analyzer _analyzer;
 	
@@ -60,6 +62,8 @@ private:
 	
 	size_t _filenameHash;
 	size_t _eventualFilenameHash;
+	
+	RunLoopStatus rls;
 };
 
 }	// namespace analysis

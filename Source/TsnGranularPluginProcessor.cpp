@@ -103,7 +103,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
 						 getSampleFilePath().hash());
 	_analyzer.updateSettings(nonAutomatableState.getChildWithName("Settings"));
-	if (_analyzer.startThread(juce::Thread::Priority::high)){
+	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis
 		writeToLog("analyzer onset thread started");
 	}
 }
@@ -127,7 +127,11 @@ void TsnGranularAudioProcessor::writeEvents(){
 	auto analyzer = _analyzer.getAnalyzer();
 
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
-	nvs::analysis::writeEventsToWav(wave, onsetsTmp, audioFilePath.toStdString(), analyzer);
+	
+	
+	nvs::analysis::RunLoopStatus rls;
+	nvs::analysis::ShouldExitFn shouldExitFn = [](){return false;};
+	nvs::analysis::writeEventsToWav(wave, onsetsTmp, audioFilePath.toStdString(), analyzer, rls, shouldExitFn);
 }
 
 void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {

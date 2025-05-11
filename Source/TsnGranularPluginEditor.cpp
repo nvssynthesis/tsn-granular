@@ -11,6 +11,7 @@
 #include "Gui/SettingsWindow.h"
 #include "../slicer_granular/Source/algo_util.h"
 #include "Gui/NavLFOPage.h"
+#include "Analysis/RunLoopStatus.h"
 
 //==============================================================================
 
@@ -30,7 +31,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	setResizable(true, true);
 	
 	addAndMakeVisible(grainBusyDisplay);
-	addAndMakeVisible (fileComp);
+	addAndMakeVisible(fileComp);
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
 		if (TsnGranularAudioProcessor* a = dynamic_cast<TsnGranularAudioProcessor*>(&processor)){
@@ -95,6 +96,10 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	}
 	
 	audioProcessor.getNonAutomatableState().addListener(this);
+	auto &a = audioProcessor.getAnalyzer();
+	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
+	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
+	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
 	
 	constrainer.setMinimumSize(620, 500);
 }
@@ -426,8 +431,8 @@ void TsnGranularAudioProcessorEditor::resized()
 }
 
 void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+		auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
 		// maybe it would make sense to have TimbreSpaceNeededData be a listener and broadcaster, and information flow goes
 		// ThreadedAnalyzer -> TimbreSpaceNeededData -> Editor.
 		// But it could add a bit more complexity, and this is working, so I will avoid tinkering with that until this way doesnt work.
