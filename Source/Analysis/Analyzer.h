@@ -52,14 +52,33 @@ inline juce::String toString(Features f){
 	}
 	switch (f) {
 		case Features::Periodicity:
-			return "periodicity";
+			return "Periodicity";
 		case Features::Loudness:
 			return "Loudness";
 		case Features::f0:
 			return "f0";
 		default:
+			jassertfalse;
 			return "";
 	}
+}
+inline Features toFeature(juce::String s){
+	if (s.contains("bfcc")){
+		juce::String intPart = s.removeCharacters("bfcc");
+		int i = intPart.getIntValue();
+		return Features(i);
+	}
+	if (s == "Periodicity"){
+		return Features::Periodicity;
+	}
+	else if (s == "Loudness"){
+		return Features::Loudness;
+	}
+	else if (s == "f0"){
+		return Features::f0;
+	}
+	jassertfalse;
+	return Features::bfcc0;
 }
 
 inline std::vector<juce::String> buildFeatureChoiceVec() {
@@ -148,7 +167,7 @@ template<typename T>
 [[nodiscard]]
 inline std::vector<T>
 extractFeatures(FeatureContainer<T> const & allFeatures,
-				std::set<Features> featuresToUse)
+				std::vector<Features> featuresToUse)
 {
 	std::vector<T> v;
 	v.reserve(featuresToUse.size());
@@ -175,7 +194,7 @@ extractFeatures(FeatureContainer<T> const & allFeatures,
 [[nodiscard]]
 inline std::vector<Real>
 extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
-				std::set<Features> featuresToUse,
+				std::vector<Features> featuresToUse,
 				Statistic statisticToUse)
 {
 	auto descs = extractFeatures(allFeatures, featuresToUse);
@@ -207,7 +226,7 @@ public:
 	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent);
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
 	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets);
-	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::set<Features> featuresToUse, Statistic statToUse);
+	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::vector<Features> featuresToUse, Statistic statToUse);
 	
 	void setAnalyzedFileSampleRate(float sampleRate);
 	float getAnalyzedFileSampleRate() const;

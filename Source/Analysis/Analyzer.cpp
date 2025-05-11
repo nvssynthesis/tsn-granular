@@ -137,7 +137,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 	return timbre_points;
 }
 
-std::optional<vecVecReal> Analyzer::calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::set<Features> featuresToUse, Statistic statToUse) {
+std::optional<vecVecReal> Analyzer::calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::vector<Features> featuresToUse, Statistic statToUse) {
 	if (allFeatures.size() < 2){	// can't perform PCA with 1 sample
 		return std::nullopt;
 	}

@@ -155,16 +155,15 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		writeToLog("TsnGranularAudioProcessor::changeListenerCallback: dynamic cast from ChangeBroadcaster to ThreadedAnalyzer unsuccessful");
 	}
 }
-void TsnGranularAudioProcessor::TimbreSpaceNeededData::extract() {
+void TsnGranularAudioProcessor::TimbreSpaceNeededData::extract(std::vector<nvs::analysis::Features> featuresToExtract) {
 	if (!fullTimbreSpace.has_value()){
 		std::cerr << "TsnGranularAudioProcessorEditor::TimbreSpaceNeededData::extract: timbre space empty, early exit\n";
 	}
 	eventwiseExtractedTimbrePoints.clear();
 	eventwiseExtractedTimbrePoints.reserve(fullTimbreSpace->size());
 	
-	auto featureSet = nvs::analysis::bfccSet;	// may modify this, but it's a good starting point
 	for (auto const &t : fullTimbreSpace.value()) {
-		std::vector<float> v = nvs::analysis::extractFeatures(t, featureSet, nvs::analysis::Statistic::Median);
+		std::vector<float> v = nvs::analysis::extractFeatures(t, featuresToExtract, nvs::analysis::Statistic::Median);
 		eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }

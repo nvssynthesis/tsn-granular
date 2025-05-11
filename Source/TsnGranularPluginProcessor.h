@@ -57,7 +57,7 @@ private:
 		std::optional<std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>>>  fullTimbreSpace;	// gets stolen FROM analyzer to save memory
 		std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 		
-		void extract();
+		void extract(std::vector<nvs::analysis::Features> featuresToExtract);
 	};
 	TimbreSpaceNeededData timbreSpaceNeededData;
 	
