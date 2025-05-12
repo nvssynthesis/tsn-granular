@@ -299,6 +299,9 @@ void ProgressIndicator::paint(juce::Graphics &g) {
 	int partialW = b.getWidth() * progress;
 	auto progressBar = b.withWidth(partialW);
 	g.fillRect(progressBar);
+	
+	g.setColour(juce::Colours::whitesmoke);
+	g.drawText(message, b, juce::Justification::centred);
 }
 void ProgressIndicator::resized() {
 	
@@ -308,6 +311,7 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
 		addAndMakeVisible(progressIndicator);
 		progressIndicator.progress = a->getProgress();
+		progressIndicator.message = a->getMessage();
 		std::cout << "PROGRESS: " << progressIndicator.progress << '\n';
 		progressIndicator.repaint();
 	}

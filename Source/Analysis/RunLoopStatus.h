@@ -29,6 +29,9 @@ public:
 	double getProgress() const {
 		return progress;
 	}
+	juce::String getMessage() const {
+		return message;
+	}
 private:
 	juce::String message {""};
 	double progress {0.0};

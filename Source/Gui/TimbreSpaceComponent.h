@@ -24,6 +24,7 @@ struct ProgressIndicator	:	public juce::Component
 	void paint(juce::Graphics &g) override;
 	void resized() override;
 
+	juce::String message {""};
 	double progress {0.0};
 };
 

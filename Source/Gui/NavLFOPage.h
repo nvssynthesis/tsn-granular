@@ -12,9 +12,9 @@
 #include <JuceHeader.h>
 #include "../slicer_granular/Source/Gui/AttachedSlider.h"
 
-struct Navigator2DLFO	:	public juce::Component
+struct Navigator2DLFOPanel	:	public juce::Component
 {
-	Navigator2DLFO(juce::AudioProcessorValueTreeState &apvts)
+	Navigator2DLFOPanel(juce::AudioProcessorValueTreeState &apvts)
 	:	sliderArray
 	{
 		AttachedSlider(apvts, params_e::nav_lfo_2d_amount, juce::Slider::SliderStyle::LinearVertical),
@@ -42,9 +42,9 @@ private:
 	std::array<AttachedSlider, NUM_NAVIGATION_PARAMS> sliderArray;
 };
 
-struct Navigator6DLFO	:	public juce::Component
+struct Navigator6DLFOPanel	:	public juce::Component
 {
-	Navigator6DLFO(juce::AudioProcessorValueTreeState &apvts){}
+	Navigator6DLFOPanel(juce::AudioProcessorValueTreeState &apvts){}
 };
 
 struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
@@ -57,8 +57,8 @@ struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
 		navigatorTypeMenu.setSelectedId(1);
 		navigatorTypeMenu.addListener(this);
 
-		twoDPanel.reset(new Navigator2DLFO(apvts));
-		sixDPanel.reset(new Navigator6DLFO(apvts));
+		twoDPanel.reset(new Navigator2DLFOPanel(apvts));
+		sixDPanel.reset(new Navigator6DLFOPanel(apvts));
 		addAndMakeVisible(twoDPanel.get());
 		addAndMakeVisible(sixDPanel.get());
 
@@ -101,5 +101,6 @@ struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
 private:
 	juce::ComboBox navigatorTypeMenu;
 	std::unique_ptr<juce::Component> twoDPanel, sixDPanel;
-	juce::Component* activePanel = nullptr;};
+	juce::Component* activePanel = nullptr;
+};
 

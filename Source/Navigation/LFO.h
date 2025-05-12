@@ -15,11 +15,11 @@
 
 namespace nvs::nav {
 
-class GUILFO : public juce::Timer
+class LFO2D : public juce::Timer
 {
 public:
-	GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz);
-	~GUILFO() override = default;
+	LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz);
+	~LFO2D() override = default;
 	void start();
 	void stop();
 	void setOnUpdateCallback(std::function<void(double, double)> callback);

@@ -18,7 +18,6 @@
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 :	AudioProcessorEditor (&p)
 ,	GranularEditorCommon (p)
-,	gui_lfo(p.getGUILFO())	// processor owns it, but editor facilitates communication from lfo > timbre space
 ,	timbreSpaceComponent(p.getAPVTS())
 ,	backgroundNeedsUpdate(true)
 ,	askForAnalysisButton("Calculate Analysis")
@@ -66,7 +65,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.hideSlider();
 	
-	gui_lfo.setOnUpdateCallback([&](double x, double y){
+	audioProcessor.getLFO2D().setOnUpdateCallback([&](double x, double y){
 		// set navigator of timbre space component
 		auto const p2 = juce::Point<float>(x, y);
 		timbreSpaceComponent.setNavigatorPoint(p2);
@@ -76,11 +75,11 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 			._p3D{0.f, 0.f, 0.f}
 		};
 		timbreSpaceComponent.setCurrentPointFromNearest(p5);
-//		size_t currentPointIdx = timbreSpaceComponent.getCurrentPointIdx();
 		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	});
-	gui_lfo.start();
+	audioProcessor.getLFO2D().start();
+	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
@@ -109,7 +108,7 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
 	audioProcessor.getNonAutomatableState().removeListener (this);
-	gui_lfo.stop();
+	audioProcessor.getLFO2D().stop();
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()

@@ -11,7 +11,7 @@
 #include "LFO.h"
 
 namespace nvs::nav {
-GUILFO::GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
+LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 :	_apvts(apvts)
 ,	frequencyHz(*_apvts.getRawParameterValue("Rate"))
 , 	updateIntervalMs(1000.0 / updateRateHz)
@@ -20,24 +20,24 @@ GUILFO::GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 	amplitude = (*_apvts.getRawParameterValue("Amount"));
 }
 
-void GUILFO::start() {
+void LFO2D::start() {
 	startTimer(updateIntervalMs);
 }
 
-void GUILFO::stop() {
+void LFO2D::stop() {
 	stopTimer();
 }
 
-void GUILFO::setFrequency(double newFrequencyHz) {
+void LFO2D::setFrequency(double newFrequencyHz) {
 	frequencyHz = newFrequencyHz;
 	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / (1000.0 / updateIntervalMs);
 }
 
-void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
+void LFO2D::setOnUpdateCallback(std::function<void(double, double)> callback) {
 	onUpdate = std::move(callback);
 }
 
-void GUILFO::timerCallback() {
+void LFO2D::timerCallback() {
 	// update parameters
 	setFrequency(*_apvts.getRawParameterValue("Rate"));
 	amplitude = *_apvts.getRawParameterValue("Amount");

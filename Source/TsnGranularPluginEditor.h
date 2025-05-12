@@ -34,8 +34,6 @@ protected:
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 	
-	nvs::nav::GUILFO &gui_lfo;
-	
 	void updateAndDrawTimbreSpacePoints(bool verbose = true);
 	void drawTimbreSpacePoints(bool verbose = true);
 	struct TimbreSpaceDrawingSettings {
