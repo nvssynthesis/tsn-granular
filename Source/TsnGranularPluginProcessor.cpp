@@ -15,7 +15,7 @@ nvs::util::LoggingGuts::LoggingGuts()
 TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 :	Slicer_granularAudioProcessor(std::make_unique<JuceTsnGranularSynthesizer>())
 ,	_analyzer(this)			// effectively adding this as listener to the analyzer
-,	gui_lfo(apvts, 20.0)	// processor owns it, but editor facilitates communication from lfo > timbre space
+,	gui_lfo(apvts, 40.0)	// processor owns it, but editor facilitates communication from lfo > timbre space
 {
 	if (dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
 		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");

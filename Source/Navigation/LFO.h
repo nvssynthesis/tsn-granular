@@ -38,7 +38,7 @@ private:
 	double offsetX {0.0};
 	double offsetY {0.0};
 	double phaseIncrement;	// Phase increment per timer tick
-	int updateIntervalMs;
+	double updateIntervalMs;
 	std::function<void(double, double)> onUpdate;
 };
 

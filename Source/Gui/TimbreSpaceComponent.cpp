@@ -156,8 +156,8 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 	return juce::Colour(h, s, v, alpha);
 }
 void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timbre2DPoint p2D){
-	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_offset_x)) = p2D.getX();
-	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_offset_y)) = p2D.getY();
+	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_2d_offset_x)) = p2D.getX();
+	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_2d_offset_y)) = p2D.getY();
 }
 }	// anonymous namespace
 

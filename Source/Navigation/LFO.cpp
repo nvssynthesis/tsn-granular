@@ -14,7 +14,7 @@ namespace nvs::nav {
 GUILFO::GUILFO(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 :	_apvts(apvts)
 ,	frequencyHz(*_apvts.getRawParameterValue("Rate"))
-, 	updateIntervalMs(static_cast<int>(1000.0 / updateRateHz))
+, 	updateIntervalMs(1000.0 / updateRateHz)
 {
 	setFrequency(*_apvts.getRawParameterValue("Rate"));
 	amplitude = (*_apvts.getRawParameterValue("Amount"));
@@ -30,7 +30,7 @@ void GUILFO::stop() {
 
 void GUILFO::setFrequency(double newFrequencyHz) {
 	frequencyHz = newFrequencyHz;
-	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / updateIntervalMs;
+	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / (1000.0 / updateIntervalMs);
 }
 
 void GUILFO::setOnUpdateCallback(std::function<void(double, double)> callback) {
@@ -55,8 +55,9 @@ void GUILFO::timerCallback() {
 	double const y = std::sin(phase) * amplitude + offsetY;
 
 	// Trigger the callback to update the TimbreSpaceComponent
-	if (onUpdate)
+	if (onUpdate){
 		onUpdate(x, y);
+	}
 }
 
 }	// nvs::nav
