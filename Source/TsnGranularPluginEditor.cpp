@@ -291,8 +291,8 @@ void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
 		audioProcessor.setWaveEvent(pIdx);
 		auto onsets = onsetOpt.value();
 		assert (pIdx < onsets.size());
-		
-		waveformAndPositionComponent.highlight(std::make_pair(onsets[pIdx], onsets[pIdx + 1]));
+		auto nextIdx = (pIdx + 1) % onsets.size();
+		waveformAndPositionComponent.highlight(std::make_pair(onsets[pIdx], onsets[nextIdx]));
 	}
 }
 
