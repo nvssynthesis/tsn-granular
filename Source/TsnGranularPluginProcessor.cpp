@@ -91,6 +91,9 @@ void TsnGranularAudioProcessor::setWaveEvents(std::array<size_t, 4> indices, std
 }
 
 void TsnGranularAudioProcessor::askForAnalysis(){
+	if (_analyzer.Thread::isThreadRunning()){
+		_analyzer.stopAnalysis();
+	}
 	auto const buffer = sampleManagementGuts.sampleBuffer;
 	if (!buffer.getNumChannels()){
 		writeToLog("TSN: askForAnalysis: buffer had no channels. Early exit.");

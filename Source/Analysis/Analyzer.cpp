@@ -178,7 +178,7 @@ vecVecReal truncate(vecVecReal const &V, size_t trunc){
 		return V;
 	}
 	vecVecReal Vtrunc(trunc);
-	for (int i = 0; i < trunc; ++i){
+	for (size_t i = 0; i < trunc; ++i){
 		Vtrunc[i] = V[i];
 	}
 	return Vtrunc;
@@ -192,9 +192,9 @@ vecVecReal transpose(vecVecReal const &V){
 	}
 	
 	vecVecReal Vtranspose(D1);
-	for (int i = 0; i < D1; ++i){
+	for (size_t i = 0; i < D1; ++i){
 		Vtranspose[i].resize(D0);
-		for (int j = 0; j < D0; ++j){
+		for (size_t j = 0; j < D0; ++j){
 			Vtranspose[i][j] = V[j][i];
 		}
 	}
@@ -204,7 +204,7 @@ vecVecReal transpose(vecVecReal const &V){
 
 void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer, RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
-	if ( !wave.size() | !onsetsInSeconds.size() ){
+	if ( !wave.size() or !onsetsInSeconds.size() ){
 		std::cerr << "unsuccessful write; wave or onsets of size 0\n";
 		return;
 	}

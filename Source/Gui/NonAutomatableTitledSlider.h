@@ -48,7 +48,7 @@ struct NonAutomatableTitledSlider : public juce::Component
 		addAndMakeVisible(_slider);
 		addAndMakeVisible(_label);
 	}
-	void paint(juce::Graphics &g) override {}
+	void paint(juce::Graphics &) override {}
 	void resized() override {
 		fmt::print("non automatable slider {} resized\n", _name.toStdString());
 		constrainer.checkComponentBounds(this);

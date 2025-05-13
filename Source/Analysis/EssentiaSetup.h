@@ -17,11 +17,9 @@ namespace ess {
 struct EssentiaInitializer {
 	EssentiaInitializer(){
 		essentia::init();
-		std::cout << "INITIALIZED ESSENTIA!\n";
 	}
 	~EssentiaInitializer(){
 		essentia::shutdown();
-		std::cout << "SHUT DOWN ESSENTIA!\n";
 	}
 };
 

@@ -19,7 +19,7 @@ namespace analysis {
 
 vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real const sampleRate){
 	std::vector<Real> freqSweep(len, 0.f);
-	for (auto i = 0; i < len; ++i){
+	for (size_t i = 0; i < len; ++i){
 		Real x = (high - low) * (Real(i)/Real(len)) + low;
 		freqSweep[i] = std::sin(2.f * 3.14159265f * (x / sampleRate));
 	}
@@ -141,16 +141,18 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	
 	Network n(inVec);
 	n.runPrepare();
-	
+	rls.set("Computing onset matrix...");
+	rls.set(0.0);
 	while (n.runStep()){
 		if (shouldExit()) {
 			break;
 		}
 	}
+	rls.set(1.0);
 	n.clear();
 	
 	TNT::Array2D<essentia::Real> onsetsMatrix(6, static_cast<int>(onsetDetVecHFC.size()));
-	for (int j = 0; j < onsetDetVecHFC.size(); ++j){
+	for (size_t j = 0; j < onsetDetVecHFC.size(); ++j){
 		onsetsMatrix[0][j] = onsetDetVecHFC[j];
 		onsetsMatrix[1][j] = onsetDetVecComplex[j];
 		onsetsMatrix[2][j] = onsetDetVecComplexPhase[j];
@@ -212,7 +214,7 @@ vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactor
 	
 	onsetDetectionSeconds->compute();
 	
-	for (int i = 1; i < onsets.size(); ++i) {
+	for (size_t i = 1; i < onsets.size(); ++i) {
 		assert(onsets[i - 1] < onsets[i]);
 	}
 	
@@ -364,14 +366,14 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	
 	auto splitSettings = settingsTree.getChildWithName("Split");
 	
-	for (int i = 0; i < waveEvents.size(); ++i){
+	for (size_t i = 0; i < waveEvents.size(); ++i){
 		size_t currentLength = waveEvents[i].size();
 		size_t fadeInSamps = std::min(size_t((int)splitSettings.getProperty("fadeInSamps")), currentLength);
-		for (int j = 0; j < fadeInSamps; ++j){
+		for (size_t j = 0; j < fadeInSamps; ++j){
 			waveEvents[i][j] = waveEvents[i][j] * ((Real)j / (Real)fadeInSamps);
 		}
 		size_t fadeOutSamps = std::min(size_t((int)splitSettings.getProperty("fadeOutSamps")), currentLength);
-		for (int j = 0; j < fadeOutSamps; ++j){
+		for (size_t j = 0; j < fadeOutSamps; ++j){
 			size_t currentIdx = (currentLength - 1) - j;
 			waveEvents[i][currentIdx] = waveEvents[i][currentIdx] * ((Real)j / (Real)fadeOutSamps);
 		}

@@ -33,8 +33,8 @@ struct Navigator2DLFOPanel	:	public juce::Component
 		int const alottedCompHeight = localBounds.getHeight();
 		int const alottedCompWidth = localBounds.getWidth() / sliderArray.size();
 		
-		for (int i = 0; i < sliderArray.size(); ++i){
-			int left = i * alottedCompWidth + localBounds.getX();
+		for (size_t i = 0; i < sliderArray.size(); ++i){
+			int left = (int)i * alottedCompWidth + localBounds.getX();
 			sliderArray[i]._slider.setBounds(left, 0, alottedCompWidth, alottedCompHeight);
 		}
 	}

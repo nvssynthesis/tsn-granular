@@ -237,7 +237,6 @@ void TimbreSpaceComponent::setCurrentPointIdx(int newIdx){
 
 
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
-	fmt::print("draggng or down\n");
 	tsn_mouse._dragging = true;
 	auto const lastPointIdx = currentPointIdx;
 	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
@@ -301,6 +300,7 @@ void ProgressIndicator::paint(juce::Graphics &g) {
 	g.fillRect(progressBar);
 	
 	g.setColour(juce::Colours::whitesmoke);
+	g.setFont(juce::Font("Courier New", 15.f, juce::Font::FontStyleFlags::plain));
 	g.drawText(message, b, juce::Justification::centred);
 }
 void ProgressIndicator::resized() {

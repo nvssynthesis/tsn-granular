@@ -28,6 +28,7 @@ void TsnGranular::setWaveEvent(size_t index) {
 	if (!_onsetsNormalized.size()){
 		return;
 	}
+	assert(index < _onsetsNormalized.size());
 	auto const nextIdx = (index + 1) % _onsetsNormalized.size();
 	ReadBounds const bounds
 	{
