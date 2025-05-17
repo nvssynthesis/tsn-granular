@@ -59,26 +59,46 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	};
 	
 	// exclusive to TSN
-	tabbedPages.addTab ("Navigation LFO", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS()), true);
-
-	addAndMakeVisible(tabbedPages);
-	addAndMakeVisible(waveformAndPositionComponent);
-	waveformAndPositionComponent.hideSlider();
-	
-	audioProcessor.getLFO2D().setOnUpdateCallback([&](double x, double y){
-		// set navigator of timbre space component
-		auto const p2 = juce::Point<float>(x, y);
+	auto onUpdateFn = [&](const std::vector<double>& v){
+	// set navigator of timbre space component
+		assert (2 <= v.size());
+		auto const p2 = juce::Point<float>(v[0], v[1]);
 		timbreSpaceComponent.setNavigatorPoint(p2);
 		// also attract to nearest point
-		auto p5 = TimbreSpaceComponent::timbre5DPoint {
+		auto p5 = TimbreSpaceComponent::timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};
 		timbreSpaceComponent.setCurrentPointFromNearest(p5);
 		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
-	});
-	audioProcessor.getLFO2D().start();
+	};
+	tabbedPages.addTab ("Navigation LFO", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS(), audioProcessor.getNavigator(), onUpdateFn), true);
+
+	
+	addAndMakeVisible(tabbedPages);
+	addAndMakeVisible(waveformAndPositionComponent);
+	waveformAndPositionComponent.hideSlider();
+	
+//	std::visit([this](auto &concreteNav) {
+//		concreteNav.setOnUpdateCallback([&](const std::vector<double>& v){
+//			// set navigator of timbre space component
+//			assert (2 <= v.size());
+//			auto const p2 = juce::Point<float>(v[0], v[1]);
+//			timbreSpaceComponent.setNavigatorPoint(p2);
+//			// also attract to nearest point
+//			auto p5 = TimbreSpaceComponent::timbre5DPoint {
+//				._p2D{p2},
+//				._p3D{0.f, 0.f, 0.f}
+//			};
+//			timbreSpaceComponent.setCurrentPointFromNearest(p5);
+//			setReadBoundsFromChosenPoint();
+//			timbreSpaceComponent.repaint();
+//		});
+//	}, audioProcessor.getNavigator());
+	
+#pragma message("set navigator PANEL to have this update function!!!!!")
+	// set navigator PANEL to have this update function!!!!!
 	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
@@ -108,7 +128,6 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
 	audioProcessor.getNonAutomatableState().removeListener (this);
-	audioProcessor.getLFO2D().stop();
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()
@@ -239,7 +258,7 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 	};
 	
 	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
-	for (int i = 0; i < timbreSpaceRepr.size(); ++i) {
+	for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
 		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
 		
 		assert (timbreFrame.size() >= nDim);
@@ -253,9 +272,9 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
 								juce::jmap(equalizedY, -1.f, 1.f));
 	
-		float c = timbreSpaceDrawingSettings.histoEqualize_NL_map_proportion;
+		float c = timbreSpaceDrawingSettings.histogramEqualization;
 		jassert (0.0 <= c && c <= 1.0);
-		juce::Point<float> p = c * pNL + (1.f - c) * pHE;
+		juce::Point<float> p = (1.f - c) * pNL + c * pHE;
 		
 		std::array<float, 3> const color {
 			( normalizer(timbreFrame[dimensions[2]], timbreSpaceNeededData.ranges[2]) ),
@@ -458,7 +477,7 @@ void TsnGranularAudioProcessorEditor::valueTreePropertyChanged (juce::ValueTree 
 	std::cout << "value tree changed!!!!!\n";
 	if (alteredTree.hasType("TimbreSpace")){
 		std::cout << "tree changed! redrawing points...\n";
-		timbreSpaceDrawingSettings.histoEqualize_NL_map_proportion = (double)alteredTree.getProperty("HistogramEqualization");
+		timbreSpaceDrawingSettings.histogramEqualization = (double)alteredTree.getProperty("HistogramEqualization");
 		auto xs = (juce::String)alteredTree.getProperty("xAxis");
 		auto ys = ((juce::String)alteredTree.getProperty("yAxis"));
 		std::cout << "x: " << xs << " y: " << ys << '\n';

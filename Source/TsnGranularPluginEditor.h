@@ -37,7 +37,7 @@ private:
 	void updateAndDrawTimbreSpacePoints(bool verbose = false);
 	void drawTimbreSpacePoints(bool verbose = false);
 	struct TimbreSpaceDrawingSettings {
-		float histoEqualize_NL_map_proportion {0.0f};
+		float histogramEqualization {0.0f};
 		std::vector<nvs::analysis::Features> dimensionWisefeatures {
 			nvs::analysis::Features::bfcc1,
 			nvs::analysis::Features::bfcc2,

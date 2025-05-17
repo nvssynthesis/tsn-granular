@@ -34,10 +34,9 @@ public:
 	
 	void askForAnalysis();
 
-	nvs::nav::LFO2D &getLFO2D() {
-		return lfo2D;
+	nvs::nav::Navigator &getNavigator() {
+		return navigators;
 	}
-	
 	nvs::analysis::ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
 	}
@@ -48,7 +47,7 @@ public:
 private:
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
-	nvs::nav::LFO2D lfo2D;
+	nvs::nav::Navigator navigators;
 	
 	struct TimbreSpaceNeededData {
 		std::vector<std::pair<float, float>> ranges {}; // min, max per dimension

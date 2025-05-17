@@ -18,23 +18,21 @@ LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 {
 	setFrequency(*_apvts.getRawParameterValue("Rate"));
 	amplitude = (*_apvts.getRawParameterValue("Amount"));
-}
-
-void LFO2D::start() {
 	startTimer(updateIntervalMs);
 }
 
-void LFO2D::stop() {
+LFO2D::~LFO2D() {
 	stopTimer();
 }
+
 
 void LFO2D::setFrequency(double newFrequencyHz) {
 	frequencyHz = newFrequencyHz;
 	phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequencyHz / (1000.0 / updateIntervalMs);
 }
 
-void LFO2D::setOnUpdateCallback(std::function<void(double, double)> callback) {
-	onUpdate = std::move(callback);
+void LFO2D::setOnUpdateCallback(std::function<void(const std::vector<double>&)> callback) {
+	onUpdate = std::move(callback);	// not sure if move is going to be smart anymore because navLFOpage now owns function
 }
 
 void LFO2D::timerCallback() {
@@ -56,8 +54,42 @@ void LFO2D::timerCallback() {
 
 	// Trigger the callback to update the TimbreSpaceComponent
 	if (onUpdate){
-		onUpdate(x, y);
+		onUpdate(std::vector<double>({x, y}));
 	}
 }
 
+
+RandomWalkND::RandomWalkND(int dimensions, int rateMs, double stepSize)
+	: dims(dimensions)
+{
+	walkers.reserve(dims);
+	for (int i = 0; i < dims; ++i) {
+		walkers.emplace_back(0.0f, stepSize);
+	}
+	startTimer(rateMs);
+}
+RandomWalkND::~RandomWalkND() {
+	stopTimer();
+}
+
+void RandomWalkND::resetAll(double initialValue) {
+	for (auto& w : walkers) {
+		w.reset(initialValue);
+	}
+}
+void RandomWalkND::setOnUpdateCallback(std::function<void(const std::vector<double>&)> callback){
+	onUpdate = std::move(callback);	// not sure if move is going to be smart anymore because navLFOpage now owns function
+}
+
+void RandomWalkND::timerCallback() {
+	latest.clear();
+	latest.reserve(dims);
+
+	for (auto& w : walkers) {
+		latest.push_back(w.step());
+	}
+	if (onUpdate) {
+		onUpdate(latest);
+	}
+}
 }	// nvs::nav

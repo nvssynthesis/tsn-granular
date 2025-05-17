@@ -225,20 +225,8 @@ void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool ve
 	currentPointIdx = findNearestPoint(p5D, timbres5D);
 }
 
-void TimbreSpaceComponent::setCurrentPointIdx(int newIdx){
-	currentPointIdx = newIdx;
-#pragma message("Deal with both position slider and LFO position choosing point")
-	// get corresponding point to set x/y offsets
-	// this leads to controls fighting each other. need to think of better way to deal with this.
-//	auto const p5D = timbres5D[currentPointIdx];
-//	setLfoOffsetParamsFromPoint(_apvts, p5D.get2D());
-}
-
-
-
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	tsn_mouse._dragging = true;
-	auto const lastPointIdx = currentPointIdx;
 	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
 	timbre5DPoint p5D {
 		._p2D{p2D_norm},
