@@ -138,6 +138,69 @@ int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre
 	findNearestPointDone:
 	return idx;
 }
+
+int findProbabilisticPoint(
+	const timbre5DPoint& target,
+	juce::Array<TimbreSpaceComponent::timbre5DPoint> database,
+	int K,                     // how many nearest to consider
+	double sharpness,          // 0 = uniform, higher favors more “nearest”
+	float   higher3Dweight = 0.01f)
+{
+	if (database.size() == 0){
+		return 0;
+	}
+	// compute squared distances
+	std::vector<std::pair<double,int>> distIdx;
+	distIdx.reserve(database.size());
+	for (int i = 0; i < (int)database.size(); ++i)
+	{
+		auto const& p = database[i];
+		double dx = p.get2D().getX() - target.get2D().getX();
+		double dy = p.get2D().getY() - target.get2D().getY();
+		double du = p.get3D()[0] - target.get3D()[0];
+		double dv = p.get3D()[1] - target.get3D()[1];
+		double dz = p.get3D()[2] - target.get3D()[2];
+		double d2 = dx*dx + dy*dy + higher3Dweight*(du*du + dv*dv + dz*dz);
+		distIdx.emplace_back(d2, i);
+	}
+
+	// get K smallest distances (partial sort)
+	if (K < (int)distIdx.size()) {
+		std::nth_element(distIdx.begin(),
+						 distIdx.begin() + K,
+						 distIdx.end(),
+						 [](auto &a, auto &b){ return a.first < b.first; });
+	}
+	// shrink to  K nearest
+	distIdx.resize(std::min(K, (int)distIdx.size()));
+
+	// build weights via softmax-like mapping
+	double dmax = 0.0;
+	for (auto& di : distIdx) {
+		dmax = std::max(dmax, di.first);
+	}
+	if (dmax <= 0.0) {
+		return distIdx.front().second;  // if all identical, pick the zeroeth
+	}
+	
+	std::vector<double> weights;
+	weights.reserve(distIdx.size());
+	for (auto& di : distIdx)
+	{
+		double scaled = di.first / dmax; // in [0,1]
+		weights.push_back(std::exp(- sharpness * scaled));
+	}
+	// normalize
+	double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
+	for (auto& w : weights) { w /= sum; }
+
+	// draw one index from distribution
+	static thread_local std::mt19937 rng{ std::random_device{}() };
+	std::discrete_distribution<int> dist(weights.begin(), weights.end());
+	int choice = dist(rng);
+
+	return distIdx[choice].second;
+}
 timbre3DPoint biuni(timbre3DPoint const &bipolar_p3){
 	using nvs::memoryless::biuni;
 	timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
@@ -240,6 +303,9 @@ void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool ve
 				   );
 	}
 	currentPointIdx = findNearestPoint(p5D, timbres5D);
+}
+void TimbreSpaceComponent::setProbabilisticPointFromTarget(const timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
+	currentPointIdx = findProbabilisticPoint(target, timbres5D, K_neighbors, sharpness, higher3Dweight);
 }
 
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {

@@ -69,7 +69,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};
-		timbreSpaceComponent.setCurrentPointFromNearest(p5);
+//		timbreSpaceComponent.setCurrentPointFromNearest(p5);
+		timbreSpaceComponent.setProbabilisticPointFromTarget(p5, 4, 0.8);
 		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	};

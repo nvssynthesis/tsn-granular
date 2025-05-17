@@ -70,6 +70,7 @@ public:
 	void resized() override;
 	
 	void setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose=false);
+	void setProbabilisticPointFromTarget(const timbre5DPoint& target, int K_neighbors, double sharpness,  float   higher3Dweight = 0.01f);
 	void setCurrentPointIdx(int newIdx);	// careful with setting directly.
 	
 	void mouseDown (const juce::MouseEvent &event) override;
