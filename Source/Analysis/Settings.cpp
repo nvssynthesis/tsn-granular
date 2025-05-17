@@ -53,7 +53,7 @@ const std::map<juce::String, AnySpec> bfccSpecs
 
 const std::map<juce::String, AnySpec> onsetSpecs
 {
-	{ "silenceThreshold",         RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.2f } },
+	{ "silenceThreshold",         RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
 	{ "alpha",                    RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
 	{ "numFrames_shortOnsetFilter",RangeWithDefault<int>  { { 1,  64,  1,   1 },    5 } },
 	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },

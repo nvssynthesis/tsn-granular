@@ -17,6 +17,30 @@
 
 namespace nvs::nav {
 
+
+
+class TendencyPointLowpass
+{
+	// 2-pole lowpass used to smooth tendency point and other changes in an energy-preserving manner
+	// for now adapted from https://www.musicdsp.org/en/latest/Filters/27-resonant-iir-lowpass-12db-oct.html
+//	resofreq = pole frequency
+//	amp = magnitude at pole frequency (approx)
+
+private:
+	double _r, _c;
+	double sampleRate;
+	
+	double vibrapos {0.0};
+	double vibraspeed {0.0};
+
+public:
+	void setSampleRate(double fs);
+	
+	void setParams(double frequency, double gain);
+	
+	double operator()(double v);
+};
+
 class LFO2D : public juce::Timer
 {
 public:
@@ -31,12 +55,13 @@ private:
 	juce::AudioProcessorValueTreeState& _apvts;
 	
 	void setFrequency(double newFrequencyHz);
+	
+	TendencyPointLowpass xLP, yLP;
 
 	double frequencyHz;
 	double amplitude;
+	double centerX = 0.0, centerY = 0.0;    // smoothed center
 	double phase {0.0};
-	double offsetX {0.0};
-	double offsetY {0.0};
 	double phaseIncrement;	// Phase increment per timer tick
 	double updateIntervalMs;
 	std::function<void(const std::vector<double>&)> onUpdate;
@@ -51,27 +76,31 @@ public:
 		: current(initial), stepSize(stepSize), rng(std::random_device{}())
 	{}
 
-	/*
-	Take one biased random step:
-	 - Probability to step +stepSize = (1 - current)/2
-	 - Probability to step -stepSize = (1 + current)/2
-	This keeps the walker heuristically within [-1,1].
+	/**
+	 * Take one random step:
+	 * 1. Compute probability of stepping up: pUp = (1 - current) / 2.
+	 * 2. Sample a uniform u in [0,1], set magnitude m = sqrt(u)  // bias towards larger steps
+	 * 3. Sample direction: up if uniform < pUp, else down
+	 * 4. accumVal = (up? +1 : -1) * m * stepSize
+	 * 5. current += accumVal, then clamp to [-1,1]
 	 */
 	double step()
 	{
-		// compute up-step probability based on current position
-		double pUp = (1.0 - current) * 0.5;
-		jassert ((pUp >= 0.0) and (pUp <= 1.0));
-		// uniform real [0,1)
-		std::uniform_real_distribution<double> uni(0.0, 1.0);
-		bool moveUp = (uni(rng) < pUp);
+		// 1) direction bias back toward 0
+		double pUp = (tendency - current) * 0.5 + 0.5;
 
-		current += moveUp ? stepSize : -stepSize;
+		// 2) magnitude biased to extremes via sqrt transform
+		double u = uni(rng);
+		double magnitude = std::sqrt(u) * stepSize;
 
-		// clamp to [-1,1] for safety
-		if (current > 1.0)  current = 1.0;
+		// 3) direction
+		bool up = (uni(rng) < pUp);
+		double accumVal = (up ? magnitude : -magnitude);
+
+		// 4) apply and clamp
+		current += accumVal;
+		if (current >  1.0) current =  1.0;
 		if (current < -1.0) current = -1.0;
-
 		return current;
 	}
 
@@ -82,6 +111,11 @@ public:
 
 	double getCurrent() const noexcept { return current; }
 
+	void setTendency(double newTendency)
+	{
+		tendency = std::clamp(newTendency, -1.0, 1.0);
+	}
+	
 	void setStepSize(double newStepSize)
 	{
 		jassert ((newStepSize >= 0.0) and (newStepSize <= 1.0));
@@ -91,8 +125,14 @@ public:
 private:
 	double current;
 	double stepSize;
+	double tendency;            // bias target in [-1,1]
 	std::mt19937 rng;
+	std::uniform_real_distribution<double> uni;
 };
+
+template<typename T>
+concept VectorOfDouble = std::same_as<std::remove_cvref_t<T>, std::vector<double>>;	// work for rvalue or lvalue reference
+
 
 class RandomWalkND : private juce::Timer
 {
@@ -106,6 +146,8 @@ public:
 	// Reset all walkers to initial values
 	void resetAll(double initialValue = 0.0f);
 
+	void setTendencyPoint(VectorOfDouble auto&& tendencyPoint);
+	
 private:
 	juce::AudioProcessorValueTreeState& _apvts;
 	void timerCallback() override;

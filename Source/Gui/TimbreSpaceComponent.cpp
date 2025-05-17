@@ -156,8 +156,8 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 	return juce::Colour(h, s, v, alpha);
 }
 void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timbre2DPoint p2D){
-	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_2d_offset_x)) = p2D.getX();
-	apvts.getParameterAsValue(getParamName(params_e::nav_lfo_2d_offset_y)) = p2D.getY();
+	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_x)) = p2D.getX();
+	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_y)) = p2D.getY();
 }
 }	// anonymous namespace
 
@@ -187,7 +187,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 				// brighter colour for selected point
 				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
 				// also draw glowing orb under the point
-				float orb_radius = rect.getWidth() * 1.5f;
+				float const orb_radius = rect.getWidth() * 1.5f;
 				juce::ColourGradient gradient(
 					fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
 					p2.x, p2.y,					// Center position
@@ -203,6 +203,23 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			g.fillEllipse(rect);
 			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
 			g.drawEllipse(rect, 0.5f);
+		}
+	}
+	{
+		if (tsn_mouse._dragging){
+			// draw orb around mouse
+			auto const uvz = tsn_mouse._uvz;
+			juce::Colour c = p3ToColour(biuni(uvz));
+			juce::Point<int> const xy = getMouseXYRelative();
+			auto const r = pointToRect(xy.toFloat(), 1.f);
+			float const orbRadius = r.getWidth() * 4.5f;
+			juce::ColourGradient gradient(c,
+										  xy.x, xy.y,
+										  c.withAlpha(0.f),
+										  xy.x, xy.y + orbRadius,
+										  true);
+			g.setGradientFill(gradient);
+			g.fillEllipse(xy.x - orbRadius, xy.y - orbRadius, orbRadius * 2, orbRadius * 2);
 		}
 	}
 	// draw navigator
@@ -230,7 +247,7 @@ void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
 	timbre5DPoint p5D {
 		._p2D{p2D_norm},
-		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[2], tsn_mouse._uvz[2]}
+		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]}
 	};
 	
 	setLfoOffsetParamsFromPoint(_apvts, p2D_norm);

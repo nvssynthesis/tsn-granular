@@ -12,13 +12,6 @@
 
 
 NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, navigator_category_e navigatorCategory)
-//:	sliders
-//{
-//	AttachedSlider(apvts, params_e::nav_lfo_2d_amount, juce::Slider::SliderStyle::LinearVertical),
-//	AttachedSlider(apvts, params_e::nav_lfo_2d_rate, juce::Slider::SliderStyle::LinearVertical),
-//	AttachedSlider(apvts, params_e::nav_lfo_2d_offset_x, juce::Slider::SliderStyle::LinearVertical),
-//	AttachedSlider(apvts, params_e::nav_lfo_2d_offset_y, juce::Slider::SliderStyle::LinearVertical)
-//}
 {
 	for (auto &p : categoryToParams.at(navigatorCategory)){
 		auto slider = std::make_unique<AttachedSlider>(apvts, p, juce::Slider::SliderStyle::LinearVertical);
@@ -82,7 +75,7 @@ void NavLFOPage::showPanel(int menuId)
 	
 	// then show the one the user picked
 	if (menuId == 1){
-		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 60.f);
+		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 90.f);
 		panel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
 	}
 	else if (menuId == 2) {
