@@ -61,8 +61,8 @@ void LFO2D::timerCallback() {
 
 
 RandomWalkND::RandomWalkND(juce::AudioProcessorValueTreeState &apvts, int dimensions, int rateMs, double stepSize)
-:	_apvts(apvts),
-	dims(dimensions)
+:	_apvts(apvts)
+,	dims(dimensions)
 {
 	walkers.reserve(dims);
 	for (int i = 0; i < dims; ++i) {

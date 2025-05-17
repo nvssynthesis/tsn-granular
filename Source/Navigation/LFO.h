@@ -43,33 +43,55 @@ private:
 };
 
 
+// A single-dimension random walker with two-step (±stepSize) and state-dependent bias
 class RandomWalk1D
 {
 public:
-	RandomWalk1D(double initial = 0.0f, float stepSize = 1.0f)
-		: current(initial),
-		  rng(std::random_device{}()), dist(-stepSize, stepSize)
+	RandomWalk1D(double initial = 0.0, double stepSize = 1e-3)
+		: current(initial), stepSize(stepSize), rng(std::random_device{}())
 	{}
 
-	float step() {
-		current += dist(rng);
+	/*
+	Take one biased random step:
+	 - Probability to step +stepSize = (1 - current)/2
+	 - Probability to step -stepSize = (1 + current)/2
+	This keeps the walker heuristically within [-1,1].
+	 */
+	double step()
+	{
+		// compute up-step probability based on current position
+		double pUp = (1.0 - current) * 0.5;
+		jassert ((pUp >= 0.0) and (pUp <= 1.0));
+		// uniform real [0,1)
+		std::uniform_real_distribution<double> uni(0.0, 1.0);
+		bool moveUp = (uni(rng) < pUp);
+
+		current += moveUp ? stepSize : -stepSize;
+
+		// clamp to [-1,1] for safety
+		if (current > 1.0)  current = 1.0;
+		if (current < -1.0) current = -1.0;
+
 		return current;
 	}
 
-	void reset(double newValue = 0.0f) {
+	void reset(double newValue = 0.0)
+	{
 		current = newValue;
 	}
 
-	float getCurrent() const noexcept { return current; }
-	
-	void setStepSize(float stepSize){
-		dist = std::uniform_real_distribution<double>(-stepSize, stepSize);
+	double getCurrent() const noexcept { return current; }
+
+	void setStepSize(double newStepSize)
+	{
+		jassert ((newStepSize >= 0.0) and (newStepSize <= 1.0));
+		stepSize = newStepSize;
 	}
 
 private:
 	double current;
+	double stepSize;
 	std::mt19937 rng;
-	std::uniform_real_distribution<double> dist;
 };
 
 class RandomWalkND : private juce::Timer
