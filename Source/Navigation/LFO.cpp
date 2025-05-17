@@ -45,11 +45,11 @@ double TendencyPointLowpass::operator()(double v){
 
 LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 :	_apvts(apvts)
-,	frequencyHz(*_apvts.getRawParameterValue("Rate"))
+,	frequencyHz(*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_rate)))
 , 	updateIntervalMs(1000.0 / updateRateHz)
 {
-	setFrequency(*_apvts.getRawParameterValue("Rate"));
-	amplitude = (*_apvts.getRawParameterValue("Amount"));
+	setFrequency(*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_rate)));
+	amplitude = (*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_amount)));
 	startTimer(updateIntervalMs);
 	double sr = 1.0 / (getTimerInterval() / 1000.0);
 	xLP.setSampleRate(sr);
@@ -96,8 +96,29 @@ void LFO2D::timerCallback() {
 		phase -= 2.0 * juce::MathConstants<double>::pi;
 	}
 	
-	double const x = xLP(std::cos(phase) * amplitude + centerX);
-	double const y = yLP(std::sin(phase) * amplitude + centerY);
+	float shapeValue = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_shape));
+	jassert (shapeValue >= 0.0);
+	// https://www.desmos.com/calculator/jnfw9zxkhg
+	auto calculate2Dshape = [this, shapeValue](){
+		struct P2{ double x, y; };
+		
+		double a = shapeValue;
+		
+		auto i = [](double d){return int(d);};
+		auto frac = [i](double d){return d - i(d);};
+		auto tri = [](double d){ return 2.0 * (d < 0.5 ? d : 1 - d); };
+		
+		double p = 4.0 * tri(shapeValue);
+		double q = 2.0 * a * a;
+		
+		double x = (1.0 - frac(q)) * std::cos((i(q) + 1.0) * phase) + frac(q) * std::cos((i(q) + 2.0) * phase);
+		double y = (1.0 - frac(p)) * std::sin((i(p) + 1.0) * phase) + frac(p) * std::sin((i(p) + 2.0) * phase);
+		return P2 {x, y};
+	};
+	auto const p2 = calculate2Dshape();
+	
+	double const x = xLP(p2.x * amplitude + centerX);
+	double const y = yLP(p2.y * amplitude + centerY);
 
 	// Trigger the callback to update the TimbreSpaceComponent
 	if (onUpdate){
