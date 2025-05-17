@@ -13,25 +13,13 @@
 #include "../slicer_granular/Source/Gui/AttachedSlider.h"
 #include "../Navigation/LFO.h"
 
-struct Navigator2DLFOPanel	:	public juce::Component
+struct NavigatorPanel	:	public juce::Component
 {
-	Navigator2DLFOPanel(juce::AudioProcessorValueTreeState &apvts);
+	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, navigator_category_e navigatorCategory);
 	void resized() override;
 private:
-	std::array<AttachedSlider, NUM_LFO2D_PARAMS> sliderArray;
+	std::vector<std::unique_ptr<AttachedSlider>> sliders;
 };
-
-
-struct NavigatorRandomWalkPanel	:	public juce::Component
-{
-	NavigatorRandomWalkPanel(juce::AudioProcessorValueTreeState &apvts);
-	void resized() override;
-private:
-	std::array<AttachedSlider, NUM_RANDOM_WALK_PARAMS> sliderArray;
-};
-
-
-using PanelVariant = std::variant<Navigator2DLFOPanel, NavigatorRandomWalkPanel>;
 
 
 struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
@@ -45,7 +33,7 @@ struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	juce::ComboBox navigatorTypeMenu;
-	PanelVariant navigatorPanelVariant;
+	std::unique_ptr<NavigatorPanel> panel;
 	nvs::nav::Navigator &_navigatorVariant;
 	std::function<void(const std::vector<double>&)> onUpdate;
 };

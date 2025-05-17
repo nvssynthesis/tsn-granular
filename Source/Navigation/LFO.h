@@ -61,6 +61,10 @@ public:
 	}
 
 	float getCurrent() const noexcept { return current; }
+	
+	void setStepSize(float stepSize){
+		dist = std::uniform_real_distribution<double>(-stepSize, stepSize);
+	}
 
 private:
 	double current;
@@ -71,7 +75,7 @@ private:
 class RandomWalkND : private juce::Timer
 {
 public:
-	RandomWalkND(int dimensions, int rateMs, double stepSize);
+	RandomWalkND(juce::AudioProcessorValueTreeState &apvts, int dimensions, int rateMs, double stepSize);
 	~RandomWalkND() override;
 
 	// Implement this to receive updated N-dimensional positions
@@ -81,6 +85,7 @@ public:
 	void resetAll(double initialValue = 0.0f);
 
 private:
+	juce::AudioProcessorValueTreeState& _apvts;
 	void timerCallback() override;
 	
 	std::function<void(const std::vector<double>&)> onUpdate;

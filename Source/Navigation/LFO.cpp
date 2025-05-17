@@ -9,6 +9,7 @@
 */
 
 #include "LFO.h"
+#include "../../slicer_granular/Source/params.h"
 
 namespace nvs::nav {
 LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
@@ -59,8 +60,9 @@ void LFO2D::timerCallback() {
 }
 
 
-RandomWalkND::RandomWalkND(int dimensions, int rateMs, double stepSize)
-	: dims(dimensions)
+RandomWalkND::RandomWalkND(juce::AudioProcessorValueTreeState &apvts, int dimensions, int rateMs, double stepSize)
+:	_apvts(apvts),
+	dims(dimensions)
 {
 	walkers.reserve(dims);
 	for (int i = 0; i < dims; ++i) {
@@ -82,10 +84,14 @@ void RandomWalkND::setOnUpdateCallback(std::function<void(const std::vector<doub
 }
 
 void RandomWalkND::timerCallback() {
+	
 	latest.clear();
 	latest.reserve(dims);
 
+	float const stepSize = *_apvts.getRawParameterValue(getParamName(params_e::nav_random_walk_step_size));
+
 	for (auto& w : walkers) {
+		w.setStepSize(stepSize);
 		latest.push_back(w.step());
 	}
 	if (onUpdate) {
