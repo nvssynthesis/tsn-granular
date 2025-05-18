@@ -70,7 +70,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 			._p3D{0.f, 0.f, 0.f}
 		};
 //		timbreSpaceComponent.setCurrentPointFromNearest(p5);
-		timbreSpaceComponent.setProbabilisticPointFromTarget(p5, 4, 0.8);
+		timbreSpaceComponent.setProbabilisticPointFromTarget(p5, 4, (double)*(audioProcessor.getAPVTS().getRawParameterValue(getParamName(params_e::nav_selection_sharpness))));
 		setReadBoundsFromChosenPoint();
 		timbreSpaceComponent.repaint();
 	};

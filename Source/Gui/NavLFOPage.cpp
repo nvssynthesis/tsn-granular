@@ -43,6 +43,8 @@ NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navi
 ,	_navigatorVariant(navigatorVar)
 ,	onUpdate(std::move(onUpdateFn))
 {
+	setSize(100, 100);
+
 	addAndMakeVisible(navigatorTypeMenu);
 	navigatorTypeMenu.addItem("2-D LFO", 1);
 	navigatorTypeMenu.addItem("Random Walk", 2);
@@ -50,17 +52,46 @@ NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navi
 	navigatorTypeMenu.addListener(this);
 	{
 		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 60.f);
-		panel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
+		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
 	}
 	showPanel(navigatorTypeMenu.getSelectedItemIndex());
+
+	selPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::selectivity);
+	addAndMakeVisible(selPanel.get());
+	
 }
 void NavLFOPage::resized() {
 	// carve out a strip for the combo box at the top
-	auto r = getLocalBounds();
-	auto menuArea = r.removeFromTop(24).reduced(4);
+	auto bounds = getLocalBounds();
+	auto menuArea = bounds.removeFromTop(24).reduced(4);
 	navigatorTypeMenu.setBounds(menuArea);
-
-	panel->setBounds(r);
+	
+	{
+		int totalW = bounds.getWidth();
+		int splitW = int (totalW * 0.15f);
+		
+		juce::Rectangle<int> left {
+			bounds.getX(),
+			bounds.getY(),
+			splitW,
+			bounds.getHeight()
+		};
+		
+		juce::Rectangle<int> right {
+			bounds.getX() + splitW,
+			bounds.getY(),
+			totalW - splitW,
+			bounds.getHeight()
+			
+		};
+		
+		if (selPanel != nullptr){
+			selPanel->setBounds(left);
+		}
+		if (navPanel != nullptr){
+			navPanel->setBounds(right);
+		}
+	}
 }
 void NavLFOPage::comboBoxChanged(juce::ComboBox* cb)
 {
@@ -71,18 +102,18 @@ void NavLFOPage::comboBoxChanged(juce::ComboBox* cb)
 
 void NavLFOPage::showPanel(int menuId)
 {
-	panel->setVisible(false);
+	navPanel->setVisible(false);
 	
 	// then show the one the user picked
 	if (menuId == 1){
 		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 90.f);
-		panel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
+		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
 	}
 	else if (menuId == 2) {
 		_navigatorVariant.emplace<nvs::nav::RandomWalkND>(_apvts, 6, 10.f, 0.01);	// dim, rate, step size
-		panel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
+		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
 	}
-	addAndMakeVisible(panel.get());
+	addAndMakeVisible(navPanel.get());
 	
 	std::visit([this](auto &nav){
 		nav.setOnUpdateCallback(onUpdate);

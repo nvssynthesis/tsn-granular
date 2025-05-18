@@ -33,7 +33,10 @@ struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	juce::ComboBox navigatorTypeMenu;
-	std::unique_ptr<NavigatorPanel> panel;
+
+	std::unique_ptr<NavigatorPanel> selPanel;
+	std::unique_ptr<NavigatorPanel> navPanel;
+	
 	nvs::nav::Navigator &_navigatorVariant;
 	std::function<void(const std::vector<double>&)> onUpdate;
 };
