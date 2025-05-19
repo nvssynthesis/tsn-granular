@@ -159,7 +159,35 @@ private:
 	std::vector<double> latest;
 };
 
+struct Navigator	:	public juce::ChangeBroadcaster
+{
+	using ActiveNavigator = std::variant<LFO2D, RandomWalkND>;
+	std::function<void(const std::vector<double>&)> onUpdate;
+	ActiveNavigator activeNavigator;
 
-using Navigator = std::variant<LFO2D, RandomWalkND>;
+	template<typename T, typename... Args>
+	Navigator(std::function<void(const std::vector<double>&)> onUpdateFn,
+			  std::in_place_type_t<T>,
+			  Args&&... args)
+	  : onUpdate(std::move(onUpdateFn)),                      // matches declaration order
+		activeNavigator(std::in_place_type<T>, std::forward<Args>(args)...)
+	{
+		passDownOnUpdateFunction();
+	}
+	
+	
+	void passDownOnUpdateFunction(){
+		std::visit([this](auto &nav){
+			jassert (onUpdate != nullptr);
+			auto fullOnUpdateFn = [this](const std::vector<double>& v){
+				storedPoint = v;
+				onUpdate(v);
+				sendChangeMessage();
+			};
+			nav.setOnUpdateCallback(fullOnUpdateFn);
+		}, activeNavigator);
+	}
+	std::vector<double> storedPoint;
+};
 
 }

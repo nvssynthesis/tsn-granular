@@ -18,7 +18,7 @@
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor& p)
 :	AudioProcessorEditor (&p)
 ,	GranularEditorCommon (p)
-,	timbreSpaceComponent(p.getAPVTS())
+,	timbreSpaceComponent(p.getAPVTS(), p.getTimbreSpaceHolder())
 ,	backgroundNeedsUpdate(true)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
@@ -61,25 +61,33 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	// exclusive to TSN
 	auto onUpdateFn = [&](const std::vector<double>& v){
 	// set navigator of timbre space component
-		assert (2 <= v.size());
 		auto const p2 = juce::Point<float>(v[0], v[1]);
-		timbreSpaceComponent.setNavigatorPoint(p2);
 		// also attract to nearest point
-		auto p5 = TimbreSpaceComponent::timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
+		auto p5 = nvs::util::Timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};
-//		timbreSpaceComponent.setCurrentPointFromNearest(p5);
-		timbreSpaceComponent.setProbabilisticPointFromTarget(p5, 4, (double)*(audioProcessor.getAPVTS().getRawParameterValue(getParamName(params_e::nav_selection_sharpness))));
-		setReadBoundsFromChosenPoint();
-		timbreSpaceComponent.repaint();
+		auto &apvts = audioProcessor.getAPVTS();
+		auto paramName = getParamName(params_e::nav_selection_sharpness);
+		
+		double const sharpness = (double) *(apvts.getRawParameterValue(paramName));
+		
+		audioProcessor.getTimbreSpaceHolder().setProbabilisticPointFromTarget(p5, 4, sharpness);
+		audioProcessor.setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
+		
+//		assert (2 <= v.size());
+//		timbreSpaceComponent.setNavigatorPoint(p2);
+//		timbreSpaceComponent.repaint();
 	};
-	tabbedPages.addTab ("Navigation LFO", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS(), audioProcessor.getNavigator(), onUpdateFn), true);
+	auto &nav = audioProcessor.getNavigator();
+	nav.addChangeListener(&timbreSpaceComponent);
+	tabbedPages.addTab ("Navigation LFO", juce::Colours::transparentWhite, new NavLFOPage(audioProcessor.getAPVTS(), nav), true);
 
 	
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.hideSlider();
+	audioProcessor.getTsnGranularSynthesizer()->addChangeListener(&(waveformAndPositionComponent.wc));	// to highlight current event
 	
 //	std::visit([this](auto &concreteNav) {
 //		concreteNav.setOnUpdateCallback([&](const std::vector<double>& v){
@@ -128,7 +136,16 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
 	closeAllWindows();
+	
+	auto &a = audioProcessor.getAnalyzer();
+	a.getStatus().removeChangeListener(&timbreSpaceComponent);
+	a.removeListener(&timbreSpaceComponent);
+	a.removeChangeListener(&timbreSpaceComponent);
+	
 	audioProcessor.getNonAutomatableState().removeListener (this);
+	audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
+	audioProcessor.getNavigator().removeChangeListener(&timbreSpaceComponent);
+	
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()
@@ -205,7 +222,7 @@ void TsnGranularAudioProcessorEditor::updateAndDrawTimbreSpacePoints(bool verbos
 	{
 		neededTimbreData.ranges.clear();
 		neededTimbreData.ranges.reserve(timbreSpaceRepresentation.size());
-		for (int i = 0; i < timbreSpaceRepresentation.size(); ++i) {
+		for (size_t i = 0; i < timbreSpaceRepresentation.size(); ++i) {
 			neededTimbreData.ranges.push_back(nvs::analysis::calculateRangeOfDimension(timbreSpaceRepresentation, i));
 		}
 	}
@@ -250,22 +267,15 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 	auto foo = [&](float x, std::pair<float, float> range) -> float { return squash(normalizer(x, range)); };
 	
 	constexpr size_t nDim {5};
-	std::array<size_t, nDim> constexpr dimensions {
-		0,
-		1,
-		2,
-		3,
-		4
-	};
 	
-	timbreSpaceComponent.clear(); // clearing to make way for points we're about to be adding
+	audioProcessor.getTimbreSpaceHolder().clear(); // clearing to make way for points we're about to be adding
 	for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
 		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
 		
 		assert (timbreFrame.size() >= nDim);
 
-		auto pNL = juce::Point<float>(foo(timbreFrame[dimensions[0]], timbreSpaceNeededData.ranges[0]),
-									   foo(timbreFrame[dimensions[1]], timbreSpaceNeededData.ranges[1]));
+		auto pNL = juce::Point<float>(foo(timbreFrame[0], timbreSpaceNeededData.ranges[0]),
+									   foo(timbreFrame[1], timbreSpaceNeededData.ranges[1]));
 		// histogram equalization
 		float const &equalizedX  = timbreSpaceNeededData.histoEqualizedD0[i];
 		float const &equalizedY  = timbreSpaceNeededData.histoEqualizedD1[i];
@@ -278,15 +288,15 @@ void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
 		juce::Point<float> p = (1.f - c) * pNL + c * pHE;
 		
 		std::array<float, 3> const color {
-			( normalizer(timbreFrame[dimensions[2]], timbreSpaceNeededData.ranges[2]) ),
-			( normalizer(timbreFrame[dimensions[3]], timbreSpaceNeededData.ranges[3]) ),
-			( normalizer(timbreFrame[dimensions[4]], timbreSpaceNeededData.ranges[4]) )
+			( normalizer(timbreFrame[2], timbreSpaceNeededData.ranges[2]) ),
+			( normalizer(timbreFrame[3], timbreSpaceNeededData.ranges[3]) ),
+			( normalizer(timbreFrame[4], timbreSpaceNeededData.ranges[4]) )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
 		// the Nth member of onsets.
 		float const padding_scalar = 0.95f;
-		timbreSpaceComponent.add5DPoint(p * padding_scalar, color);
+		audioProcessor.getTimbreSpaceHolder().add5DPoint(p * padding_scalar, color);
 		if (verbose){
 			fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 		}
@@ -302,25 +312,9 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkersAndTimbrePoints(std::vect
 	repaint();
 }
 
-void TsnGranularAudioProcessorEditor::setReadBoundsFromChosenPoint() {
-	auto const pIdx = timbreSpaceComponent.getCurrentPointIdx();
-	auto const onsetOpt = audioProcessor.getAnalyzer().getOnsets();
 
-	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
-		audioProcessor.setWaveEvent(pIdx);
-		auto onsets = onsetOpt.value();
-		assert (pIdx < onsets.size());
-		auto nextIdx = (pIdx + 1) % onsets.size();
-		waveformAndPositionComponent.highlight(std::make_pair(onsets[pIdx], onsets[nextIdx]));
-	}
-}
-
-void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {
-	setReadBoundsFromChosenPoint();
-}
-void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {
-	setReadBoundsFromChosenPoint();
-}
+void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {}
+void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::drawBackground()
 {
@@ -408,7 +402,7 @@ void TsnGranularAudioProcessorEditor::resized()
 	int const smallPad = 12;
 	localBounds.reduce(smallPad, smallPad);
 	
-	int x(0), y(0);
+	int x(localBounds.getX()), y(0);
 	y = placeFileCompAndGrainBusyDisplay(localBounds, smallPad, grainBusyDisplay, fileComp, y);
 
 	{

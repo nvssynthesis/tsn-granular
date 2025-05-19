@@ -15,7 +15,23 @@ nvs::util::LoggingGuts::LoggingGuts()
 TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 :	Slicer_granularAudioProcessor(std::make_unique<JuceTsnGranularSynthesizer>())
 ,	_analyzer(this)			// effectively adding this as listener to the analyzer
-,	navigators{ std::in_place_type<nvs::nav::LFO2D>, apvts, 40.0 }
+,	navigator{ [this](const std::vector<double>& v) -> void
+	{
+		// set navigator of timbre space component
+		auto const p2 = juce::Point<float>(v[0], v[1]);
+		// also attract to nearest point
+		auto p5 = nvs::util::Timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
+			._p2D{p2},
+			._p3D{0.f, 0.f, 0.f}
+		};
+		auto paramName = getParamName(params_e::nav_selection_sharpness);
+		
+		double const sharpness = (double) *(apvts.getRawParameterValue(paramName));
+		
+		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 4, sharpness);
+		setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
+	},
+	std::in_place_type<nvs::nav::LFO2D>, apvts, 40.0 }
 {
 	if (dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
 		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
@@ -31,6 +47,8 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 	
 	juce::ValueTree settingsVT = nonAutomatableState.getOrCreateChildWithName("Settings", nullptr);
 	nvs::analysis::initializeSettingsBranches(settingsVT);
+	
+	
 }
 
 
@@ -76,19 +94,25 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 	writeToLog("TSN: loadAudioFile exiting");
 }
 
-void TsnGranularAudioProcessor::setWaveEvent(size_t index)
-{
-	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
-		tsn_synth_juce->setWaveEvent(index);
-	}
-}
+void TsnGranularAudioProcessor::setReadBoundsFromChosenPoint() {
+	auto const pIdx = getTimbreSpaceHolder().getCurrentPointIdx();
+	auto const onsetOpt = getAnalyzer().getOnsets();
 
-void TsnGranularAudioProcessor::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights)
-{
-	if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
-		tsn_synth_juce->setWaveEvents(indices, weights);
+	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
+		if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
+			tsn_synth_juce->setWaveEvent(pIdx);
+		}
 	}
 }
+//void TsnGranularAudioProcessor::navigatorUpdate (const std::vector<double>& v)
+//{
+//	// **safe**: APVTS is still here
+//	double sharpness = *apvts.getRawParameterValue (
+//		getParamName(params_e::nav_selection_sharpness)
+//	);
+//	_timbreSpaceHolder.setProbabilisticPointFromTarget (make5D(v), 4, sharpness);
+//	sendChangeMessage();
+//}
 
 void TsnGranularAudioProcessor::askForAnalysis(){
 	if (_analyzer.Thread::isThreadRunning()){

@@ -57,6 +57,8 @@ void JuceTsnGranularSynthesizer::setWaveEvent(size_t index) {
 			}
 		}
 	}
+	currentIdx = index;
+	sendChangeMessage();	// tell WaveformComponent to highlight event
 }
 
 void JuceTsnGranularSynthesizer::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights)

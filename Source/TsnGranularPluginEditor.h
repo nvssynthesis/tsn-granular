@@ -73,8 +73,6 @@ private:
 	//=================================================================
 
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
-
-	void setReadBoundsFromChosenPoint();	// gets called by mouseDown, mouseDrag
 		
 	TsnGranularAudioProcessor& audioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)

@@ -24,7 +24,8 @@ private:
 
 struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
 {
-	NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar, std::function<void(const std::vector<double>&)> onUpdateFn);
+	NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar);
+	~NavLFOPage();
 	void resized() override;
 	void comboBoxChanged(juce::ComboBox* cb) override;
 
@@ -37,7 +38,6 @@ private:
 	std::unique_ptr<NavigatorPanel> selPanel;
 	std::unique_ptr<NavigatorPanel> navPanel;
 	
-	nvs::nav::Navigator &_navigatorVariant;
-	std::function<void(const std::vector<double>&)> onUpdate;
+	nvs::nav::Navigator &_navigator;
 };
 

@@ -12,7 +12,9 @@
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthesizer.h"
 #include <span>
 
-class JuceTsnGranularSynthesizer	:	public GranularSynthesizer
+class JuceTsnGranularSynthesizer
+:	public GranularSynthesizer
+,	public juce::ChangeBroadcaster
 {
 public:
 	JuceTsnGranularSynthesizer();
@@ -23,5 +25,10 @@ public:
 	void setWaveEvent(size_t index);
 	void setWaveEvents(std::array<size_t, 4> indices,
 					   std::array<float, 4> weights);
+	size_t getCurrentIdx() const {
+		return currentIdx;
+	}
+private:
+	size_t currentIdx; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
 };
 

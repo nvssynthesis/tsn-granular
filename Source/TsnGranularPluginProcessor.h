@@ -8,6 +8,21 @@
 #include "./Synthesis/JuceTsnGranularSynthesizer.h"
 #include "../slicer_granular/Source/SlicerGranularPluginProcessor.h"
 #include "./Navigation/LFO.h"
+#include "../slicer_granular/Source/misc_util.h"
+
+struct timbre5DPoint {
+	using timbre2DPoint = juce::Point<float>;
+	using timbre3DPoint = std::array<float, 3>;
+	timbre2DPoint _p2D;			// used to locate the point in x,y plane
+	timbre3DPoint _p3D;	// used to describe the colour (hsv)
+
+	bool operator==(timbre5DPoint const &other) const;
+	timbre2DPoint get2D() const { return _p2D; }
+	timbre3DPoint get3D() const { return _p3D; }
+
+	// to easily trade hsv for rbg
+	std::array<juce::uint8, 3> toUnsigned() const;
+};
 
 //==============================================================================
 
@@ -27,15 +42,12 @@ public:
 
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	
-	
-	void setWaveEvent(size_t index);					// effectively sets readBounds for all grains of all voices
-	void setWaveEvents(std::array<size_t, 4> indices,
-					   std::array<float, 4> weights);	// effectively sets readBounds proportionally for all contained grains, for tetrahedral timbre selection
+	void setReadBoundsFromChosenPoint();
 	
 	void askForAnalysis();
 
 	nvs::nav::Navigator &getNavigator() {
-		return navigators;
+		return navigator;
 	}
 	nvs::analysis::ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
@@ -43,11 +55,23 @@ public:
 	TimbreSpaceNeededData &getTimbreSpaceNeededData() {
 		return timbreSpaceNeededData;
 	}
+	nvs::util::TimbreSpaceHolder &getTimbreSpaceHolder() {
+		return _timbreSpaceHolder;
+	}
+	JuceTsnGranularSynthesizer *getTsnGranularSynthesizer() {
+		if (JuceTsnGranularSynthesizer *synth = dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
+			return synth;
+		}
+		else {
+			return nullptr;
+		}
+	}
+	
 	void writeEvents();
 private:
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
-	nvs::nav::Navigator navigators;
+	nvs::nav::Navigator navigator;
 	
 	struct TimbreSpaceNeededData {
 		std::vector<std::pair<float, float>> ranges {}; // min, max per dimension
@@ -59,6 +83,7 @@ private:
 		void extract(std::vector<nvs::analysis::Features> featuresToExtract);
 	};
 	TimbreSpaceNeededData timbreSpaceNeededData;
+	nvs::util::TimbreSpaceHolder _timbreSpaceHolder;
 	
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================

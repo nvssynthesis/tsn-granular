@@ -38,10 +38,9 @@ void NavigatorPanel::resized()
 
 
 
-NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar, std::function<void(const std::vector<double>&)> onUpdateFn)
+NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigator)
 :	_apvts(apvts)
-,	_navigatorVariant(navigatorVar)
-,	onUpdate(std::move(onUpdateFn))
+,	_navigator(navigator)
 {
 	setSize(100, 100);
 
@@ -51,7 +50,10 @@ NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navi
 	navigatorTypeMenu.setSelectedId(1);
 	navigatorTypeMenu.addListener(this);
 	{
-		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 60.f);
+//		_navigator.onUpdate = onUpdateFn;
+		_navigator.activeNavigator.emplace<nvs::nav::LFO2D>(_apvts, 60.f);
+		_navigator.passDownOnUpdateFunction();
+		
 		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
 	}
 	showPanel(navigatorTypeMenu.getSelectedItemIndex());
@@ -59,6 +61,9 @@ NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navi
 	selPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::selectivity);
 	addAndMakeVisible(selPanel.get());
 	
+}
+NavLFOPage::~NavLFOPage(){
+	navigatorTypeMenu.removeListener(this);
 }
 void NavLFOPage::resized() {
 	// carve out a strip for the combo box at the top
@@ -106,18 +111,15 @@ void NavLFOPage::showPanel(int menuId)
 	
 	// then show the one the user picked
 	if (menuId == 1){
-		_navigatorVariant.emplace<nvs::nav::LFO2D>(_apvts, 90.f);
+		_navigator.activeNavigator.emplace<nvs::nav::LFO2D>(_apvts, 90.f);
 		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
 	}
 	else if (menuId == 2) {
-		_navigatorVariant.emplace<nvs::nav::RandomWalkND>(_apvts, 6, 10.f, 0.01);	// dim, rate, step size
+		_navigator.activeNavigator.emplace<nvs::nav::RandomWalkND>(_apvts, 6, 10.f, 0.01);	// dim, rate, step size
 		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
 	}
+	_navigator.passDownOnUpdateFunction();
 	addAndMakeVisible(navPanel.get());
-	
-	std::visit([this](auto &nav){
-		nav.setOnUpdateCallback(onUpdate);
-	}, _navigatorVariant);
 	
 	// force re‐layout
 	resized();

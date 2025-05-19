@@ -11,67 +11,15 @@
 #include "TimbreSpaceComponent.h"
 #include "../slicer_granular/Source/params.h"
 #include "Analysis/ThreadedAnalyzer.h"
-
-//===============================================timbre5DPoint=================================================
-bool TimbreSpaceComponent::timbre5DPoint::operator==(timbre5DPoint const &other) const {
-	if (other.get2D() != _p2D){
-		return false;
-	}
-	auto const other3 = other.get3D();
-	for (int i = 0; i < _p3D.size(); ++i){
-		if (_p3D[i] != other3[i]){
-			return false;
-		}
-	}
-	return true;
-}
-
-std::array<juce::uint8, 3> TimbreSpaceComponent::timbre5DPoint::toUnsigned() const {
-	for (auto p : _p3D){
-		assert(inRangeM1_1(p));
-	}
-	using namespace nvs::memoryless;
-	std::array<juce::uint8, 3> u {
-		static_cast<juce::uint8>(biuni(_p3D[0]) * 255.f),
-		static_cast<juce::uint8>(biuni(_p3D[1]) * 255.f),
-		static_cast<juce::uint8>(biuni(_p3D[2]) * 255.f)
-	};
-	return u;
-}
+#include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
+#include "../Navigation/LFO.h"
 
 //============================================TimbreSpaceComponent=============================================
-void TimbreSpaceComponent::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
-	assert(inRangeM1_1(p2D.getX()) && inRangeM1_1(p2D.getY())
-		   && inRangeM1_1(p3D[0]) && inRangeM1_1(p3D[1]) && inRangeM1_1(p3D[2])
-		   );
-	timbres5D.add({
-		._p2D{p2D},
-		._p3D{p3D}
-	});
-}
-void TimbreSpaceComponent::add5DPoint(float x, float y, float z, float w, float v){
-	timbre2DPoint p2D(x,y);
-	std::array<float, 3> p3D{z, w, v};
-	add5DPoint(p2D, p3D);
-}
-void TimbreSpaceComponent::clear() {
-	timbres5D.clear();
-}
-void TimbreSpaceComponent::add2DPoint(float x, float y){
-	timbre2DPoint const p(x, y);
-	add2DPoint(p);
-}
-void TimbreSpaceComponent::add2DPoint(timbre2DPoint p){
-	assert(inRangeM1_1(p.getX()) && inRangeM1_1(p.getY()));
-	timbres5D.add({
-		._p2D{p},
-		._p3D{1.f, 1.f, 1.f}
-	});
-}
+
 namespace {
-using timbre2DPoint = TimbreSpaceComponent::timbre2DPoint;
-using timbre3DPoint = TimbreSpaceComponent::timbre3DPoint;
-using timbre5DPoint = TimbreSpaceComponent::timbre5DPoint;
+using timbre2DPoint = nvs::util::timbre2DPoint;
+using timbre3DPoint = nvs::util::timbre3DPoint;
+using Timbre5DPoint = nvs::util::Timbre5DPoint;
 
 auto pointToRect = [](timbre2DPoint p, float pt_sz) -> juce::Rectangle<float> {
 	timbre2DPoint upperLeft{p}, bottomRight{p};
@@ -100,107 +48,6 @@ auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f
 	return y;
 };
 
-int findNearestPoint(timbre5DPoint p5D, juce::Array<TimbreSpaceComponent::timbre5DPoint> timbres5D, float higher_3D_weight = 0.01f) {
-	/*
-	 Do consider that we are only using 2 dimenstions to find the nearest point even though they are of greater dimensionality.
-	 */
-
-	auto const px = p5D.get2D().getX();
-	auto const py = p5D.get2D().getY();
-	auto const pu = p5D.get3D()[0];
-	auto const pv = p5D.get3D()[1];
-	auto const pz = p5D.get3D()[2];
-	
-	float diff = 1e15;
-	int idx = 0;
-	for (int i = 0; i < timbres5D.size(); ++i){
-		auto const current_x = timbres5D[i].get2D().getX();
-		auto const current_y = timbres5D[i].get2D().getY();
-		auto const current_u = timbres5D[i].get3D()[0];
-		auto const current_v = timbres5D[i].get3D()[1];
-		auto const current_z = timbres5D[i].get3D()[2];
-
-		auto const xx = (current_x - px);
-		auto const yy = (current_y - py);
-		auto const uu = (current_u - pu);
-		auto const vv = (current_v - pv);
-		auto const zz = (current_z - pz);
-
-		auto const tmp = xx*xx + yy*yy + higher_3D_weight*(uu*uu + vv*vv + zz*zz);
-		if (tmp < diff){
-			diff = tmp;
-			idx = i;
-			if (diff == 0.f){
-				goto findNearestPointDone;
-			}
-		}
-	}
-	findNearestPointDone:
-	return idx;
-}
-
-int findProbabilisticPoint(
-	const timbre5DPoint& target,
-	juce::Array<TimbreSpaceComponent::timbre5DPoint> database,
-	int K,                     // how many nearest to consider
-	double sharpness,          // 0 = uniform, higher favors more “nearest”
-	float   higher3Dweight = 0.01f)
-{
-	if (database.size() == 0){
-		return 0;
-	}
-	// compute squared distances
-	std::vector<std::pair<double,int>> distIdx;
-	distIdx.reserve(database.size());
-	for (int i = 0; i < (int)database.size(); ++i)
-	{
-		auto const& p = database[i];
-		double dx = p.get2D().getX() - target.get2D().getX();
-		double dy = p.get2D().getY() - target.get2D().getY();
-		double du = p.get3D()[0] - target.get3D()[0];
-		double dv = p.get3D()[1] - target.get3D()[1];
-		double dz = p.get3D()[2] - target.get3D()[2];
-		double d2 = dx*dx + dy*dy + higher3Dweight*(du*du + dv*dv + dz*dz);
-		distIdx.emplace_back(d2, i);
-	}
-
-	// get K smallest distances (partial sort)
-	if (K < (int)distIdx.size()) {
-		std::nth_element(distIdx.begin(),
-						 distIdx.begin() + K,
-						 distIdx.end(),
-						 [](auto &a, auto &b){ return a.first < b.first; });
-	}
-	// shrink to  K nearest
-	distIdx.resize(std::min(K, (int)distIdx.size()));
-
-	// build weights via softmax-like mapping
-	double dmax = 0.0;
-	for (auto& di : distIdx) {
-		dmax = std::max(dmax, di.first);
-	}
-	if (dmax <= 0.0) {
-		return distIdx.front().second;  // if all identical, pick the zeroeth
-	}
-	
-	std::vector<double> weights;
-	weights.reserve(distIdx.size());
-	for (auto& di : distIdx)
-	{
-		double scaled = di.first / dmax; // in [0,1]
-		weights.push_back(std::exp(- sharpness * scaled));
-	}
-	// normalize
-	double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
-	for (auto& w : weights) { w /= sum; }
-
-	// draw one index from distribution
-	static thread_local std::mt19937 rng{ std::random_device{}() };
-	std::discrete_distribution<int> dist(weights.begin(), weights.end());
-	int choice = dist(rng);
-
-	return distIdx[choice].second;
-}
 timbre3DPoint biuni(timbre3DPoint const &bipolar_p3){
 	using nvs::memoryless::biuni;
 	timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
@@ -233,8 +80,9 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
+	auto const &timbres5D = _timbreSpaceHolder.getTimbreSpace();
 	{
-		auto const current_point = timbres5D[currentPointIdx];
+		auto const current_point = timbres5D[_timbreSpaceHolder.getCurrentPointIdx()];
 		
 		for (auto p5 : timbres5D){
 			timbre2DPoint p2 = bipolar2dPointToComponentSpace(p5.get2D(), w, h);
@@ -292,26 +140,10 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	}
 }
 
-void TimbreSpaceComponent::setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose) {
-	if (verbose) {
-		fmt::print("incoming point x: {}, y: {}, u: {}, v: {}, z: {}\n",
-					p5D.get2D().getX(),
-					p5D.get2D().getY(),
-					p5D.get3D()[0],
-					p5D.get3D()[1],
-					p5D.get3D()[2]
-				   );
-	}
-	currentPointIdx = findNearestPoint(p5D, timbres5D);
-}
-void TimbreSpaceComponent::setProbabilisticPointFromTarget(const timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
-	currentPointIdx = findProbabilisticPoint(target, timbres5D, K_neighbors, sharpness, higher3Dweight);
-}
-
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	tsn_mouse._dragging = true;
 	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
-	timbre5DPoint p5D {
+	Timbre5DPoint p5D {
 		._p2D{p2D_norm},
 		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]}
 	};
@@ -374,9 +206,8 @@ void ProgressIndicator::paint(juce::Graphics &g) {
 	g.setFont(juce::Font("Courier New", 15.f, juce::Font::FontStyleFlags::plain));
 	g.drawText(message, b, juce::Justification::centred);
 }
-void ProgressIndicator::resized() {
-	
-}
+void ProgressIndicator::resized() {}
+
 void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* source) {
 	if (auto *a = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
 		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
@@ -386,9 +217,15 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		std::cout << "PROGRESS: " << progressIndicator.progress << '\n';
 		progressIndicator.repaint();
 	}
-	else if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+	else if (dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		std::cout << "timbre space comp: ThreadedAnalyzer: CHANGE listener: hiding progress indicator\n";
 		progressIndicator.setVisible(false);
+	}
+	else if (auto const *n = dynamic_cast<nvs::nav::Navigator*>(source)){
+		// move navigation indicator
+		auto p = n->storedPoint;
+		setNavigatorPoint(juce::Point<float>(p[0], p[1]));
+		repaint();
 	}
 }
 void TimbreSpaceComponent::exitSignalSent() {
@@ -427,7 +264,7 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 }
 
 int TimbreSpaceComponent::getCurrentPointIdx() const {
-	return currentPointIdx;
+	return _timbreSpaceHolder.getCurrentPointIdx();
 }
 
 juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point<int> pos){

@@ -11,8 +11,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "fmt/core.h"
+#include "../../slicer_granular/Source/misc_util.h"
 
 /**
  TODO:
@@ -29,49 +29,30 @@ struct ProgressIndicator	:	public juce::Component
 };
 
 namespace {
-constexpr bool inRange0_1(float x){
-	return ( (x >= 0.f) && (x <= 1.f) );
-}
-constexpr bool inRangeM1_1(float x){
-	return ( (x >= -1.f) && (x <= 1.f) );
-}
+
 }
 class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
 {
 public:
-	using timbre2DPoint = juce::Point<float>;
-	using timbre3DPoint = std::array<float, 3>;
-	struct timbre5DPoint {
-		timbre2DPoint _p2D;			// used to locate the point in x,y plane
-		timbre3DPoint _p3D;	// used to describe the colour (hsv)
-
-		bool operator==(timbre5DPoint const &other) const;
-		timbre2DPoint get2D() const { return _p2D; }
-		timbre3DPoint get3D() const { return _p3D; }
-
-		// to easily trade hsv for rbg
-		std::array<juce::uint8, 3> toUnsigned() const;
-	};
+	using timbre2DPoint = nvs::util::timbre2DPoint;// juce::Point<float>;
+	using timbre3DPoint = nvs::util::timbre3DPoint;
+	using TimbreSpaceHolder = nvs::util::TimbreSpaceHolder;
 	
 	struct Navigator {
 		timbre2DPoint _p2D {0.f, 0.f};
 	};
 	
 	
-	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts)
-	:	_apvts{apvts} {}
+	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpaceHolder &timbreSpaceHolder)
+	:	_apvts{apvts} , _timbreSpaceHolder(timbreSpaceHolder)
+	{}
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void exitSignalSent() override;
 	
 	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
-	void add5DPoint(float x, float y, float z, float w, float v);
 	void clear();
 	void paint(juce::Graphics &g) override;
 	void resized() override;
-	
-	void setCurrentPointFromNearest(timbre5DPoint p5D, bool verbose=false);
-	void setProbabilisticPointFromTarget(const timbre5DPoint& target, int K_neighbors, double sharpness,  float   higher3Dweight = 0.01f);
-	void setCurrentPointIdx(int newIdx);	// careful with setting directly.
 	
 	void mouseDown (const juce::MouseEvent &event) override;
 	void mouseUp (const juce::MouseEvent &event) override;
@@ -92,9 +73,6 @@ public:
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	
-	void add2DPoint(float x, float y);
-	void add2DPoint(timbre2DPoint p);
-	
 	ProgressIndicator progressIndicator;
 	
 	struct TSNMouse
@@ -113,8 +91,7 @@ private:
 	TSNMouse tsn_mouse;
 	Navigator nav;
 	
-	juce::Array<timbre5DPoint> timbres5D;
-	int currentPointIdx {0};
+	TimbreSpaceHolder &_timbreSpaceHolder;
 	
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos);
 	
