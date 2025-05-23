@@ -159,27 +159,29 @@ private:
 	std::vector<double> latest;
 };
 
-struct Navigator	:	public juce::ChangeBroadcaster
+struct Navigator	:	juce::ChangeBroadcaster
 {
 	using ActiveNavigator = std::variant<LFO2D, RandomWalkND>;
+
 	std::function<void(const std::vector<double>&)> onUpdate;
-	ActiveNavigator activeNavigator;
+	ActiveNavigator  activeNavigator;
+	std::vector<double> storedPoint;
 
 	template<typename T, typename... Args>
 	Navigator(std::function<void(const std::vector<double>&)> onUpdateFn,
 			  std::in_place_type_t<T>,
 			  Args&&... args)
-	  : onUpdate(std::move(onUpdateFn)),                      // matches declaration order
-		activeNavigator(std::in_place_type<T>, std::forward<Args>(args)...)
+	  : onUpdate(std::move(onUpdateFn))
+	  , activeNavigator(std::in_place_type<T>, std::forward<Args>(args)...)
 	{
 		passDownOnUpdateFunction();
 	}
-	
-	
-	void passDownOnUpdateFunction(){
+
+	void passDownOnUpdateFunction()
+	{
 		std::visit([this](auto &nav){
-			jassert (onUpdate != nullptr);
-			auto fullOnUpdateFn = [this](const std::vector<double>& v){
+			jassert(onUpdate != nullptr);
+			auto fullOnUpdateFn = [this](auto const& v){
 				storedPoint = v;
 				onUpdate(v);
 				sendChangeMessage();
@@ -187,7 +189,19 @@ struct Navigator	:	public juce::ChangeBroadcaster
 			nav.setOnUpdateCallback(fullOnUpdateFn);
 		}, activeNavigator);
 	}
-	std::vector<double> storedPoint;
+
+	void setLFO2D(juce::AudioProcessorValueTreeState& apvts, float rate=90.f)
+	{
+		activeNavigator.template emplace<LFO2D>(apvts, rate);	// .template keyword tells compiler we are doing a member template function call, not '<' operator
+		passDownOnUpdateFunction();
+	}
+
+	void setRandomWalkND(juce::AudioProcessorValueTreeState& apvts, int dimensions=6, int rateMs=10, double stepSize=0.01)
+	{
+		activeNavigator.template emplace<RandomWalkND>(apvts, dimensions, rateMs, stepSize);
+		passDownOnUpdateFunction();
+	}
 };
+
 
 }

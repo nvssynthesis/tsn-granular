@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="gXPk7b" name="tsn_granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              version="0.2.0" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
+              version="0.2.1" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source"
@@ -160,7 +160,7 @@
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" extraCompilerFlags="-I/opt/homebrew/Cellar&#10;-I/opt/homebrew/Cellar/mlpack/4.2.0/include&#10;-I/opt/homebrew/Cellar/eigen/3.4.0_1/include&#10;-I/opt/homebrew/Cellar/armadillo/12.6.1/include&#10;-v&#10;-ftemplate-backtrace-limit=0&#10;-Wall &#10;-Wextra &#10;-Wshadow &#10;-Wuninitialized "
-               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.22_5/lib&#10;-L/opt/homebrew/lib&#10;-Wl,-rpath,/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static&#10;-L../../aubio/build/src&#10;"
+               extraLinkerFlags="-L/opt/homebrew/Cellar/ffmpeg@2.8/2.8.22_5/lib&#10;-L/opt/homebrew/lib&#10;-Wl,-rpath,/opt/homebrew/lib&#10;-L/opt/homebrew/Cellar/fmt/10.1.1/lib/static"
                externalLibraries="essentia&#10;tensorflow&#10;tag&#10;avcodec&#10;avdevice&#10;avfilter&#10;avformat&#10;avresample&#10;avutil&#10;postproc&#10;swresample&#10;swscale&#10;samplerate&#10;chromaprint&#10;yaml&#10;fmt&#10;sdl2"
                xcodeValidArchs="arm64" appSandboxOptions="com.apple.security.files.user-selected.read-only"
                appSandbox="0" hardenedRuntimeOptions="com.apple.security.cs.allow-dyld-environment-variables,com.apple.security.cs.disable-library-validation"

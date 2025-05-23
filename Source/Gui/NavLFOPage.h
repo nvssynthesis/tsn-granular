@@ -22,15 +22,18 @@ private:
 };
 
 
-struct NavLFOPage :	public juce::Component, public juce::ComboBox::Listener
+struct NavigatorPage :	public juce::Component, public juce::ComboBox::Listener
 {
-	NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar);
-	~NavLFOPage();
+	NavigatorPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar);
+	~NavigatorPage();
 	void resized() override;
 	void comboBoxChanged(juce::ComboBox* cb) override;
 
 	void showPanel(int menuId);
 	
+	
+	void activateLFO2D();
+	void activateRandomWalk();
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	juce::ComboBox navigatorTypeMenu;
@@ -39,5 +42,7 @@ private:
 	std::unique_ptr<NavigatorPanel> navPanel;
 	
 	nvs::nav::Navigator &_navigator;
+	
+
 };
 

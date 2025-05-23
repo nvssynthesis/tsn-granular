@@ -35,37 +35,78 @@ void NavigatorPanel::resized()
 		s->_label.setBounds(left, sliderHeight, alottedCompWidth, labelHeight);
 	}
 }
-
-
-
-NavLFOPage::NavLFOPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigator)
+namespace {
+using ActivatorFn = void (NavigatorPage::*)(void);
+struct ItemData {
+	int menuIndex;
+	juce::String menuString;
+	ActivatorFn fpActivator;
+};
+static const std::map<std::type_index, ItemData> navVarMenuIndices {
+	{ typeid(nvs::nav::LFO2D), ItemData{
+		.menuIndex=1,
+		.menuString="2-D LFO",
+		.fpActivator=&NavigatorPage::activateLFO2D
+	} },
+	{ typeid(nvs::nav::RandomWalkND), ItemData{
+		.menuIndex=2,
+		.menuString="Random Walk",
+		.fpActivator=&NavigatorPage::activateRandomWalk
+	} }
+};
+static const std::map<int,std::type_index> menuIndexToType = [](){
+	std::map<int,std::type_index> m;
+	for (auto const& [tidx, data] : navVarMenuIndices) {
+		m.emplace( data.menuIndex, tidx );
+		// or, if you worry about duplicate keys:
+		// m.insert_or_assign(data.menuIndex, tidx);
+	}
+	return m;
+}();
+static const std::map<int,ActivatorFn> menuIndexToActivatorFn = []()
+{
+	std::map<int,ActivatorFn> map;
+	for (auto const& [tidx, data] : navVarMenuIndices){
+		map[data.menuIndex] = data.fpActivator;
+	}
+	return map;
+}();
+std::type_index getTypeIndex(nvs::nav::Navigator &nav){
+	return std::visit([](auto& alt) -> std::type_index { return std::type_index(typeid(alt)); }, nav.activeNavigator );
+}
+ItemData getItemData(nvs::nav::Navigator &nav){
+	std::type_index ti = getTypeIndex(nav);
+	return navVarMenuIndices.at(ti);
+}
+}
+NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigator)
 :	_apvts(apvts)
 ,	_navigator(navigator)
 {
 	setSize(100, 100);
 
 	addAndMakeVisible(navigatorTypeMenu);
-	navigatorTypeMenu.addItem("2-D LFO", 1);
-	navigatorTypeMenu.addItem("Random Walk", 2);
-	navigatorTypeMenu.setSelectedId(1);
-	navigatorTypeMenu.addListener(this);
-	{
-//		_navigator.onUpdate = onUpdateFn;
-		_navigator.activeNavigator.emplace<nvs::nav::LFO2D>(_apvts, 60.f);
-		_navigator.passDownOnUpdateFunction();
-		
-		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
-	}
-	showPanel(navigatorTypeMenu.getSelectedItemIndex());
 
+	for (auto [typeId, itemData] : navVarMenuIndices)
+	{
+		navigatorTypeMenu.addItem(itemData.menuString, itemData.menuIndex);
+	}
+	auto const itemData = getItemData(_navigator);
+	navigatorTypeMenu.setSelectedId(itemData.menuIndex);
+	std::invoke(itemData.fpActivator, this);
+	auto i = navigatorTypeMenu.getSelectedId();
+	showPanel(i);
+
+	navigatorTypeMenu.addListener(this);
+	
 	selPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::selectivity);
 	addAndMakeVisible(selPanel.get());
 	
 }
-NavLFOPage::~NavLFOPage(){
+NavigatorPage::~NavigatorPage(){
 	navigatorTypeMenu.removeListener(this);
 }
-void NavLFOPage::resized() {
+void NavigatorPage::resized() {
 	// carve out a strip for the combo box at the top
 	auto bounds = getLocalBounds();
 	auto menuArea = bounds.removeFromTop(24).reduced(4);
@@ -87,7 +128,6 @@ void NavLFOPage::resized() {
 			bounds.getY(),
 			totalW - splitW,
 			bounds.getHeight()
-			
 		};
 		
 		if (selPanel != nullptr){
@@ -98,27 +138,40 @@ void NavLFOPage::resized() {
 		}
 	}
 }
-void NavLFOPage::comboBoxChanged(juce::ComboBox* cb)
+void NavigatorPage::comboBoxChanged(juce::ComboBox* cb)
 {
 	if (cb == &navigatorTypeMenu) {
 		showPanel(cb->getSelectedId());
 	}
 }
 
-void NavLFOPage::showPanel(int menuId)
+void NavigatorPage::activateLFO2D(){
+	if (!std::holds_alternative<nvs::nav::LFO2D>(_navigator.activeNavigator)){
+		_navigator.setLFO2D(_apvts);
+	}
+	navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
+}
+void NavigatorPage::activateRandomWalk(){
+	if (!std::holds_alternative<nvs::nav::RandomWalkND>(_navigator.activeNavigator)){
+		_navigator.setRandomWalkND(_apvts);
+	}
+	navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
+}
+void NavigatorPage::showPanel(int menuId)
 {
 	navPanel->setVisible(false);
 	
+	
 	// then show the one the user picked
-	if (menuId == 1){
-		_navigator.activeNavigator.emplace<nvs::nav::LFO2D>(_apvts, 90.f);
-		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
-	}
-	else if (menuId == 2) {
-		_navigator.activeNavigator.emplace<nvs::nav::RandomWalkND>(_apvts, 6, 10.f, 0.01);	// dim, rate, step size
-		navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
-	}
-	_navigator.passDownOnUpdateFunction();
+//	if (menuId == navVarMenuIndices.at(typeid(nvs::nav::LFO2D)).menuIndex){
+//		activateLFO2D();
+//	}
+//	else if (menuId == navVarMenuIndices.at(typeid(nvs::nav::RandomWalkND)).menuIndex) {
+//		activateRandomWalk();
+//	}
+	jassert (menuId > 0);
+	std::invoke(menuIndexToActivatorFn.at(menuId), this);
+	
 	addAndMakeVisible(navPanel.get());
 	
 	// force re‐layout

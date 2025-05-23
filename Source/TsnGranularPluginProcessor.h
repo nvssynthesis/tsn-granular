@@ -29,10 +29,11 @@ struct timbre5DPoint {
 class TsnGranularAudioProcessor  : public Slicer_granularAudioProcessor
 ,									private juce::ChangeListener
 {
-	struct TimbreSpaceNeededData;
+	class TimbreSpaceNeededData;
 public:
 	//==============================================================================
 	TsnGranularAudioProcessor();
+	~TsnGranularAudioProcessor();
 	//==============================================================================
 	juce::AudioProcessorEditor* createEditor() override;
 	void setStateInformation (const void* data, int sizeInBytes) override;
@@ -53,7 +54,7 @@ public:
 		return _analyzer;
 	}
 	TimbreSpaceNeededData &getTimbreSpaceNeededData() {
-		return timbreSpaceNeededData;
+		return _timbreSpaceNeededData;
 	}
 	nvs::util::TimbreSpaceHolder &getTimbreSpaceHolder() {
 		return _timbreSpaceHolder;
@@ -73,17 +74,46 @@ private:
 	
 	nvs::nav::Navigator navigator;
 	
-	struct TimbreSpaceNeededData {
+	//========================================================================================================================
+	struct TimbreSpacialSettings {
+		float histogramEqualization {0.0f};
+		std::vector<nvs::analysis::Features> dimensionWisefeatures {
+			nvs::analysis::Features::bfcc1,
+			nvs::analysis::Features::bfcc2,
+			nvs::analysis::Features::bfcc3,
+			nvs::analysis::Features::bfcc4,
+			nvs::analysis::Features::bfcc5
+		};
+	};
+	class TimbreSpaceNeededData	:	public juce::ChangeListener,	public juce::ValueTree::Listener,	public juce::ChangeBroadcaster
+	{
+	public:
+		TimbreSpaceNeededData(TimbreSpacialSettings &settings)	:	spacialSettings(settings)	{}
+		
+		
 		std::vector<std::pair<float, float>> ranges {}; // min, max per dimension
 		std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
 
 		std::optional<std::vector<nvs::analysis::FeatureContainer<nvs::analysis::EventwiseStatistics<float>>>>  fullTimbreSpace;	// gets stolen FROM analyzer to save memory
 		std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
+
+		TimbreSpacialSettings &spacialSettings;
+		void valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &property) override;
+		void changeListenerCallback(juce::ChangeBroadcaster *source) override;
+	private:
 		
+		void updateTimbreSpacePoints();
 		void extract(std::vector<nvs::analysis::Features> featuresToExtract);
 	};
-	TimbreSpaceNeededData timbreSpaceNeededData;
+	
+	TimbreSpacialSettings _timbreSpacialSettings;
+	
+	TimbreSpaceNeededData _timbreSpaceNeededData;
+	
 	nvs::util::TimbreSpaceHolder _timbreSpaceHolder;
+	
+	//========================================================================================================================
+
 	
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================

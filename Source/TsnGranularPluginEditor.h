@@ -12,7 +12,6 @@
 */
 
 class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
-,											public juce::ValueTree::Listener	// to listen for timbre space settings change, to redraw points
 ,											public GranularEditorCommon
 {
 public:
@@ -22,11 +21,10 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintOnsetMarkersAndTimbrePoints(std::vector<float> const &onsets);
+	void paintOnsetMarkers();
 	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
-	void valueTreePropertyChanged (juce::ValueTree &treeWhosePropertyHasChanged, const juce::Identifier &property) override;
 	ProgressIndicator &getProgressIndicator() {
 		return timbreSpaceComponent.getProgressIndicator();
 	}
@@ -34,19 +32,9 @@ protected:
 private:
 	juce::ComponentBoundsConstrainer constrainer;
 	
-	void updateAndDrawTimbreSpacePoints(bool verbose = false);
+//	void updateAndDrawTimbreSpacePoints(bool verbose = false);
 	void drawTimbreSpacePoints(bool verbose = false);
-	struct TimbreSpaceDrawingSettings {
-		float histogramEqualization {0.0f};
-		std::vector<nvs::analysis::Features> dimensionWisefeatures {
-			nvs::analysis::Features::bfcc1,
-			nvs::analysis::Features::bfcc2,
-			nvs::analysis::Features::bfcc3,
-			nvs::analysis::Features::bfcc4,
-			nvs::analysis::Features::bfcc5
-		};
-	};
-	TimbreSpaceDrawingSettings timbreSpaceDrawingSettings;
+
 	TimbreSpaceComponent timbreSpaceComponent;
 
 	std::array<juce::Colour, 3> gradientColors {
