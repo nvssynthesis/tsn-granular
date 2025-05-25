@@ -89,23 +89,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	waveformAndPositionComponent.hideSlider();
 	audioProcessor.getTsnGranularSynthesizer()->addChangeListener(&(waveformAndPositionComponent.wc));	// to highlight current event
 	
-//	std::visit([this](auto &concreteNav) {
-//		concreteNav.setOnUpdateCallback([&](const std::vector<double>& v){
-//			// set navigator of timbre space component
-//			assert (2 <= v.size());
-//			auto const p2 = juce::Point<float>(v[0], v[1]);
-//			timbreSpaceComponent.setNavigatorPoint(p2);
-//			// also attract to nearest point
-//			auto p5 = TimbreSpaceComponent::timbre5DPoint {
-//				._p2D{p2},
-//				._p3D{0.f, 0.f, 0.f}
-//			};
-//			timbreSpaceComponent.setCurrentPointFromNearest(p5);
-//			setReadBoundsFromChosenPoint();
-//			timbreSpaceComponent.repaint();
-//		});
-//	}, audioProcessor.getNavigator());
-	
 #pragma message("set navigator PANEL to have this update function!!!!!")
 	// set navigator PANEL to have this update function!!!!!
 	
@@ -114,16 +97,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
 	paintOnsetMarkers();
-	{	// on initial construction, this should do nothing. however, it should also take care of the case where you close and open the plugin window.
-//		auto const &a = audioProcessor.getAnalyzer();
-//		auto onsetOpt = a.getOnsets();
-//		auto timbreOpt = a.getTimbreSpaceRepresentation();
-//		if (!(onsetOpt.has_value()) || !(timbreOpt.has_value())){
-//			audioProcessor.writeToLog("mouse listener: empty optional, returning.\n");
-//			return;
-//		}
-//		paintOnsetMarkersAndTimbrePoints(onsetOpt.value(), timbreOpt.value());	// is this really the best place for it though? think about in resized() maybe.
-	}
 	
 	auto &a = audioProcessor.getAnalyzer();
 	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
@@ -133,11 +106,18 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	
 	audioProcessor.getTimbreSpaceNeededData().addChangeListener(this);
 	
-	constrainer.setMinimumSize(620, 500);
+	for (auto *child : getChildren()){
+		child->setLookAndFeel(&laf);
+	}
+	
+	getConstrainer()->setMinimumSize(620, 500);
 }
 
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
+	for (auto *child : getChildren()){
+		child->setLookAndFeel(nullptr);
+	}
 	closeAllWindows();
 	
 	auto &a = audioProcessor.getAnalyzer();
@@ -340,7 +320,7 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 void TsnGranularAudioProcessorEditor::resized()
 {
 	backgroundNeedsUpdate = true;
-	constrainer.checkComponentBounds(this);
+	getConstrainer()->checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
 //
 //	juce::Image const toBeBackground(juce::Image::PixelFormat::RGB,

@@ -4,6 +4,7 @@
 #include "./Gui/TimbreSpaceComponent.h"
 #include "./Navigation/LFO.h"
 #include "../slicer_granular/Source/SlicerGranularPluginEditor.h"
+#include "Gui/LAF.h"
 
 //==============================================================================
 /** TODO:
@@ -30,7 +31,7 @@ public:
 	}
 protected:
 private:
-	juce::ComponentBoundsConstrainer constrainer;
+	nvs::gui::LAF laf;
 	
 //	void updateAndDrawTimbreSpacePoints(bool verbose = false);
 	void drawTimbreSpacePoints(bool verbose = false);

@@ -30,6 +30,8 @@
         </GROUP>
       </GROUP>
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
+        <FILE id="CyH1Ji" name="LAF.cpp" compile="1" resource="0" file="Source/Gui/LAF.cpp"/>
+        <FILE id="g7nFoB" name="LAF.h" compile="0" resource="0" file="Source/Gui/LAF.h"/>
         <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
           <FILE id="XZrPwx" name="GrainBusyDisplay.cpp" compile="1" resource="0"
                 file="slicer_granular/Source/Gui/GrainBusyDisplay.cpp"/>
