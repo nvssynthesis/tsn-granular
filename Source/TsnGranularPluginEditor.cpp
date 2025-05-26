@@ -260,7 +260,8 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 
 	auto& r = juce::Random::getSystemRandom();
 
-	const int numLayers = 11;
+	const int numLayers = int(r.nextFloat() * 15) + 1;
+	jassert(numLayers > 0);
 	for (int i = 0; i < numLayers; ++i)
 	{
 		float x1 = r.nextFloat() * w;
@@ -268,7 +269,7 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 		float x2 = r.nextFloat() * w;
 		float y2 = r.nextFloat() * h;
 		
-		// two random vivid colours
+		// two random shades
 		auto c1 = juce::Colour::greyLevel( r.nextFloat() );
 		auto c2 = juce::Colour::greyLevel( r.nextFloat() );
 
@@ -276,17 +277,16 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 								  c2, x2, y2,
 								  false);
 		
-		for (double g = r.nextFloat() * 0.05; g < 1.0; g += r.nextFloat() * 0.09 + 0.03){
+		for (double g = r.nextFloat() * 0.01; g < 1.0; g += r.nextFloat() * 0.03 + 0.02){
 			grad.addColour (g, c1.interpolatedWith (c2, r.nextFloat()));
 		}
-		// draw it at the correct opacity *and* over the full image
-		float opacity = 0.1f + r.nextFloat() * 0.2f;  // 0.1–0.3
+		float opacity = 0.1f + r.nextFloat() * 0.2f;
 		tg.setGradientFill (grad);
 		tg.setOpacity       (opacity);
-		tg.fillRect         (0.0f, 0.0f, w, h);    // ← critical fix!
+		tg.fillRect         (0.0f, 0.0f, w, h);
 	}
 
-//	 optional radial vignette to darken the very edges
+//	optional radial vignette to darken the very edges
 	if (false)
 	{
 		juce::Colour inner = juce::Colour::fromHSV (r.nextFloat(), 1.0f, 1.0f, 0.07f);

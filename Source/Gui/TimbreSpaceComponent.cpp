@@ -72,7 +72,10 @@ void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timb
 }	// anonymous namespace
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
-	g.fillAll(juce::Colour(juce::Colours::black).withMultipliedLightness(1.6f).withAlpha(0.f));
+//	g.fillAll(juce::Colour(juce::Colours::black).withMultipliedLightness(1.6f).withAlpha(0.f));
+	using juce::Colour;
+	using Point = juce::Point<float>;
+	g.setGradientFill(juce::ColourGradient(juce::Colour::greyLevel(1.0f), Point(0,0), juce::Colour::greyLevel(0.0), Point(1,1), true));
 	g.setColour(juce::Colours::transparentWhite);
 	g.drawRect(getLocalBounds(), 1);
 			   
