@@ -104,8 +104,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 	a.addChangeListener(this);					// tell me to paint onsets
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
 	
-	audioProcessor.getTimbreSpaceNeededData().addChangeListener(this);
-	
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
 	}
@@ -158,70 +156,6 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 	settingsWindow->setResizable (true, ! native);
 	settingsWindow->setUsingNativeTitleBar (native);
 	settingsWindow->setVisible (true);
-}
-
-void TsnGranularAudioProcessorEditor::drawTimbreSpacePoints(bool verbose)
-{	/** to be called when we only want to change the view of the timbre points (which will also need to happen when the timbre space itself changes) */
-	auto &timbreSpaceNeededData = audioProcessor.getTimbreSpaceNeededData();
-	if (timbreSpaceNeededData.eventwiseExtractedTimbrePoints.size() == 0){
-		audioProcessor.writeToLog("drawTimbreSpacePoints: timbreSpaceNeededData empty, returning...");
-		return;
-	}
-	std::vector<std::vector<float>> const &timbreSpaceRepr = timbreSpaceNeededData.eventwiseExtractedTimbrePoints;
-	std::vector<std::pair<float, float>> const &ranges = timbreSpaceNeededData.ranges;
-	if (!(timbreSpaceRepr.size() == ranges.size())){
-		audioProcessor.writeToLog("drawTimbreSpacePoints: point size mismatch, exiting early");
-	}
-
-	if (verbose){ audioProcessor.writeToLog("Editor: Drawing timbre space points\n"); }
-	
-	auto normalizer = [](float x, std::pair<float, float> range) -> float
-	{
-		auto r = (range.second - range.first);
-		auto y01 = (x - range.first);
-		if (r != 0){
-			y01 /= r;
-		}
-		return juce::jmap(y01, -1.f, 1.f);
-	};
-	auto squash = [](float xNorm) -> float { return std::asinh(10.0*xNorm) / (float)(M_PI); };
-	auto foo = [&](float x, std::pair<float, float> range) -> float { return squash(normalizer(x, range)); };
-	
-	constexpr size_t nDim {5};
-	
-	audioProcessor.getTimbreSpaceHolder().clear(); // clearing to make way for points we're about to be adding
-	for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
-		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
-		
-		assert (timbreFrame.size() >= nDim);
-
-		auto pNL = juce::Point<float>(foo(timbreFrame[0], timbreSpaceNeededData.ranges[0]),
-									   foo(timbreFrame[1], timbreSpaceNeededData.ranges[1]));
-		// histogram equalization
-		float const &equalizedX  = timbreSpaceNeededData.histoEqualizedD0[i];
-		float const &equalizedY  = timbreSpaceNeededData.histoEqualizedD1[i];
-		
-		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
-								juce::jmap(equalizedY, -1.f, 1.f));
-	
-		float c = timbreSpaceNeededData.spacialSettings.histogramEqualization;
-		jassert (0.0 <= c && c <= 1.0);
-		juce::Point<float> p = (1.f - c) * pNL + c * pHE;
-		
-		std::array<float, 3> const color {
-			( normalizer(timbreFrame[2], timbreSpaceNeededData.ranges[2]) ),
-			( normalizer(timbreFrame[3], timbreSpaceNeededData.ranges[3]) ),
-			( normalizer(timbreFrame[4], timbreSpaceNeededData.ranges[4]) )
-		};
-		// with this method, there is the gaurantee that
-		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
-		// the Nth member of onsets.
-		float const padding_scalar = 0.95f;
-		audioProcessor.getTimbreSpaceHolder().add5DPoint(p * padding_scalar, color);
-		if (verbose){
-			fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
-		}
-	}
 }
 
 void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
@@ -386,10 +320,6 @@ void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		// onsets are immediately ready to draw
 		paintOnsetMarkers();
-	}
-	else if (auto &timbreData = audioProcessor.getTimbreSpaceNeededData(); &timbreData == source){
-		// draw timbre points
-		drawTimbreSpacePoints();
 	}
 	else {
 		GranularEditorCommon::changeListenerCallback(source);

@@ -105,7 +105,7 @@ private:
 		void updateTimbreSpacePoints();
 		void extract(std::vector<nvs::analysis::Features> featuresToExtract);
 	};
-	
+	void reshapeTimbreSpacePoints(bool verbose);
 	TimbreSpacialSettings _timbreSpacialSettings;
 	
 	TimbreSpaceNeededData _timbreSpaceNeededData;

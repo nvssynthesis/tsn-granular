@@ -32,9 +32,6 @@ public:
 protected:
 private:
 	nvs::gui::LAF laf;
-	
-//	void updateAndDrawTimbreSpacePoints(bool verbose = false);
-	void drawTimbreSpacePoints(bool verbose = false);
 
 	TimbreSpaceComponent timbreSpaceComponent;
 
