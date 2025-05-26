@@ -76,16 +76,30 @@ bool containsValue(const std::vector<T>& vec, T value) {
 }
 }	// anonymous namespace
 
+			   
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
-//	g.fillAll(juce::Colour(juce::Colours::black).withMultipliedLightness(1.6f).withAlpha(0.f));
 	using juce::Colour;
 	using Point = juce::Point<float>;
-	g.setGradientFill(juce::ColourGradient(juce::Colour::greyLevel(1.0f), Point(0,0), juce::Colour::greyLevel(0.0), Point(1,1), true));
-	g.setColour(juce::Colours::transparentWhite);
-	g.drawRect(getLocalBounds(), 1);
-			   
+	
 	// keep these out of the following scope as long as i want to reuse them for the navigator
 	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
+	auto centre = r_bounds.getCentre();
+	float radius = juce::jmax (r_bounds.getWidth(), r_bounds.getHeight()) * 0.5f;
+	
+	juce::ColourGradient radialGrad (
+		juce::Colours::white.withAlpha(0.5f),    // centre colour
+		centre,                        			 // centre point
+		juce::Colours::darkgrey.withAlpha(0.5f), // edge colour
+		centre.translated (radius, 0),  		 // a point on the circumference
+		true                           			 // isRadial = true
+	);
+	g.setGradientFill (radialGrad);
+	g.fillRect (r_bounds);
+
+	
+	g.setColour(juce::Colours::snow.withAlpha(0.2f));
+	g.drawRect(getLocalBounds(), 1);
+	
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
 	auto const &timbres5D = _timbreSpaceHolder.getTimbreSpace();

@@ -28,7 +28,7 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 		
 		double const sharpness = (double) *(apvts.getRawParameterValue(paramName));
 		
-		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 4, sharpness);
+		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 8, sharpness);
 		setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
 	},
 	std::in_place_type<nvs::nav::LFO2D>, apvts, 40.0 }
