@@ -11,24 +11,26 @@
 #pragma once
 #include "../../slicer_granular/Source/Synthesis/JuceGranularSynthesizer.h"
 #include <span>
+#include "../../slicer_granular/Source/misc_util.h"
 
 class JuceTsnGranularSynthesizer
 :	public GranularSynthesizer
 ,	public juce::ChangeBroadcaster
 {
 public:
+	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
+	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
+	
 	JuceTsnGranularSynthesizer();
 	bool readyForProcess() const {
 		return false;
 	}
 	void loadOnsets(const std::span<float> onsets);
-	void setWaveEvent(size_t index);
-	void setWaveEvents(std::array<size_t, 4> indices,
-					   std::array<float, 4> weights);
-	size_t getCurrentIdx() const {
-		return currentIdx;
+	void setWaveEvents(WeightedIndices points);
+	WeightedIndices getCurrentIndices() const {
+		return currentIndices;
 	}
 private:
-	size_t currentIdx; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
+	WeightedIndices currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
 };
 

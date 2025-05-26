@@ -69,6 +69,11 @@ void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timb
 	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_x)) = p2D.getX();
 	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_y)) = p2D.getY();
 }
+
+template<typename T>
+bool containsValue(const std::vector<T>& vec, T value) {
+	return std::find(vec.begin(), vec.end(), value) != vec.end();
+}
 }	// anonymous namespace
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
@@ -85,7 +90,11 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	auto const h = r_bounds.getHeight();
 	auto const &timbres5D = _timbreSpaceHolder.getTimbreSpace();
 	{
-		auto const current_point = timbres5D[_timbreSpaceHolder.getCurrentPointIdx()];
+		std::vector<Timbre5DPoint> current_points;
+		current_points.reserve(_timbreSpaceHolder.getCurrentPointIndices().size());
+		for (auto & p : _timbreSpaceHolder.getCurrentPointIndices()){
+			current_points.push_back(timbres5D[p.idx]);
+		}
 		
 		for (auto p5 : timbres5D){
 			timbre2DPoint p2 = bipolar2dPointToComponentSpace(p5.get2D(), w, h);
@@ -97,7 +106,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
 			auto const rect = pointToRect(p2, softclip(z_closeness));
 			
-			if (p5 == current_point){
+			if (containsValue(current_points, p5)){
 				// brighter colour for selected point
 				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
 				// also draw glowing orb under the point
@@ -266,8 +275,8 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	_image = image;
 }
 
-int TimbreSpaceComponent::getCurrentPointIdx() const {
-	return _timbreSpaceHolder.getCurrentPointIdx();
+nvs::util::TimbreSpaceHolder::WeightedPoints TimbreSpaceComponent::getCurrentPointIndices() const {
+	return _timbreSpaceHolder.getCurrentPointIndices();
 }
 
 juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point<int> pos){

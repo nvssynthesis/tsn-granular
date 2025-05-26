@@ -28,15 +28,17 @@ namespace nvs	{
 namespace gran	{
 class TsnGranular		:		public genGranPoly1
 {
-public: 
+public:
+	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
+	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
+	
 	TsnGranular(GranularSynthSharedState *const synth_shared_state, int voice_id, unsigned long seed = 1234567890UL);
 	virtual ~TsnGranular() = default;
 	void loadOnsets(std::span<float> const normalizedOnsets);
 	
 	//================================================================================================================================================
 	void setWaveEvent(size_t index);
-	void setWaveEvents(std::array<size_t, 4> indices,
-					   std::array<float, 4> weights);
+	void setWaveEvents(WeightedIndices weightedIndices);
 	//================================================================================================================================================
 
 	

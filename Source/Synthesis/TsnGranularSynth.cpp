@@ -9,8 +9,9 @@
 */
 
 #include "TsnGranularSynth.h"
-#include "../slicer_granular/Source/algo_util.h"
 #include "fmt/core.h"
+#include "../slicer_granular/Source/algo_util.h"
+#include "../slicer_granular/Source/misc_util.h"
 
 namespace nvs	{
 namespace gran	{
@@ -37,8 +38,27 @@ void TsnGranular::setWaveEvent(size_t index) {
 	};
 	setReadBounds(bounds);
 }
-void TsnGranular::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights) {
-	assert (false);
+void TsnGranular::setWaveEvents(WeightedIndices weightedIndices) {
+	if (!_onsetsNormalized.size()){
+		return;
+	}
+	
+	std::vector<WeightedReadBounds> wrbs;
+	wrbs.reserve(weightedIndices.size());
+	for (auto wi : weightedIndices){
+		auto index = wi.idx;
+		assert(index < (int)_onsetsNormalized.size());
+		auto const nextIdx = (index + 1) % _onsetsNormalized.size();
+		
+		wrbs.push_back(WeightedReadBounds{
+			.bounds {
+				.begin = _onsetsNormalized[index],
+				.end = _onsetsNormalized[nextIdx]
+			},
+			.weight = wi.weight
+		});
+	}
+	setMultiReadBounds(wrbs);
 }
 
 //====================================================================================

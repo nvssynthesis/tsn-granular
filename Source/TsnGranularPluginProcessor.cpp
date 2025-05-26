@@ -95,12 +95,12 @@ void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 }
 
 void TsnGranularAudioProcessor::setReadBoundsFromChosenPoint() {
-	auto const pIdx = getTimbreSpaceHolder().getCurrentPointIdx();
+	auto const pIndices = getTimbreSpaceHolder().getCurrentPointIndices();
 	auto const onsetOpt = getAnalyzer().getOnsets();
 
 	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
 		if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
-			tsn_synth_juce->setWaveEvent(pIdx);
+			tsn_synth_juce->setWaveEvents(pIndices);
 		}
 	}
 }

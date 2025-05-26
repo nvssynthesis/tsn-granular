@@ -46,30 +46,32 @@ void JuceTsnGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 		}
 	}
 }
+//
+//void JuceTsnGranularSynthesizer::setWaveEvent(size_t index) {
+//	auto const numVoices = getNumVoices();
+//	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
+//		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
+//
+//			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
+//				tsnGuts->setWaveEvent(index);
+//			}
+//		}
+//	}
+//	currentIdx = index;
+//	sendChangeMessage();	// tell WaveformComponent to highlight event
+//}
 
-void JuceTsnGranularSynthesizer::setWaveEvent(size_t index) {
-	auto const numVoices = getNumVoices();
-	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
-		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
-			
-			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
-				tsnGuts->setWaveEvent(index);
-			}
-		}
-	}
-	currentIdx = index;
-	sendChangeMessage();	// tell WaveformComponent to highlight event
-}
-
-void JuceTsnGranularSynthesizer::setWaveEvents(std::array<size_t, 4> indices, std::array<float, 4> weights)
+void JuceTsnGranularSynthesizer::setWaveEvents(WeightedIndices indices)
 {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
 		if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 			
 			if (nvs::gran::TsnGranular* tsnGuts = dynamic_cast<nvs::gran::TsnGranular*>( granularVoice->getGranularSynthGuts() )){
-				tsnGuts->setWaveEvents(indices, weights);
+				tsnGuts->setWaveEvents(indices);
 			}
 		}
 	}
+	currentIndices = indices;
+	sendChangeMessage();
 }
