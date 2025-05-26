@@ -110,7 +110,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TsnGranularAud
 		child->setLookAndFeel(&laf);
 	}
 	
-	getConstrainer()->setMinimumSize(620, 500);
+	getConstrainer()->setMinimumSize(240, 360);
 }
 
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
@@ -287,6 +287,7 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 	}
 
 //	 optional radial vignette to darken the very edges
+	if (false)
 	{
 		juce::Colour inner = juce::Colour::fromHSV (r.nextFloat(), 1.0f, 1.0f, 0.07f);
 		juce::Colour outer = juce::Colours::black;

@@ -36,7 +36,33 @@ LAF::LAF()
 	setColour (TooltipWindow::textColourId,       juce::Colours::white.withAlpha (0.9f));
 	setColour (TooltipWindow::outlineColourId,    juce::Colours::grey.withAlpha (0.5f));
 }
+void LAF::drawTabButton (TabBarButton& button,
+					Graphics& g,
+					bool isMouseOver,
+					bool isMouseDown)
+{
+	Path outline;
+	createTabButtonShape (button, outline, isMouseOver, isMouseDown);
+	fillTabButtonShape   (button, g, outline, isMouseOver, isMouseDown);
 
+	drawTabButtonText (button, g, isMouseOver, isMouseDown);
+}
+
+void LAF::drawTabButtonText (TabBarButton& button,
+						Graphics& g,
+						bool /*isMouseOver*/,
+						bool /*isMouseDown*/)
+{
+	auto fontHeight = 14.0f;
+	auto fontStyle  = button.isFrontTab() ? Font::bold : Font::plain;
+	Font  f (fontName, fontHeight, fontStyle);
+	g.setFont (f);
+	g.setColour(Colours::white);
+	g.drawFittedText (button.getButtonText(),
+					  button.getLocalBounds(),
+					  Justification::centred,
+					  1);
+}
 void LAF::drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
 									int buttonX, int buttonY, int buttonW, int buttonH, ComboBox& cb)
 {

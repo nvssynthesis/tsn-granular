@@ -57,10 +57,26 @@ public:
 						 bool /*isMouseOverButton*/, bool /*isButtonDown*/) override;
 
 	void drawTooltip (Graphics &, const String &text, int width, int height) override;
+	
+	void drawTabButton (TabBarButton& button,
+						Graphics& g,
+						bool isMouseOver,
+						bool isMouseDown) override;
+
+	void drawTabButtonText (TabBarButton& button,
+							Graphics& g,
+							bool /*isMouseOver*/,
+							bool /*isMouseDown*/) override;
+	Font getLabelFont (Label&) override
+	{
+		return Font (fontName, 14.0f, Font::bold);
+	}
 private:
 	float const notchWidthDegrees {8.f};
 	juce::Colour notchColour {juce::Colour(Colours::blueviolet).withMultipliedLightness(0.5f)};
 	
-	String fontName {"Gill Sans"};
+	//	String fontName {"Gill Sans"};
+		String fontName {"Palatino"};
+//	String fontName {"Copperplate"};
 };
 }
