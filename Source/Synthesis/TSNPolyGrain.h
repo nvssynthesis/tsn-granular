@@ -1,7 +1,7 @@
 /*
   ==============================================================================
 
-    TsnGranularSynth.h
+	TSNPolyGrain.h
     Created: 4 Sep 2023 1:54:00am
     Author:  Nicholas Solem
 
@@ -26,14 +26,14 @@ struct EventInfo {
 
 namespace nvs	{
 namespace gran	{
-class TsnGranular		:		public genGranPoly1
+class TSNPolyGrain		:		public PolyGrain
 {
 public:
 	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
 	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
 	
-	TsnGranular(GranularSynthSharedState *const synth_shared_state, int voice_id, unsigned long seed = 1234567890UL);
-	virtual ~TsnGranular() = default;
+	TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, GranularVoiceSharedState *const voice_shared_state);
+	virtual ~TSNPolyGrain() = default;
 	void loadOnsets(std::span<float> const normalizedOnsets);
 	
 	//================================================================================================================================================

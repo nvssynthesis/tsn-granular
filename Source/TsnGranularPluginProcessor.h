@@ -3,9 +3,11 @@
 */
 #pragma once
 
-#include "Synthesis/TsnGranularSynth.h"
-#include "Analysis/ThreadedAnalyzer.h"
-#include "./Synthesis/JuceTsnGranularSynthesizer.h"
+#include "./Analysis/ThreadedAnalyzer.h"
+
+#include "./Synthesis/TSNPolyGrain.h"
+#include "./Synthesis/TSNGranularSynthesizer.h"
+
 #include "../slicer_granular/Source/SlicerGranularPluginProcessor.h"
 #include "./Navigation/LFO.h"
 #include "../slicer_granular/Source/misc_util.h"
@@ -26,21 +28,20 @@ struct timbre5DPoint {
 
 //==============================================================================
 
-class TsnGranularAudioProcessor  : public Slicer_granularAudioProcessor
+class TSNGranularAudioProcessor  : public SlicerGranularAudioProcessor
 ,									private juce::ChangeListener
 {
 	class TimbreSpaceNeededData;
+	friend class SlicerGranularAudioProcessor;	// allow base class to access private ctor
 public:
 	//==============================================================================
-	TsnGranularAudioProcessor();
-	~TsnGranularAudioProcessor();
+	~TSNGranularAudioProcessor();
 	//==============================================================================
 	juce::AudioProcessorEditor* createEditor() override;
 	void setStateInformation (const void* data, int sizeInBytes) override;
 	void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
 	//==============================================================================
-
 	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	
 	void setReadBoundsFromChosenPoint();
@@ -59,17 +60,35 @@ public:
 	nvs::util::TimbreSpaceHolder &getTimbreSpaceHolder() {
 		return _timbreSpaceHolder;
 	}
-	JuceTsnGranularSynthesizer *getTsnGranularSynthesizer() {
-		if (JuceTsnGranularSynthesizer *synth = dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
+	TSNGranularSynthesizer *getTsnGranularSynthesizer() {
+		if (TSNGranularSynthesizer *synth = dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
 			return synth;
 		}
 		else {
+			jassertfalse;
 			return nullptr;
 		}
 	}
 	
 	void writeEvents();
+protected:
+	void initSynth() override {
+		_granularSynth = std::make_unique<TSNGranularSynthesizer>(apvts);
+		if (dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
+			writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
+		}
+		else if (_granularSynth.get() == nullptr){
+			writeToLog("Null JuceTsnGranularSynthesizer");
+			jassertfalse;
+		}
+		else {
+			writeToLog("Failed to dynamic cast JuceTsnGranularSynthesizer");
+			jassertfalse;
+		}
+	}
 private:
+	TSNGranularAudioProcessor();
+
 	nvs::analysis::ThreadedAnalyzer _analyzer;
 	
 	nvs::nav::Navigator navigator;
@@ -117,5 +136,5 @@ private:
 	
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessor)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TSNGranularAudioProcessor)
 };

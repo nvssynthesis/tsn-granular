@@ -12,8 +12,8 @@ nvs::util::LoggingGuts::LoggingGuts()
 	juce::Logger::setCurrentLogger (&fileLogger);
 }
 
-TsnGranularAudioProcessor::TsnGranularAudioProcessor()
-:	Slicer_granularAudioProcessor(std::make_unique<JuceTsnGranularSynthesizer>())
+TSNGranularAudioProcessor::TSNGranularAudioProcessor()
+:	SlicerGranularAudioProcessor()
 ,	_analyzer(this)			// effectively adding this as listener to the analyzer
 ,	navigator{ [this](const std::vector<double>& v) -> void
 	{
@@ -24,22 +24,14 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};
-		auto paramName = getParamName(params_e::nav_selection_sharpness);
+		double const sharpness = (double) *(apvts.getRawParameterValue("nav_selection_sharpness"));
 		
-		double const sharpness = (double) *(apvts.getRawParameterValue(paramName));
-		
-		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 8, sharpness);
+		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 4, sharpness);
 		setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
 	},
 	std::in_place_type<nvs::nav::LFO2D>, apvts, 40.0 }
 ,	_timbreSpaceNeededData(_timbreSpacialSettings)
 {
-	if (dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
-		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
-	}
-	else {
-		writeToLog("Failed to dynamic cast JuceTsnGranularSynthesizer");
-	}
 #if defined(DEBUG_BUILD) | defined(DEBUG) | defined(_DEBUG)
 	writeToLog("TsnGranularAudioProcessor DEBUG MODE");
 #else
@@ -54,19 +46,19 @@ TsnGranularAudioProcessor::TsnGranularAudioProcessor()
 	
 	_timbreSpaceNeededData.addChangeListener(this);
 }
-TsnGranularAudioProcessor::~TsnGranularAudioProcessor() {
+TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	getNonAutomatableState().removeListener(&_timbreSpaceNeededData);
 	_analyzer.removeChangeListener(&_timbreSpaceNeededData);
 }
 //==============================================================================
-juce::AudioProcessorEditor* TsnGranularAudioProcessor::createEditor() {
+juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 	TsnGranularAudioProcessorEditor* ed = new TsnGranularAudioProcessorEditor (*this);
 	return ed;
 }
 
-void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	Slicer_granularAudioProcessor::setStateInformation(data, sizeInBytes);	// loads preset info & synthesis parameters
+	SlicerGranularAudioProcessor::setStateInformation(data, sizeInBytes);	// loads preset info & synthesis parameters
 	
 	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
 
@@ -88,26 +80,26 @@ void TsnGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 }
 //==============================================================================
 
-void TsnGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
+void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	writeToLog("TSN: loadAudioFile\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
-	Slicer_granularAudioProcessor::loadAudioFile(f, notifyEditor);
+	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);
 	askForAnalysis();
 	writeToLog("TSN: loadAudioFile exiting");
 }
 
-void TsnGranularAudioProcessor::setReadBoundsFromChosenPoint() {
+void TSNGranularAudioProcessor::setReadBoundsFromChosenPoint() {
 	auto const pIndices = getTimbreSpaceHolder().getCurrentPointIndices();
 	auto const onsetOpt = getAnalyzer().getOnsets();
 
 	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
-		if (auto *const tsn_synth_juce = dynamic_cast<JuceTsnGranularSynthesizer *const>(_granularSynth.get())){
+		if (auto *const tsn_synth_juce = dynamic_cast<TSNGranularSynthesizer *const>(_granularSynth.get())){
 			tsn_synth_juce->setWaveEvents(pIndices);
 		}
 	}
 }
 
-void TsnGranularAudioProcessor::askForAnalysis(){
+void TSNGranularAudioProcessor::askForAnalysis(){
 	if (_analyzer.Thread::isThreadRunning()){
 		_analyzer.stopAnalysis();
 	}
@@ -128,7 +120,7 @@ void TsnGranularAudioProcessor::askForAnalysis(){
 	}
 }
 
-void TsnGranularAudioProcessor::writeEvents(){
+void TSNGranularAudioProcessor::writeEvents(){
 	auto const onsetsOpt = _analyzer.getOnsets();
 	if (!onsetsOpt.has_value()){
 		writeToLog("writeEvents failed: onsets optional does not contain value");
@@ -155,7 +147,7 @@ void TsnGranularAudioProcessor::writeEvents(){
 }
 
 
-void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
+void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	writeToLog("processor: change message received\n");
 	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
@@ -165,7 +157,7 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		
 		if (onsetsOpt.has_value() and onsetsOpt->size()){
 			
-			if (auto *tsn_granular_synth = dynamic_cast<JuceTsnGranularSynthesizer *>(_granularSynth.get())){
+			if (auto *tsn_granular_synth = dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
 				tsn_granular_synth->loadOnsets(onsetsOpt.value());
 				writeToLog("TsnGranularAudioProcessor::changeListenerCallback: loaded onsets successfully");
 			}
@@ -185,7 +177,7 @@ void TsnGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 	}
 }
 
-void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
 	auto const buffer_fn_hash = _granularSynth->getFilenameHash();
 	auto const analysis_fn_hash = _analyzer.getFilenameHash();
 	if (analysis_fn_hash != buffer_fn_hash) {
@@ -197,7 +189,7 @@ void TsnGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
 		logRateLimited("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early", 1200);
 		return;
 	}
-	Slicer_granularAudioProcessor::processBlock (buffer, midiMessages);
+	SlicerGranularAudioProcessor::processBlock (buffer, midiMessages);
 }
 
 
@@ -231,7 +223,7 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 }	// end anonymous namespace
 
 
-void TsnGranularAudioProcessor::reshapeTimbreSpacePoints(bool verbose)
+void TSNGranularAudioProcessor::reshapeTimbreSpacePoints(bool verbose)
 {	/** to be called when we only want to change the view of the timbre points (which will also need to happen when the timbre space itself changes) */
 	auto &timbreSpaceNeededData = getTimbreSpaceNeededData();
 	if (timbreSpaceNeededData.eventwiseExtractedTimbrePoints.size() == 0){
@@ -297,7 +289,7 @@ void TsnGranularAudioProcessor::reshapeTimbreSpacePoints(bool verbose)
 	}
 }
 
-void TsnGranularAudioProcessor::TimbreSpaceNeededData::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &) {
+void TSNGranularAudioProcessor::TimbreSpaceNeededData::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &) {
 	std::cout << "value tree changed!!!!!\n";
 	if (alteredTree.hasType("TimbreSpace")){
 		std::cout << "tree changed! redrawing points...\n";
@@ -315,7 +307,7 @@ void TsnGranularAudioProcessor::TimbreSpaceNeededData::valueTreePropertyChanged 
 		std::cout << "what tree?\n";
 	}
 }
-void TsnGranularAudioProcessor::TimbreSpaceNeededData::changeListenerCallback(juce::ChangeBroadcaster* source) {
+void TSNGranularAudioProcessor::TimbreSpaceNeededData::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		auto onsetsOpt = a->getOnsets();
 		if (onsetsOpt.has_value() and onsetsOpt->size()) {
@@ -326,7 +318,7 @@ void TsnGranularAudioProcessor::TimbreSpaceNeededData::changeListenerCallback(ju
 		sendChangeMessage();	// THIS should now communicate to editor to paint points
 	}
 }
-void TsnGranularAudioProcessor::TimbreSpaceNeededData::extract(std::vector<nvs::analysis::Features> featuresToExtract) {
+void TSNGranularAudioProcessor::TimbreSpaceNeededData::extract(std::vector<nvs::analysis::Features> featuresToExtract) {
 	if (!fullTimbreSpace.has_value()){
 		std::cerr << "TsnGranularAudioProcessorEditor::TimbreSpaceNeededData::extract: timbre space empty, early exit\n";
 		return;
@@ -339,7 +331,7 @@ void TsnGranularAudioProcessor::TimbreSpaceNeededData::extract(std::vector<nvs::
 		eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }
-void TsnGranularAudioProcessor::TimbreSpaceNeededData::updateTimbreSpacePoints()
+void TSNGranularAudioProcessor::TimbreSpaceNeededData::updateTimbreSpacePoints()
 {	/** to be called when the actual analyzed timbre space changes  */
 	if (eventwiseExtractedTimbrePoints.size() == 0){
 		std::cout << "updateAndDrawTimbreSpacePoints: timbreSpaceNeededData empty, returning...\n";
@@ -370,5 +362,5 @@ void TsnGranularAudioProcessor::TimbreSpaceNeededData::updateTimbreSpacePoints()
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-	return new TsnGranularAudioProcessor();
+	return SlicerGranularAudioProcessor::create<TSNGranularAudioProcessor>();
 }

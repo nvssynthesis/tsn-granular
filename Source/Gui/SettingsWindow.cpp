@@ -12,7 +12,7 @@
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 
 
-SettingsWindow::SettingsWindow (TsnGranularAudioProcessor& processor,
+SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
 					juce::Colour backgroundColour)
   : DocumentWindow ("Settings", backgroundColour, allButtons),
 	proc (processor)

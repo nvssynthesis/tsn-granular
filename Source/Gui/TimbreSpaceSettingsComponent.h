@@ -26,7 +26,7 @@ class TimbreSpaceSettingsComponent	:	public juce::Component,
 										private juce::Button::Listener
 {
 public:
-	TimbreSpaceSettingsComponent(TsnGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
+	TimbreSpaceSettingsComponent(TSNGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
 	:	proc(p), editor(ed)
 	{
 		using namespace nvs::analysis;
@@ -52,7 +52,7 @@ public:
 		featureYMenu.setBounds(10, 36, 200, 24);
 	}
 private:
-	TsnGranularAudioProcessor& proc;
+	TSNGranularAudioProcessor& proc;
 	TsnGranularAudioProcessorEditor& editor;
 	
 	juce::ComboBox featureXMenu;

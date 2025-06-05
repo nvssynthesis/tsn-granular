@@ -11,9 +11,9 @@
 #include "NavLFOPage.h"
 
 
-NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, navigator_category_e navigatorCategory)
+NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::String paramsSubGroup)
 {
-	for (auto &p : categoryToParams.at(navigatorCategory)){
+	for (auto &p : nvs::param::ParameterRegistry::getParametersForSubGroup(paramsSubGroup)){
 		auto slider = std::make_unique<AttachedSlider>(apvts, p, juce::Slider::SliderStyle::LinearVertical);
 		addAndMakeVisible(slider->_slider);
 		addAndMakeVisible(slider->_label);
@@ -99,7 +99,7 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav
 
 	navigatorTypeMenu.addListener(this);
 	
-	selPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::selectivity);
+	selPanel = std::make_unique<NavigatorPanel>(_apvts, "selection");
 	addAndMakeVisible(selPanel.get());
 	
 }
@@ -149,13 +149,13 @@ void NavigatorPage::activateLFO2D(){
 	if (!std::holds_alternative<nvs::nav::LFO2D>(_navigator.activeNavigator)){
 		_navigator.setLFO2D(_apvts);
 	}
-	navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::lfo_2d);
+	navPanel = std::make_unique<NavigatorPanel>(_apvts, "nav_lfo");
 }
 void NavigatorPage::activateRandomWalk(){
 	if (!std::holds_alternative<nvs::nav::RandomWalkND>(_navigator.activeNavigator)){
 		_navigator.setRandomWalkND(_apvts);
 	}
-	navPanel = std::make_unique<NavigatorPanel>(_apvts, navigator_category_e::random_walk);
+	navPanel = std::make_unique<NavigatorPanel>(_apvts, "nav_rwalk");
 }
 void NavigatorPage::showPanel(int menuId)
 {

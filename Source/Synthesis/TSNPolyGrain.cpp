@@ -1,14 +1,14 @@
 /*
   ==============================================================================
 
-    TsnGranularSynth.cpp
+	TSNPolyGrain.cpp
     Created: 4 Sep 2023 1:54:00am
     Author:  Nicholas Solem
 
   ==============================================================================
 */
 
-#include "TsnGranularSynth.h"
+#include "TSNPolyGrain.h"
 #include "fmt/core.h"
 #include "../slicer_granular/Source/algo_util.h"
 #include "../slicer_granular/Source/misc_util.h"
@@ -16,16 +16,16 @@
 namespace nvs	{
 namespace gran	{
 
-TsnGranular::TsnGranular(GranularSynthSharedState *const synth_shared_state, int voice_id, unsigned long seed)
-:	genGranPoly1(synth_shared_state, voice_id, seed)
+TSNPolyGrain::TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, GranularVoiceSharedState *const voice_shared_state)
+:	PolyGrain(synth_shared_state, voice_shared_state)
 {}
 //====================================================================================
 
-void TsnGranular::loadOnsets(std::span<float> const normalizedOnsets){
+void TSNPolyGrain::loadOnsets(std::span<float> const normalizedOnsets){
 	_onsetsNormalized.assign(normalizedOnsets.begin(), normalizedOnsets.end());
 }
 
-void TsnGranular::setWaveEvent(size_t index) {
+void TSNPolyGrain::setWaveEvent(size_t index) {
 	if (!_onsetsNormalized.size()){
 		return;
 	}
@@ -38,7 +38,7 @@ void TsnGranular::setWaveEvent(size_t index) {
 	};
 	setReadBounds(bounds);
 }
-void TsnGranular::setWaveEvents(WeightedIndices weightedIndices) {
+void TSNPolyGrain::setWaveEvents(WeightedIndices weightedIndices) {
 	if (!_onsetsNormalized.size()){
 		return;
 	}

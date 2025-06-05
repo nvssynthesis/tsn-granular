@@ -9,7 +9,7 @@
 */
 
 #include "TimbreSpaceComponent.h"
-#include "../slicer_granular/Source/params.h"
+#include "../slicer_granular/Source/Params/params.h"
 #include "Analysis/ThreadedAnalyzer.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "../Navigation/LFO.h"
@@ -66,8 +66,8 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 	return juce::Colour(h, s, v, alpha);
 }
 void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timbre2DPoint p2D){
-	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_x)) = p2D.getX();
-	apvts.getParameterAsValue(getParamName(params_e::nav_tendency_y)) = p2D.getY();
+	apvts.getParameterAsValue("nav_tendency_x") = p2D.getX();
+	apvts.getParameterAsValue("nav_tendency_y") = p2D.getY();
 }
 
 template<typename T>

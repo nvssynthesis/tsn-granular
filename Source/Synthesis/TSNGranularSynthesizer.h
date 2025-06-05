@@ -9,11 +9,11 @@
 */
 
 #pragma once
-#include "../../slicer_granular/Source/Synthesis/JuceGranularSynthesizer.h"
 #include <span>
+#include "../../slicer_granular/Source/Synthesis/GranularSynthesizer.h"
 #include "../../slicer_granular/Source/misc_util.h"
 
-class JuceTsnGranularSynthesizer
+class TSNGranularSynthesizer
 :	public GranularSynthesizer
 ,	public juce::ChangeBroadcaster
 {
@@ -21,7 +21,7 @@ public:
 	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
 	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
 	
-	JuceTsnGranularSynthesizer();
+	TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
 	bool readyForProcess() const {
 		return false;
 	}

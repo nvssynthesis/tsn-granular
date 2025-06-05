@@ -15,7 +15,7 @@
 
 struct NavigatorPanel	:	public juce::Component
 {
-	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, navigator_category_e navigatorCategory);
+	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::String paramsSubGroup);
 	void resized() override;
 private:
 	std::vector<std::unique_ptr<AttachedSlider>> sliders;

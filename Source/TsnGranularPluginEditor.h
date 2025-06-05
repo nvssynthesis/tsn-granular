@@ -16,7 +16,7 @@ class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
 ,											public GranularEditorCommon
 {
 public:
-	TsnGranularAudioProcessorEditor (TsnGranularAudioProcessor&);
+	TsnGranularAudioProcessorEditor (TSNGranularAudioProcessor&);
 	~TsnGranularAudioProcessorEditor() override;
 	//==============================================================================
 	void paint (juce::Graphics&) override;
@@ -60,6 +60,6 @@ private:
 
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 		
-	TsnGranularAudioProcessor& audioProcessor;
+	TSNGranularAudioProcessor& audioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)
 };

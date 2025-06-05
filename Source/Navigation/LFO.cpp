@@ -9,7 +9,7 @@
 */
 
 #include "LFO.h"
-#include "../../slicer_granular/Source/params.h"
+#include "../../slicer_granular/Source/Params/params.h"
 
 namespace nvs::nav {
 
@@ -45,11 +45,11 @@ double TendencyPointLowpass::operator()(double v){
 
 LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
 :	_apvts(apvts)
-,	frequencyHz(*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_rate)))
+,	frequencyHz(*_apvts.getRawParameterValue("nav_lfo_rate"))
 , 	updateIntervalMs(1000.0 / updateRateHz)
 {
-	setFrequency(*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_rate)));
-	amplitude = (*_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_amount)));
+	setFrequency(*_apvts.getRawParameterValue("nav_lfo_rate"));
+	amplitude = (*_apvts.getRawParameterValue("nav_lfo_amount"));
 	startTimer(updateIntervalMs);
 	double sr = 1.0 / (getTimerInterval() / 1000.0);
 	xLP.setSampleRate(sr);
@@ -72,19 +72,19 @@ void LFO2D::setOnUpdateCallback(std::function<void(const std::vector<double>&)> 
 
 void LFO2D::timerCallback() {
 	// update parameters
-	float const paramRate = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_rate));
+	float const paramRate = *_apvts.getRawParameterValue("nav_lfo_rate");
 	
 	setFrequency(paramRate);
 	
-	double const filterCutoff = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_response));
-	double const filterReso = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_overshoot));
+	double const filterCutoff = *_apvts.getRawParameterValue("nav_lfo_response");
+	double const filterReso = *_apvts.getRawParameterValue("nav_lfo_overshoot");
 	xLP.setParams(filterCutoff, filterReso);
 	yLP.setParams(filterCutoff, filterReso);
 	
-	amplitude = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_amount));
+	amplitude = *_apvts.getRawParameterValue("nav_lfo_amount");
 	
-	const double targetX = *_apvts.getRawParameterValue(getParamName(params_e::nav_tendency_x));
-	const double targetY = *_apvts.getRawParameterValue(getParamName(params_e::nav_tendency_y));
+	const double targetX = *_apvts.getRawParameterValue("nav_tendency_x");
+	const double targetY = *_apvts.getRawParameterValue("nav_tendency_y");
 	
 	centerX = targetX;
 	centerY = targetY;
@@ -96,7 +96,7 @@ void LFO2D::timerCallback() {
 		phase -= 2.0 * juce::MathConstants<double>::pi;
 	}
 	
-	float shapeValue = *_apvts.getRawParameterValue(getParamName(params_e::nav_lfo_2d_shape));
+	float shapeValue = *_apvts.getRawParameterValue("nav_lfo_shape");
 	jassert (shapeValue >= 0.0);
 	// https://www.desmos.com/calculator/jnfw9zxkhg
 	auto calculate2Dshape = [this, shapeValue](){
@@ -172,7 +172,7 @@ void RandomWalkND::timerCallback() {
 	latest.clear();
 	latest.reserve(dims);
 
-	float const stepSize = *_apvts.getRawParameterValue(getParamName(params_e::nav_random_walk_step_size));
+	float const stepSize = *_apvts.getRawParameterValue("nav_rwalk_step_size");
 
 	for (auto& w : walkers) {
 		w.setStepSize(stepSize);

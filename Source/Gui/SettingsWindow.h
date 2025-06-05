@@ -17,12 +17,12 @@
 class SettingsWindow  : public juce::DocumentWindow
 {
 public:
-	SettingsWindow (TsnGranularAudioProcessor& processor, juce::Colour backgroundColour);
+	SettingsWindow (TSNGranularAudioProcessor& processor, juce::Colour backgroundColour);
 
 	void closeButtonPressed() override;
 
 private:
-	TsnGranularAudioProcessor& proc;
+	TSNGranularAudioProcessor& proc;
 	std::unique_ptr<juce::TabbedComponent> tabs;
 	juce::ComponentBoundsConstrainer constrainer;
 
