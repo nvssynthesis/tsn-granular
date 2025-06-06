@@ -14,10 +14,6 @@ $ cd tsn-granular
 # initialize submodules recursively
 $ git submodule update --init --recursive
 
-# build aubio
-$ cd aubio
-$ make
-
 # build essentia
 # Essentia has a platform-dependent build process. Please follow the official instructions:
 # https://essentia.upf.edu/installing.html
