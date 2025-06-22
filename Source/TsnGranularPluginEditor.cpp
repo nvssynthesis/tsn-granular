@@ -58,25 +58,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 		fmt::print("current id: {}", id);
 	};
 	
-	// exclusive to TSN
-//	auto onUpdateFn = [&](const std::vector<double>& v){
-//	// set navigator of timbre space component
-//		auto const p2 = juce::Point<float>(v[0], v[1]);
-//		// also attract to nearest point
-//		auto p5 = nvs::util::Timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
-//			._p2D{p2},
-//			._p3D{0.f, 0.f, 0.f}
-//		};
-//		auto &apvts = audioProcessor.getAPVTS();
-//		double const sharpness = (double) *(apvts.getRawParameterValue("nav_selection_sharpness"));
-//
-//		audioProcessor.getTimbreSpaceHolder().setProbabilisticPointFromTarget(p5, 4, sharpness);
-//		audioProcessor.setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
-//
-////		assert (2 <= v.size());
-////		timbreSpaceComponent.setNavigatorPoint(p2);
-////		timbreSpaceComponent.repaint();
-//	};
 	auto &nav = audioProcessor.getNavigator();
 	nav.addChangeListener(&timbreSpaceComponent);
 	tabbedPages.addTab("Navigator", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS(), nav), true);
@@ -254,13 +235,6 @@ void TsnGranularAudioProcessorEditor::resized()
 	backgroundNeedsUpdate = true;
 	getConstrainer()->checkComponentBounds(this);
 	juce::Rectangle<int> localBounds = getLocalBounds();
-//
-//	juce::Image const toBeBackground(juce::Image::PixelFormat::RGB,
-//								   localBounds.getWidth(),
-//								   localBounds.getHeight(),
-//								   false);
-//	backgroundImage = toBeBackground;
-	
 	int const smallPad = 12;
 	localBounds.reduce(smallPad, smallPad);
 	
