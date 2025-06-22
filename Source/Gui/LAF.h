@@ -19,6 +19,7 @@ class LAF  : public juce::LookAndFeel_V4
 {
 public:
 	LAF();
+	void drawLabel (Graphics& g, Label& label) override;
 	void drawLinearSlider (Graphics& g,
 						   int x, int y, int width, int height,
 						   float sliderPos,

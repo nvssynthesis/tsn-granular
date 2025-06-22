@@ -185,6 +185,21 @@ void LAF::drawPopupMenuItem (Graphics& g,
 					Justification::centredLeft);
 	}
 }
+void LAF::drawLabel (Graphics& g, Label& label)
+{
+	// Check if this label belongs to a vertical bar slider
+	if (auto* slider = dynamic_cast<Slider*>(label.getParentComponent()))
+	{
+		if (slider->getSliderStyle() == Slider::LinearBarVertical)
+		{
+			// label drawing will be handled inside the vertical slider's drawing
+			return;
+		}
+	}
+	
+	// For other sliders, use the default behavior
+	LookAndFeel_V4::drawLabel(g, label);
+}
 void LAF::drawLinearSlider (Graphics& g,
 										int x, int y, int width, int height,
 										float sliderPos,
@@ -194,18 +209,28 @@ void LAF::drawLinearSlider (Graphics& g,
 {
 	if (style == Slider::LinearBarVertical)
 	{
-		LookAndFeel_V4::drawLinearSlider (g, x, y, width, height,
-										  sliderPos, minSliderPos, maxSliderPos,
-										  style, s);
+		// Draw the slider track/background manually
+		auto trackWidth = width;//jmin(6.0f, (float)width * 0.25f);
+		auto trackX = x;// + (width - trackWidth) * 0.5f;
 		
+		// Background track
+		g.setColour(s.findColour(Slider::backgroundColourId));
+		g.fillRect(x, y, width, height);
+		
+		// Filled portion (from bottom to slider position)
+		auto fillHeight = height - (sliderPos - y);
+		g.setColour(s.findColour(Slider::trackColourId));
+		g.fillRect((float)x, sliderPos, (float)width, fillHeight);
+		
+		
+		// Your custom text drawing
 		Rectangle<int> tb (x, y + (height/2 - 10), width, 20);
-		
-		bool over    = (tb.getCentreY() >= sliderPos);
-		g.setColour (over ? juce::Colour(Colours::grey).withMultipliedBrightness(1.25f) : juce::Colour(Colours::grey).withMultipliedBrightness(1.5f));
-		
+		bool over = (tb.getCentreY() >= sliderPos);
+		g.setColour (over ? juce::Colour(Colours::grey).withMultipliedBrightness(1.25f)
+						  : juce::Colour(Colours::grey).withMultipliedBrightness(1.5f));
 		g.setFont(Font (fontName, 13.5f, Font::plain));
 		g.drawFittedText (s.getTextFromValue (s.getValue()),
-						  tb, Justification::centred, 1);
+						 tb, Justification::centred, 1);
 	}
 	else
 	{
