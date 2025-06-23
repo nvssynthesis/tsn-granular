@@ -61,6 +61,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	auto &nav = audioProcessor.getNavigator();
 	nav.addChangeListener(&timbreSpaceComponent);
 	tabbedPages.addTab("Navigator", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS(), nav), true);
+	tabbedPages.moveTab(3, -1);	// fx, which is added in basic TabbedPages constructor (used already in slicer version), should still be last tab
 	
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
@@ -259,9 +260,9 @@ void TsnGranularAudioProcessorEditor::resized()
 	auto const mainParamsRemainingHeightRatio  = 0.37f;
 	auto const waveformCompRemainingHeightRatio = 0.12f;
 	auto const timbreSpaceRemainingHeightRatio = 0.51f;
-	auto const totalRemainingHeightRatiosSummed = (mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio) ;
-	assert(totalRemainingHeightRatiosSummed >= 0.999f);
-	assert(totalRemainingHeightRatiosSummed <= 1.001f);
+	auto const totalRemainingHeightRatiosSummed = mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio;
+	jassert((0.999f <= totalRemainingHeightRatiosSummed) && (totalRemainingHeightRatiosSummed <= 1.001f));
+	
 	{
 		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.getHeight();
 

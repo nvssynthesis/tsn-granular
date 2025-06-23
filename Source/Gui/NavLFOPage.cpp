@@ -35,6 +35,11 @@ void NavigatorPanel::resized()
 		s->_label.setBounds(left, sliderHeight, alottedCompWidth, labelHeight);
 	}
 }
+void NavigatorPanel::paint(juce::Graphics &g) {
+	g.setColour(juce::Colours::whitesmoke.withAlpha(0.33f));
+	g.drawRoundedRectangle(getLocalBounds().reduced(3).toFloat(), 5.f, 1.f);
+}
+
 namespace {
 using ActivatorFn = void (NavigatorPage::*)(void);
 struct ItemData {
@@ -114,7 +119,7 @@ void NavigatorPage::resized() {
 	
 	{
 		int totalW = bounds.getWidth();
-		int splitW = int (totalW * 0.15f);
+		int splitW = int (totalW * 0.26f);
 		
 		juce::Rectangle<int> left {
 			bounds.getX(),
@@ -138,6 +143,7 @@ void NavigatorPage::resized() {
 		}
 	}
 }
+
 void NavigatorPage::comboBoxChanged(juce::ComboBox* cb)
 {
 	if (cb == &navigatorTypeMenu) {

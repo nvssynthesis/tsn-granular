@@ -159,12 +159,12 @@ void RandomWalkND::setOnUpdateCallback(std::function<void(const std::vector<doub
 
 void RandomWalkND::timerCallback() {
 	std::vector<double> tendencyPoint {
-		*_apvts.getRawParameterValue("Tendency X"),
-		*_apvts.getRawParameterValue("Tendency Y"),
-		*_apvts.getRawParameterValue("Tendency Z"),
-		*_apvts.getRawParameterValue("Tendency U"),
-		*_apvts.getRawParameterValue("Tendency V"),
-		*_apvts.getRawParameterValue("Tendency W"),
+		*_apvts.getRawParameterValue("nav_tendency_x"),
+		*_apvts.getRawParameterValue("nav_tendency_y"),
+		*_apvts.getRawParameterValue("nav_tendency_z"),
+		*_apvts.getRawParameterValue("nav_tendency_u"),
+		*_apvts.getRawParameterValue("nav_tendency_v"),
+		*_apvts.getRawParameterValue("nav_tendency_w"),
 	};
 	setTendencyPoint(tendencyPoint);
 	

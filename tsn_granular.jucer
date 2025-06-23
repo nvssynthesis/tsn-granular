@@ -54,9 +54,13 @@
                 file="slicer_granular/Source/Gui/WaveformComponent.cpp"/>
           <FILE id="kWmG4b" name="WaveformComponent.h" compile="0" resource="0"
                 file="slicer_granular/Source/Gui/WaveformComponent.h"/>
+          <FILE id="xoVfGC" name="SliderColumn.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Gui/SliderColumn.cpp"/>
           <FILE id="Au4NaQ" name="SliderColumn.h" compile="0" resource="0" file="slicer_granular/Source/Gui/SliderColumn.h"/>
           <FILE id="aIDqI0" name="FileSelectorComponent.h" compile="0" resource="0"
                 file="slicer_granular/Source/Gui/FileSelectorComponent.h"/>
+          <FILE id="mk3Xqr" name="AttachedSlider.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Gui/AttachedSlider.cpp"/>
           <FILE id="WeDqJ6" name="AttachedSlider.h" compile="0" resource="0"
                 file="slicer_granular/Source/Gui/AttachedSlider.h"/>
         </GROUP>
