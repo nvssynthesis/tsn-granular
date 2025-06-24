@@ -62,7 +62,7 @@ public:
 	void mouseExit (const juce::MouseEvent &event) override;
 	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 	
-	nvs::util::TimbreSpaceHolder::WeightedPoints getCurrentPointIndices() const;
+	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
 	
 	void setNavigatorPoint(timbre2DPoint p){
 		nav._p2D = p;

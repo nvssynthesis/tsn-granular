@@ -18,19 +18,18 @@ class TSNGranularSynthesizer
 ,	public juce::ChangeBroadcaster
 {
 public:
-	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
-	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
+	using WeightedIdx = nvs::util::WeightedIdx;
 	
 	TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
 	bool readyForProcess() const {
 		return false;
 	}
 	void loadOnsets(const std::span<float> onsets);
-	void setWaveEvents(WeightedIndices points);
-	WeightedIndices getCurrentIndices() const {
+	void setWaveEvents(std::vector<WeightedIdx> points);
+	std::vector<WeightedIdx> getCurrentIndices() const {
 		return currentIndices;
 	}
 private:
-	WeightedIndices currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
+	std::vector<WeightedIdx> currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
 };
 

@@ -24,9 +24,10 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};
-		double const sharpness = (double) *(apvts.getRawParameterValue("nav_selection_sharpness"));
-		
-		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, 4, sharpness);
+		auto const sharpness = (double) *(apvts.getRawParameterValue("nav_selection_sharpness"));
+		auto const neighborhood = (int) *(apvts.getRawParameterValue("nav_selection_neighborhood"));
+
+		_timbreSpaceHolder.setProbabilisticPointFromTarget(p5, neighborhood, sharpness , 0.f);
 		setReadBoundsFromChosenPoint();	// needs to affect processor but has final effect on gui
 	},
 	std::in_place_type<nvs::nav::LFO2D>, apvts, 40.0 }

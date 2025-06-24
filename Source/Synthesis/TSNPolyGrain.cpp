@@ -38,7 +38,7 @@ void TSNPolyGrain::setWaveEvent(size_t index) {
 	};
 	setReadBounds(bounds);
 }
-void TSNPolyGrain::setWaveEvents(WeightedIndices weightedIndices) {
+void TSNPolyGrain::setWaveEvents(std::vector<WeightedIdx> weightedIndices) {
 	if (!_onsetsNormalized.size()){
 		return;
 	}
@@ -50,13 +50,11 @@ void TSNPolyGrain::setWaveEvents(WeightedIndices weightedIndices) {
 		assert(index < (int)_onsetsNormalized.size());
 		auto const nextIdx = (index + 1) % _onsetsNormalized.size();
 		
-		wrbs.push_back(WeightedReadBounds{
-			.bounds {
+		wrbs.emplace_back(
+			 ReadBounds {
 				.begin = _onsetsNormalized[index],
 				.end = _onsetsNormalized[nextIdx]
-			},
-			.weight = wi.weight
-		});
+			 }, wi.weight);
 	}
 	setMultiReadBounds(wrbs);
 }

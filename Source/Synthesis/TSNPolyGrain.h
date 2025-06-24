@@ -29,8 +29,7 @@ namespace gran	{
 class TSNPolyGrain		:		public PolyGrain
 {
 public:
-	using WeightedIndex = nvs::util::TimbreSpaceHolder::WeightedIdx;
-	using WeightedIndices = nvs::util::TimbreSpaceHolder::WeightedPoints;
+	using WeightedIdx = nvs::util::WeightedIdx;
 	
 	TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, GranularVoiceSharedState *const voice_shared_state);
 	virtual ~TSNPolyGrain() = default;
@@ -38,7 +37,7 @@ public:
 	
 	//================================================================================================================================================
 	void setWaveEvent(size_t index);
-	void setWaveEvents(WeightedIndices weightedIndices);
+	void setWaveEvents(std::vector<WeightedIdx> weightedIndices);
 	//================================================================================================================================================
 
 	

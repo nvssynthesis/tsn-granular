@@ -53,7 +53,7 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 		}
 	}
 }
-void TSNGranularSynthesizer::setWaveEvents(WeightedIndices indices)
+void TSNGranularSynthesizer::setWaveEvents(std::vector<WeightedIdx> indices)
 {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){

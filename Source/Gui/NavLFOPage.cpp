@@ -15,8 +15,7 @@ NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::
 {
 	for (auto &p : nvs::param::ParameterRegistry::getParametersForSubGroup(paramsSubGroup)){
 		auto slider = std::make_unique<AttachedSlider>(apvts, p, juce::Slider::SliderStyle::LinearVertical);
-		addAndMakeVisible(slider->_slider);
-		addAndMakeVisible(slider->_label);
+		addAndMakeVisible(slider.get());
 		sliders.push_back(std::move(slider));
 	}
 }
@@ -31,8 +30,7 @@ void NavigatorPanel::resized()
 	for (size_t i = 0; i < sliders.size(); ++i){
 		int left = (int)i * alottedCompWidth + localBounds.getX();
 		auto const s = sliders[i].get();
-		s->_slider.setBounds(left, 0, alottedCompWidth, sliderHeight);
-		s->_label.setBounds(left, sliderHeight, alottedCompWidth, labelHeight);
+		s->setBounds(left, 0, alottedCompWidth, alottedCompHeight);
 	}
 }
 void NavigatorPanel::paint(juce::Graphics &g) {
