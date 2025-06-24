@@ -141,16 +141,14 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
 			g.drawEllipse(rect, 0.5f);
 		}
+		// draw lines from target to nearby (selected, current) points 
 		for (auto const &p : current_points){
 			auto const center = bipolar2dPointToComponentSpace(nav._p2D, w, h);
 			auto const dest = bipolar2dPointToComponentSpace(p.get2D(), w, h);
 			auto const l = juce::Line<float>(center, dest);
 			auto const norm = [l, w, h](){
 				auto const a = l.getLength() / std::sqrt( (w * w) + (h * h) );
-				jassert (a < 0.5f);
 				auto const b = 2.f * (0.5f - a);
-				jassert ((0.f <= b) && (b <= 1.f));
-//				auto const b2 = b * b;
 				return juce::jlimit(0.1f, 1.f, b * b * b + 0.1f);
 			}();
 			g.setColour(juce::Colours::whitesmoke.withAlpha(norm));

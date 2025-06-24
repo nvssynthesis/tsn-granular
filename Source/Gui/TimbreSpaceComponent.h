@@ -34,7 +34,7 @@ namespace {
 class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
 {
 public:
-	using timbre2DPoint = nvs::util::timbre2DPoint;// juce::Point<float>;
+	using timbre2DPoint = nvs::util::timbre2DPoint;
 	using timbre3DPoint = nvs::util::timbre3DPoint;
 	using TimbreSpaceHolder = nvs::util::TimbreSpaceHolder;
 	
