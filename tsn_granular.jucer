@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="gXPk7b" name="tsn_granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              version="0.2.3" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
+              version="0.2.4" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source"
@@ -108,6 +108,12 @@
           <FILE id="N5ncsq" name="TimbreAnalysis.cpp" compile="1" resource="0"
                 file="Source/Analysis/TimbreAnalysis/TimbreAnalysis.cpp"/>
         </GROUP>
+      </GROUP>
+      <GROUP id="{002513E7-8025-3006-4095-0CACF66AB1C7}" name="TimbreSpace">
+        <FILE id="usSIpg" name="TimbreSpaceHolder.cpp" compile="1" resource="0"
+              file="Source/TimbreSpace/TimbreSpaceHolder.cpp"/>
+        <FILE id="XVU7a3" name="TimbreSpaceHolder.h" compile="0" resource="0"
+              file="Source/TimbreSpace/TimbreSpaceHolder.h"/>
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">
         <GROUP id="{36156BBE-4ED1-B2BC-F23A-9ECB50C4E569}" name="slicer">

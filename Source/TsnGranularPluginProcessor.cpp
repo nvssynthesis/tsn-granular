@@ -20,7 +20,7 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 		// set navigator of timbre space component
 		auto const p2 = juce::Point<float>(v[0], v[1]);
 		// also attract to nearest point
-		auto p5 = nvs::util::Timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
+		auto p5 = nvs::timbrespace::Timbre5DPoint {	// needs to handle arbitrary dimensions and just attract based on provided dims
 			._p2D{p2},
 			._p3D{0.f, 0.f, 0.f}
 		};

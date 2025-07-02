@@ -13,7 +13,7 @@
 #include <JuceHeader.h>
 #include "fmt/core.h"
 #include "../../slicer_granular/Source/misc_util.h"
-
+#include "../TimbreSpace/TimbreSpaceHolder.h"
 /**
  TODO:
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
@@ -34,9 +34,9 @@ namespace {
 class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
 {
 public:
-	using timbre2DPoint = nvs::util::timbre2DPoint;
-	using timbre3DPoint = nvs::util::timbre3DPoint;
-	using TimbreSpaceHolder = nvs::util::TimbreSpaceHolder;
+	using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
+	using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
+	using TimbreSpaceHolder = nvs::timbrespace::TimbreSpaceHolder;
 	
 	struct Navigator {
 		timbre2DPoint _p2D {0.f, 0.f};

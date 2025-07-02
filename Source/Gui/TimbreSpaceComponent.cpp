@@ -17,9 +17,9 @@
 //============================================TimbreSpaceComponent=============================================
 
 namespace {
-using timbre2DPoint = nvs::util::timbre2DPoint;
-using timbre3DPoint = nvs::util::timbre3DPoint;
-using Timbre5DPoint = nvs::util::Timbre5DPoint;
+using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
+using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
+using Timbre5DPoint = nvs::timbrespace::Timbre5DPoint;
 
 auto pointToRect = [](timbre2DPoint p, float pt_sz) -> juce::Rectangle<float> {
 	timbre2DPoint upperLeft{p}, bottomRight{p};
