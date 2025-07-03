@@ -2,10 +2,10 @@
 
 <JUCERPROJECT id="gXPk7b" name="tsn_granular" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              version="0.2.4" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
+              version="0.3.0" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
-              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source"
+              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;/Users/nicholassolem/development/thirdparty/delaunator-cpp"
               defines="TSN&#10;_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS" pluginFormats="buildAU,buildStandalone,buildVST3">
   <MAINGROUP id="HJxsOe" name="tsn_granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
@@ -86,6 +86,8 @@
               file="Source/Gui/TimbreSpaceComponent.cpp"/>
       </GROUP>
       <GROUP id="{4D89421A-9B73-C464-6F0A-912A784F3BFA}" name="Analysis">
+        <FILE id="JQWD7E" name="Statistics.h" compile="0" resource="0" file="Source/Analysis/Statistics.h"/>
+        <FILE id="CVTU02" name="Features.h" compile="0" resource="0" file="Source/Analysis/Features.h"/>
         <FILE id="Fepifz" name="RunLoopStatus.h" compile="0" resource="0" file="Source/Analysis/RunLoopStatus.h"/>
         <FILE id="hMG2pR" name="Analyzer.h" compile="0" resource="0" file="Source/Analysis/Analyzer.h"/>
         <FILE id="qXebNS" name="Analyzer.cpp" compile="1" resource="0" file="Source/Analysis/Analyzer.cpp"/>
@@ -114,6 +116,10 @@
               file="Source/TimbreSpace/TimbreSpaceHolder.cpp"/>
         <FILE id="XVU7a3" name="TimbreSpaceHolder.h" compile="0" resource="0"
               file="Source/TimbreSpace/TimbreSpaceHolder.h"/>
+        <FILE id="UXtDt6" name="TimbreSpaceTriangulation.cpp" compile="1" resource="0"
+              file="Source/TimbreSpace/TimbreSpaceTriangulation.cpp"/>
+        <FILE id="O3VLW0" name="TimbreSpaceTriangulation.h" compile="0" resource="0"
+              file="Source/TimbreSpace/TimbreSpaceTriangulation.h"/>
       </GROUP>
       <GROUP id="{7CDC311E-D7D9-2871-2612-7B013D35D101}" name="Synthesis">
         <GROUP id="{36156BBE-4ED1-B2BC-F23A-9ECB50C4E569}" name="slicer">
