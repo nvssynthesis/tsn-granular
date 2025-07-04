@@ -7,7 +7,7 @@
 
 #include "./Synthesis/TSNPolyGrain.h"
 #include "./Synthesis/TSNGranularSynthesizer.h"
-#include "./TimbreSpace/TimbreSpaceHolder.h"
+#include "./TimbreSpace/TimbreSpace.h"
 
 #include "../slicer_granular/Source/SlicerGranularPluginProcessor.h"
 #include "./Navigation/LFO.h"
@@ -55,15 +55,10 @@ public:
 		return _analyzer;
 	}
 	
-	using TimbreSpacialSettings = nvs::timbrespace::TimbreSpacialSettings;
-	using TimbreSpaceNeededData = nvs::timbrespace::TimbreSpaceNeededData;
-	using TimbreSpaceHolder = nvs::timbrespace::TimbreSpaceHolder;
+	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 	
-	TimbreSpaceNeededData &getTimbreSpaceNeededData() {
-		return _timbreSpaceNeededData;
-	}
-	nvs::timbrespace::TimbreSpaceHolder &getTimbreSpaceHolder() {
-		return _timbreSpaceHolder;
+	nvs::timbrespace::TimbreSpace &getTimbreSpace() {
+		return _timbreSpace;
 	}
 	TSNGranularSynthesizer *getTsnGranularSynthesizer() {
 		if (TSNGranularSynthesizer *synth = dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
@@ -100,9 +95,7 @@ private:
 	
 	//========================================================================================================================
 
-	TimbreSpacialSettings _timbreSpacialSettings;
-	TimbreSpaceNeededData _timbreSpaceNeededData;
-	TimbreSpaceHolder _timbreSpaceHolder;
+	TimbreSpace _timbreSpace;
 	
 	//========================================================================================================================
 

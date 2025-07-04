@@ -18,7 +18,7 @@
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAudioProcessor& p)
 :	AudioProcessorEditor (&p)
 ,	GranularEditorCommon (p)
-,	timbreSpaceComponent(p.getAPVTS(), p.getTimbreSpaceHolder())
+,	timbreSpaceComponent(p.getAPVTS(), p.getTimbreSpace())
 ,	backgroundNeedsUpdate(true)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
@@ -106,7 +106,7 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
 	audioProcessor.getNavigator().removeChangeListener(&timbreSpaceComponent);
 	
-	audioProcessor.getTimbreSpaceNeededData().removeChangeListener(this);
+	audioProcessor.getTimbreSpace().removeChangeListener(this);
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()

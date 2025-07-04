@@ -76,7 +76,7 @@ bool containsValue(const std::vector<T>& vec, T value) {
 }
 }	// anonymous namespace
 
-			   
+
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	using juce::Colour;
 	using Point = juce::Point<float>;
@@ -102,11 +102,11 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
-	auto const &timbres5D = _timbreSpaceHolder.getTimbreSpace();
+	auto const &timbres5D = _timbreSpace.getTimbreSpace();
 	{
 		std::vector<Timbre5DPoint> current_points;
-		current_points.reserve(_timbreSpaceHolder.getCurrentPointIndices().size());
-		for (auto & p : _timbreSpaceHolder.getCurrentPointIndices()){
+		current_points.reserve(_timbreSpace.getCurrentPointIndices().size());
+		for (auto & p : _timbreSpace.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[p.idx]);
 		}
 		
@@ -283,11 +283,11 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	auto x0 = b.getX();
 	auto x1 = x0 + (0.05 * b.getWidth());
 	auto x2 = x0 + (0.45 * b.getWidth());
-	auto x3 = x0 + b.getWidth();
+	auto x3 = b.getRight();
 
 	auto y0 = b.getY();
 	auto y1 = y0 + (0.86 * b.getHeight());
-	auto y2 = y0 +  b.getHeight();
+	auto y2 = b.getBottom();
 	
 	using Line = juce::Line<float>;
 	using Point = juce::Point<float>;
@@ -303,7 +303,7 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 }
 
 std::vector<nvs::util::WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
-	return _timbreSpaceHolder.getCurrentPointIndices();
+	return _timbreSpace.getCurrentPointIndices();
 }
 
 juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point<int> pos){

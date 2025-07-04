@@ -13,7 +13,7 @@
 #include <JuceHeader.h>
 #include "fmt/core.h"
 #include "../../slicer_granular/Source/misc_util.h"
-#include "../TimbreSpace/TimbreSpaceHolder.h"
+#include "../TimbreSpace/TimbreSpace.h"
 /**
  TODO:
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
@@ -36,15 +36,15 @@ class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener
 public:
 	using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
 	using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
-	using TimbreSpaceHolder = nvs::timbrespace::TimbreSpaceHolder;
+	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 	
 	struct Navigator {
 		timbre2DPoint _p2D {0.f, 0.f};
 	};
 	
 	
-	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpaceHolder &timbreSpaceHolder)
-	:	_apvts{apvts} , _timbreSpaceHolder(timbreSpaceHolder)
+	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
+	:	_apvts{apvts} , _timbreSpace(timbreSpace)
 	{}
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void exitSignalSent() override;
@@ -91,7 +91,7 @@ private:
 	TSNMouse tsn_mouse;
 	Navigator nav;
 	
-	TimbreSpaceHolder &_timbreSpaceHolder;
+	TimbreSpace &_timbreSpace;
 	
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos);
 	

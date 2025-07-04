@@ -1,15 +1,17 @@
 /*
   ==============================================================================
 
-    TimbreSpaceHolder.cpp
+    TimbreSpace.cpp
     Created: 2 Jul 2025 2:02:13pm
     Author:  Nicholas Solem
 
   ==============================================================================
 */
 
-#include "TimbreSpaceHolder.h"
+#include "TimbreSpace.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
+#include "../Analysis/ThreadedAnalyzer.h"
+#include "TimbreSpaceTriangulation.h"
 #include <random>
 #include <ranges>
 #include "fmt/core.h"
@@ -50,9 +52,9 @@ std::array<juce::uint8, 3> Timbre5DPoint::toUnsigned() const {
 	return u;
 }
 
-//===============================================TimbreSpaceHolder=================================================
+//===============================================TimbreSpace=================================================
 
-void TimbreSpaceHolder::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
+void TimbreSpace::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
 	using namespace nvs::util;
 	assert(inRangeM1_1(p2D.getX()) && inRangeM1_1(p2D.getY())
 		   && inRangeM1_1(p3D[0]) && inRangeM1_1(p3D[1]) && inRangeM1_1(p3D[2])
@@ -63,46 +65,36 @@ void TimbreSpaceHolder::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
 	});
 }
 
-void TimbreSpaceHolder::clear() {
+void TimbreSpace::clear() {
 	timbres5D.clear();
 }
 
-void TimbreSpaceHolder::setCurrentPointIndices(std::vector<util::WeightedIdx> &&newWeightedIndices) {
-	jassert (newWeightedIndices.size() > 0);
-	
-	for (auto const &widx : newWeightedIndices){
-		jassert (0 <= widx.idx);
-		jassert ((widx.idx < timbres5D.size()) or ((timbres5D.size()==0) and (widx.idx == 0)));
-	}
-	currentPointIndices = newWeightedIndices;
-}
 
-std::vector<util::WeightedIdx> findWeightedPoints(
-	const Timbre5DPoint&               target,
-	const juce::Array<Timbre5DPoint>&  database,
-	int                                K,
-	int                                numToPick,
-	double                             sharpness,
-	float          					   higher3Dweight = 0.001f);
 std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
 
-void TimbreSpaceHolder::setProbabilisticPointFromTarget(const Timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
+void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
 	if (timbres5D.size() == 0){
 		return;
 	}
-	setCurrentPointIndices(findWeightedPoints(target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight));
+	std::vector<util::WeightedIdx> weightedIndices = findWeightedPoints(target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
+	jassert (weightedIndices.size() > 0);
+	
+	for (auto const &widx : weightedIndices){
+		jassert (0 <= widx.idx);
+		jassert ((widx.idx < timbres5D.size()) or ((timbres5D.size()==0) and (widx.idx == 0)));
+	}
+	currentPointIndices = weightedIndices;
 }
 
-void reshapeTimbreSpacePoints(TimbreSpaceNeededData const &neededData, TimbreSpaceHolder &holder, bool verbose)
+void TimbreSpace::reshape(bool verbose)
 {	/** to be called when we only want to change the view of the timbre points (which will also need to happen when the timbre space itself changes) */
 	
-	if (neededData.eventwiseExtractedTimbrePoints.size() == 0){
+	if (eventwiseExtractedTimbrePoints.size() == 0){
 //		writeToLog("drawTimbreSpacePoints: timbreSpaceNeededData empty, returning...");
 		return;
 	}
-	std::vector<std::vector<float>> const &timbreSpaceRepr = neededData.eventwiseExtractedTimbrePoints;
-	std::vector<std::pair<float, float>> const &ranges = neededData.ranges;
-	if (!(timbreSpaceRepr.size() == ranges.size())){
+	std::vector<std::vector<float>> const &timbreSpaceRepr = eventwiseExtractedTimbrePoints;
+	if (!(timbreSpaceRepr[0].size() == ranges.size())){
 //		writeToLog("drawTimbreSpacePoints: point size mismatch, exiting early");
 		jassertfalse;
 		return;
@@ -123,7 +115,7 @@ void reshapeTimbreSpacePoints(TimbreSpaceNeededData const &neededData, TimbreSpa
 	constexpr size_t nDim {5};
 	
 	// clear points of timbreSpaceHolds
-	holder.clear(); // clearing to make way for points we're about to be adding
+	clear(); // clearing to make way for points we're about to be adding
 	for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
 		std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
 		
@@ -131,36 +123,137 @@ void reshapeTimbreSpacePoints(TimbreSpaceNeededData const &neededData, TimbreSpa
 
 		// ========================================2D========================================
 		// squash normalized points within dimension range
-		auto pNL = juce::Point<float>(foo(timbreFrame[0], neededData.ranges[0]),
-									   foo(timbreFrame[1], neededData.ranges[1]));
+		auto pNL = juce::Point<float>(foo(timbreFrame[0], ranges[0]),
+									   foo(timbreFrame[1], ranges[1]));
 		// histogram equalization
-		float const &equalizedX  = neededData.histoEqualizedD0[i];
-		float const &equalizedY  = neededData.histoEqualizedD1[i];
+		float const &equalizedX  = histoEqualizedD0[i];
+		float const &equalizedY  = histoEqualizedD1[i];
 		
 		auto pHE = juce::Point<float>( juce::jmap(equalizedX, -1.f, 1.f),
 								juce::jmap(equalizedY, -1.f, 1.f));
 	
-		float c = neededData.spacialSettings.histogramEqualization;
+		float c = settings.histogramEqualization;
 		jassert (0.0 <= c && c <= 1.0);
 		juce::Point<float> p = (1.f - c) * pNL + c * pHE;
 		
 		// ========================================3D========================================
 		std::array<float, 3> const color {
-			( normalizer(timbreFrame[2], neededData.ranges[2]) ),
-			( normalizer(timbreFrame[3], neededData.ranges[3]) ),
-			( normalizer(timbreFrame[4], neededData.ranges[4]) )
+			( normalizer(timbreFrame[2], ranges[2]) ),
+			( normalizer(timbreFrame[3], ranges[3]) ),
+			( normalizer(timbreFrame[4], ranges[4]) )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
 		// the Nth member of onsets.
 		float const padding_scalar = 0.95f;
-		holder.add5DPoint(p * padding_scalar, color);
+		add5DPoint(p * padding_scalar, color);
 		if (verbose){
 			fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 		}
 	}
+	Foo f;
+	f.foo();
 }
 
+void TimbreSpace::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &) {
+	std::cout << "value tree changed!!!!!\n";
+	if (alteredTree.hasType("TimbreSpace")){
+		std::cout << "tree changed! redrawing points...\n";
+		settings.histogramEqualization = (double)alteredTree.getProperty("HistogramEqualization");
+		auto xs = (juce::String)alteredTree.getProperty("xAxis");
+		auto ys = ((juce::String)alteredTree.getProperty("yAxis"));
+		std::cout << "x: " << xs << " y: " << ys << '\n';
+		settings.dimensionWisefeatures[0] = nvs::analysis::toFeature(xs);
+		settings.dimensionWisefeatures[1] = nvs::analysis::toFeature(ys);
+		extract();
+		updateTimbreSpacePoints();
+		reshape();
+	}
+	else {
+		std::cout << "what tree?\n";
+	}
+}
+void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
+	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+		auto onsetsOpt = a->getOnsets();
+		if (onsetsOpt.has_value() and onsetsOpt->size()) {
+			fullTimbreSpace = a->stealTimbreSpaceRepresentation();
+			extract();
+			updateTimbreSpacePoints();
+			reshape();
+		}
+	}
+}
+void TimbreSpace::extract() {
+	auto const &featuresToExtract = settings.dimensionWisefeatures;
+	if (!fullTimbreSpace.has_value()){
+		std::cerr << "TsnGranularAudioProcessorEditor::TimbreSpaceNeededData::extract: timbre space empty, early exit\n";
+		return;
+	}
+	eventwiseExtractedTimbrePoints.clear();
+	eventwiseExtractedTimbrePoints.reserve(fullTimbreSpace->size());
+	
+	for (auto const &t : fullTimbreSpace.value()) {
+		std::vector<float> v = nvs::analysis::extractFeatures(t, featuresToExtract, nvs::analysis::Statistic::Median);
+		eventwiseExtractedTimbrePoints.push_back(v);
+	}
+}
+
+namespace {
+std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
+	std::vector<float> allX, vecOut;
+	allX.reserve (points.size());
+	vecOut.reserve (points.size());
+	for (auto& p : points){
+		allX.push_back (p);
+	}
+	std::sort (allX.begin(), allX.end());
+	
+	for (auto const& p : points)
+	{
+		// find first index ≥ p.x
+		auto idx = (int)(std::lower_bound (allX.begin(),
+										   allX.end(),
+										   p)
+						 - allX.begin());
+		float quantile = (float) idx / (float)(allX.size() - 1);
+		
+		// optional: you can still gamma‑tweak the quantile
+		float gamma    = 0.8f;             // <1 stretches mid‑values
+		float t        = std::pow (quantile, gamma);
+		vecOut.push_back(t);
+	}
+	return vecOut;
+}
+}	// end anonymous namespace
+
+void TimbreSpace::updateTimbreSpacePoints()
+{	/** to be called when the actual analyzed timbre space changes  */
+	if (eventwiseExtractedTimbrePoints.size() == 0){
+		std::cout << "updateAndDrawTimbreSpacePoints: timbreSpace empty, returning...\n";
+		return;
+	}
+	{
+		auto const n_dim = eventwiseExtractedTimbrePoints[0].size();
+		ranges.clear();
+		ranges.reserve(n_dim);
+		
+		for (size_t i = 0; i < n_dim; ++i){
+			ranges.push_back(nvs::analysis::calculateRangeOfDimension(eventwiseExtractedTimbrePoints, i));
+		}
+	}
+	{
+		std::vector<float> allDim0, allDim1;
+		allDim0.reserve(eventwiseExtractedTimbrePoints.size());
+		allDim1.reserve(eventwiseExtractedTimbrePoints.size());
+		for (auto const& frame : eventwiseExtractedTimbrePoints){
+			allDim0.push_back(frame[0]);	// e.g. bfcc1
+			allDim1.push_back(frame[1]);	// e.g. bfcc2
+		}
+		histoEqualizedD0 = getHistoEqualizationVec(allDim0);
+		histoEqualizedD1 = getHistoEqualizationVec(allDim1);
+	}
+}
 /**
  * Finds the K nearest points to `target` in `database`,
  * builds softmax-style weights over those K,
