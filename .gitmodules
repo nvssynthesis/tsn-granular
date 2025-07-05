@@ -4,3 +4,6 @@
 [submodule "aubio"]
 	path = aubio
 	url = https://github.com/aubio/aubio.git
+[submodule "delaunator-cpp"]
+	path = delaunator-cpp
+	url = https://github.com/nvssynthesis/delaunator-cpp.git

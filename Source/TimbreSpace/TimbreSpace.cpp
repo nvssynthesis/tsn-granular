@@ -18,41 +18,11 @@
 
 namespace nvs::timbrespace {
 
-//===============================================timbre5DPoint=================================================
-bool Timbre5DPoint::operator==(Timbre5DPoint const &other) const {
-	if (other.get2D() != _p2D){
-		return false;
-	}
-	auto const other3 = other.get3D();
-	for (size_t i = 0; i < _p3D.size(); ++i){
-		if (_p3D[i] != other3[i]){
-			return false;
-		}
-	}
-	return true;
-}
-
-constexpr bool inRange0_1(float x){
-	return ( (x >= 0.f) && (x <= 1.f) );
-}
-constexpr bool inRangeM1_1(float x){
-	return ( (x >= -1.f) && (x <= 1.f) );
-}
-
-std::array<juce::uint8, 3> Timbre5DPoint::toUnsigned() const {
-	for (auto p : _p3D){
-		assert(inRangeM1_1(p));
-	}
-	using namespace nvs::memoryless;
-	std::array<juce::uint8, 3> u {
-		static_cast<juce::uint8>(biuni(_p3D[0]) * 255.f),
-		static_cast<juce::uint8>(biuni(_p3D[1]) * 255.f),
-		static_cast<juce::uint8>(biuni(_p3D[2]) * 255.f)
-	};
-	return u;
-}
 
 //===============================================TimbreSpace=================================================
+
+TimbreSpace::TimbreSpace() = default;
+TimbreSpace::~TimbreSpace() = default;
 
 void TimbreSpace::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
 	using namespace nvs::util;
@@ -71,6 +41,7 @@ void TimbreSpace::clear() {
 
 
 std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
+
 
 void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
 	if (timbres5D.size() == 0){
@@ -94,7 +65,7 @@ void TimbreSpace::reshape(bool verbose)
 		return;
 	}
 	std::vector<std::vector<float>> const &timbreSpaceRepr = eventwiseExtractedTimbrePoints;
-	if (!(timbreSpaceRepr[0].size() == ranges.size())){
+	if (!(timbreSpaceRepr[0].size() == _ranges.size())){
 //		writeToLog("drawTimbreSpacePoints: point size mismatch, exiting early");
 		jassertfalse;
 		return;
@@ -123,8 +94,8 @@ void TimbreSpace::reshape(bool verbose)
 
 		// ========================================2D========================================
 		// squash normalized points within dimension range
-		auto pNL = juce::Point<float>(foo(timbreFrame[0], ranges[0]),
-									   foo(timbreFrame[1], ranges[1]));
+		auto pNL = juce::Point<float>(foo(timbreFrame[0], _ranges[0]),
+									   foo(timbreFrame[1], _ranges[1]));
 		// histogram equalization
 		float const &equalizedX  = histoEqualizedD0[i];
 		float const &equalizedY  = histoEqualizedD1[i];
@@ -138,9 +109,9 @@ void TimbreSpace::reshape(bool verbose)
 		
 		// ========================================3D========================================
 		std::array<float, 3> const color {
-			( normalizer(timbreFrame[2], ranges[2]) ),
-			( normalizer(timbreFrame[3], ranges[3]) ),
-			( normalizer(timbreFrame[4], ranges[4]) )
+			( normalizer(timbreFrame[2], _ranges[2]) ),
+			( normalizer(timbreFrame[3], _ranges[3]) ),
+			( normalizer(timbreFrame[4], _ranges[4]) )
 		};
 		// with this method, there is the gaurantee that
 		// the Nth member of timbreSpaceComponent.timbres5D corresponds to
@@ -151,8 +122,6 @@ void TimbreSpace::reshape(bool verbose)
 			fmt::print("adding the point {:.3f}, {:.3f}\n", p.x, p.y);
 		}
 	}
-	Foo f;
-	f.foo();
 }
 
 void TimbreSpace::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &) {
@@ -168,6 +137,7 @@ void TimbreSpace::valueTreePropertyChanged (juce::ValueTree &alteredTree, const 
 		extract();
 		updateTimbreSpacePoints();
 		reshape();
+	   _delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(timbres5D));
 	}
 	else {
 		std::cout << "what tree?\n";
@@ -181,6 +151,7 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 			extract();
 			updateTimbreSpacePoints();
 			reshape();
+			_delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(timbres5D));
 		}
 	}
 }
@@ -235,11 +206,11 @@ void TimbreSpace::updateTimbreSpacePoints()
 	}
 	{
 		auto const n_dim = eventwiseExtractedTimbrePoints[0].size();
-		ranges.clear();
-		ranges.reserve(n_dim);
+		_ranges.clear();
+		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			ranges.push_back(nvs::analysis::calculateRangeOfDimension(eventwiseExtractedTimbrePoints, i));
+			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(eventwiseExtractedTimbrePoints, i));
 		}
 	}
 	{

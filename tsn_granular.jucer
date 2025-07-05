@@ -5,7 +5,7 @@
               version="0.3.0" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
               pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
-              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;/Users/nicholassolem/development/thirdparty"
+              cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;"
               defines="TSN&#10;_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS" pluginFormats="buildAU,buildStandalone,buildVST3">
   <MAINGROUP id="HJxsOe" name="tsn_granular">
     <GROUP id="{68A065F6-57DC-7909-16FE-77BA89091F60}" name="Source">
@@ -112,6 +112,10 @@
         </GROUP>
       </GROUP>
       <GROUP id="{002513E7-8025-3006-4095-0CACF66AB1C7}" name="TimbreSpace">
+        <FILE id="InjdwD" name="TimbrePointTypes.cpp" compile="1" resource="0"
+              file="Source/TimbreSpace/TimbrePointTypes.cpp"/>
+        <FILE id="TmuHxT" name="TimbrePointTypes.h" compile="0" resource="0"
+              file="Source/TimbreSpace/TimbrePointTypes.h"/>
         <FILE id="usSIpg" name="TimbreSpace.cpp" compile="1" resource="0" file="Source/TimbreSpace/TimbreSpace.cpp"/>
         <FILE id="XVU7a3" name="TimbreSpace.h" compile="0" resource="0" file="Source/TimbreSpace/TimbreSpace.h"/>
         <FILE id="UXtDt6" name="TimbreSpaceTriangulation.cpp" compile="1" resource="0"
@@ -163,6 +167,10 @@
         <FILE id="p1ioh5" name="algo_util.h" compile="0" resource="0" file="slicer_granular/Source/algo_util.h"/>
         <FILE id="T86fMV" name="dsp_util.h" compile="0" resource="0" file="slicer_granular/Source/dsp_util.h"/>
       </GROUP>
+    </GROUP>
+    <GROUP id="{F3D15B65-869D-19A8-674C-A108B1217B54}" name="thirdparty">
+      <FILE id="J4DwgZ" name="delaunator.hpp" compile="0" resource="0" file="delaunator-cpp/include/delaunator.hpp"/>
+      <FILE id="GGlKHC" name="delaunator.cpp" compile="1" resource="0" file="delaunator-cpp/src/delaunator.cpp"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>

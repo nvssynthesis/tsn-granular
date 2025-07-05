@@ -13,29 +13,26 @@
 #include "../Analysis/Features.h"
 #include "../Analysis/Statistics.h"
 #include "../../slicer_granular/Source/misc_util.h"
+#include "TimbrePointTypes.h"
+#include "../../delaunator-cpp/include/delaunator.hpp"
 
+//namespace delaunator {
+//class Delaunator;
+//}
 namespace nvs::timbrespace {
-
-using timbre2DPoint = juce::Point<float>;
-using timbre3DPoint = std::array<float, 3>;
-
-struct Timbre5DPoint {
-	
-	timbre2DPoint _p2D;			// used to locate the point in x,y plane
-	timbre3DPoint _p3D;	// used to describe the colour (hsv)
-	
-	bool operator==(Timbre5DPoint const &other) const;
-	timbre2DPoint get2D() const { return _p2D; }
-	timbre3DPoint get3D() const { return _p3D; }
-	
-	// to easily trade hsv for rbg
-	std::array<juce::uint8, 3> toUnsigned() const;
-};
-
 
 class TimbreSpace	:	public juce::ChangeListener,	public juce::ValueTree::Listener,	public juce::ChangeBroadcaster
 {
 public:
+	TimbreSpace();
+	// Declare but don't define these in the header; otherwise we need the full Delaunator definition available
+	~TimbreSpace();
+	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
+	TimbreSpace(const TimbreSpace&) = delete;
+	TimbreSpace& operator=(const TimbreSpace& other) = delete;
+	TimbreSpace(TimbreSpace&&) noexcept = delete;
+	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
+	
 	void add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D);
 	void clear();
 	
@@ -71,19 +68,18 @@ private:
 	Settings settings;
 
 	juce::Array<Timbre5DPoint> timbres5D;
-	
+	std::unique_ptr<delaunator::Delaunator> _delaunator;
 	
 	std::vector<util::WeightedIdx> currentPointIndices {{},{},{},{}};
 	
 	//=============================================================================================================================
 	// these once belonged in TimbreSpaceNeededData, which was silly design
 	typedef std::pair<float, float> Range;
-	std::vector<Range> ranges {}; // min, max per dimension
+	std::vector<Range> _ranges {}; // min, max per dimension
 	std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
 
 	std::optional<std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>>> fullTimbreSpace;	// gets stolen FROM analyzer (saves significant memory)
 	std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
-
 	
 	void updateTimbreSpacePoints();
 	void extract();
