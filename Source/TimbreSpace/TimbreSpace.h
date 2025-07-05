@@ -25,7 +25,6 @@ class TimbreSpace	:	public juce::ChangeListener,	public juce::ValueTree::Listene
 {
 public:
 	TimbreSpace();
-	// Declare but don't define these in the header; otherwise we need the full Delaunator definition available
 	~TimbreSpace();
 	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
 	TimbreSpace(const TimbreSpace&) = delete;
@@ -42,8 +41,17 @@ public:
 	std::vector<util::WeightedIdx> getCurrentPointIndices() const {
 		return currentPointIndices;
 	}
-	void setProbabilisticPointFromTarget(const Timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight=0.f);
 	
+	
+	enum class PointSelectionMethod {
+		DISTANCE_BASED,
+		TRIANGULATION_BASED
+	};
+	void setProbabilisticPointFromTarget(const Timbre5DPoint& target,
+										 int K_neighbors,
+										 double sharpness,
+										 float higher3Dweight,
+										 PointSelectionMethod method = PointSelectionMethod::TRIANGULATION_BASED);
 	//=============================================================================================================================
 	// these once belonged in TimbreSpaceNeededData, which was silly design
 
@@ -89,12 +97,19 @@ private:
 	//=============================================================================================================================
 };
 
-std::vector<util::WeightedIdx> findWeightedPoints (
-	const Timbre5DPoint&               target,
-	const juce::Array<Timbre5DPoint>&  database,
-	int                                K,
-	int                                numToPick,
-	double                             sharpness,
-	float                              higher3Dweight);
+std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
+												   const juce::Array<Timbre5DPoint>&  database,
+												   int K,
+												   int numToPick,
+												   double sharpness,
+												   float higher3Dweight);
+
+std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
+															const juce::Array<Timbre5DPoint>& database,
+															const delaunator::Delaunator &d);
+
+std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
+														 const juce::Array<Timbre5DPoint>& database,
+														 const delaunator::Delaunator& d);
 
 }	// namespace nvs::timbrespace

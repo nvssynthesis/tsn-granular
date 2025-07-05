@@ -42,18 +42,33 @@ void TimbreSpace::clear() {
 
 std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
 
-
-void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target, int K_neighbors, double sharpness, float higher3Dweight){
-	if (timbres5D.size() == 0){
-		return;
-	}
-	std::vector<util::WeightedIdx> weightedIndices = findWeightedPoints(target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
-	jassert (weightedIndices.size() > 0);
+// Modified main function with method parameter
+void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target,
+												  int K_neighbors,
+												  double sharpness,
+												  float higher3Dweight,
+												  PointSelectionMethod method)
+{
+	if (timbres5D.size() == 0) { return; }
 	
-	for (auto const &widx : weightedIndices){
-		jassert (0 <= widx.idx);
-		jassert ((widx.idx < timbres5D.size()) or ((timbres5D.size()==0) and (widx.idx == 0)));
+	std::vector<util::WeightedIdx> const weightedIndices = [&target, K_neighbors, sharpness, higher3Dweight, method, this]()
+	{
+		switch (method) {
+			case PointSelectionMethod::TRIANGULATION_BASED:
+				return findPointsTriangulationBased(target, timbres5D, *_delaunator.get());
+				break;
+			case PointSelectionMethod::DISTANCE_BASED:
+				return findPointsDistanceBased(target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
+				break;
+		}
+	}();
+	jassert(weightedIndices.size() > 0);
+	
+	for (auto const &widx : weightedIndices) {
+		jassert(0 <= widx.idx);
+		jassert((widx.idx < timbres5D.size()) || ((timbres5D.size() == 0) && (widx.idx == 0)));
 	}
+	
 	currentPointIndices = weightedIndices;
 }
 
@@ -237,7 +252,7 @@ void TimbreSpace::updateTimbreSpacePoints()
  * @param  sharpness       0=flat, >0 biases toward closer points
  * @param  higher3Dweight  extra weighting on the 3D portion of your distance metric
  */
-std::vector<util::WeightedIdx> findWeightedPoints(
+std::vector<util::WeightedIdx> findPointsDistanceBased(
 	const Timbre5DPoint&               target,
 	const juce::Array<Timbre5DPoint>&  database,
 	int                                K,
@@ -368,6 +383,103 @@ std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> 
 	return result;
 }
 
+// New triangulation-based point selection function
+std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target, const juce::Array<Timbre5DPoint>& database, const delaunator::Delaunator &d)
+{
+	if (database.isEmpty()) { return {}; }
+	
+	// Need at least 3 points for triangulation
+	if (database.size() < 3) {
+		// Fall back to distance-based method or return all points with equal weights
+		std::vector<util::WeightedIdx> result;
+		double weight = 1.0 / database.size();
+		for (int i = 0; i < database.size(); ++i) {
+			result.emplace_back(i, weight);
+		}
+		return result;
+	}
+	
+	// Find triangle containing the target point
+	timbre2DPoint targetPoint = target.get2D();
+	auto triangleOpt = findContainingTriangle(d, targetPoint);
+	
+	if (!triangleOpt.has_value()) {
+		// Target point is outside the convex hull
+		// Fall back to distance-based method or handle as edge case
+		return findNearestTrianglePoints(target, database, d);
+	}
+	
+	// Get the triangle vertices
+	auto triangle = triangleOpt.value();
+	size_t idx0 = triangle[0];
+	size_t idx1 = triangle[1];
+	size_t idx2 = triangle[2];
+	
+	// Get the 2D points for barycentric calculation
+	timbre2DPoint p0 = database.getReference(idx0).get2D();
+	timbre2DPoint p1 = database.getReference(idx1).get2D();
+	timbre2DPoint p2 = database.getReference(idx2).get2D();
+	
+	// Compute barycentric weights
+	auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
+	
+	// Create result vector
+	std::vector<util::WeightedIdx> result;
+	result.reserve(3);
+	result.emplace_back(idx0, weights[0]);
+	result.emplace_back(idx1, weights[1]);
+	result.emplace_back(idx2, weights[2]);
+	
+	return result;
+}
 
+// Helper function for when target is outside convex hull
+std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
+														 const juce::Array<Timbre5DPoint>& database,
+														 const delaunator::Delaunator& d)
+{
+	// Find the nearest edge or vertex of the convex hull
+	// This is a simplified approach - you might want to be more sophisticated
+	
+	timbre2DPoint targetPoint = target.get2D();
+	double minDistance = std::numeric_limits<double>::max();
+	std::array<size_t, 3> bestTriangle;
+	
+	// Check all triangles and find the one with minimum distance to target
+	for (size_t i = 0; i < d.triangles.size(); i += 3) {
+		size_t idx0 = d.triangles[i];
+		size_t idx1 = d.triangles[i + 1];
+		size_t idx2 = d.triangles[i + 2];
+		
+		timbre2DPoint p0 = database.getReference(idx0).get2D();
+		timbre2DPoint p1 = database.getReference(idx1).get2D();
+		timbre2DPoint p2 = database.getReference(idx2).get2D();
+		
+		// Calculate centroid of triangle
+		timbre2DPoint centroid(
+			(p0.getX() + p1.getX() + p2.getX()) / 3.0,
+			(p0.getY() + p1.getY() + p2.getY()) / 3.0
+		);
+		
+		double dx = targetPoint.getX() - centroid.getX();
+		double dy = targetPoint.getY() - centroid.getY();
+		double distance = dx * dx + dy * dy;
+		
+		if (distance < minDistance) {
+			minDistance = distance;
+			bestTriangle = {idx0, idx1, idx2};
+		}
+	}
+	
+	// Use the closest triangle and project the point onto it
+	// For simplicity, we'll use equal weights, but you could do proper projection
+	std::vector<util::WeightedIdx> result;
+	result.reserve(3);
+	result.emplace_back(bestTriangle[0], 1.0/3.0);
+	result.emplace_back(bestTriangle[1], 1.0/3.0);
+	result.emplace_back(bestTriangle[2], 1.0/3.0);
+	
+	return result;
+}
 
 }	// namespace nvs::timbrespace
