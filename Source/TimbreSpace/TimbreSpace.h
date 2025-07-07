@@ -41,6 +41,19 @@ public:
 	std::vector<util::WeightedIdx> getCurrentPointIndices() const {
 		return currentPointIndices;
 	}
+	std::optional<std::vector<float>> getOnsets() const {
+		juce::var onsetsVar = treeManager.getOnsetsVar();
+		if (onsetsVar.isArray()) {
+			juce::Array<juce::var>* arr = onsetsVar.getArray();
+			std::vector<float> out;
+			out.reserve(arr->size());
+			for (auto onset : *arr){
+				out.push_back(onset);
+			}
+			return out;
+		}
+		return std::nullopt;
+	}
 	
 	
 	enum class PointSelectionMethod {
@@ -86,7 +99,15 @@ private:
 	std::vector<Range> _ranges {}; // min, max per dimension
 	std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
 
-	std::optional<std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>>> fullTimbreSpace;	// gets stolen FROM analyzer (saves significant memory)
+//	std::optional<std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>>> fullTimbreSpace;	// gets stolen FROM analyzer (saves significant memory)
+	struct TreeManager {
+		juce::ValueTree tree;
+		juce::var getOnsetsVar() const;
+		juce::ValueTree getTimbralFramesTree() const;
+		int getNumFrames() const;
+	};
+	TreeManager treeManager;
+	
 	std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 	
 	void updateTimbreSpacePoints();

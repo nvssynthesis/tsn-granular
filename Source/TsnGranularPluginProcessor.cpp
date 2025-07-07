@@ -87,8 +87,8 @@ void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 }
 
 void TSNGranularAudioProcessor::setReadBoundsFromChosenPoint() {
-	auto const pIndices = getTimbreSpace().getCurrentPointIndices();
-	auto const onsetOpt = getAnalyzer().getOnsets();
+	auto const pIndices = _timbreSpace.getCurrentPointIndices();
+	auto const onsetOpt = _timbreSpace.getOnsets();
 
 	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
 		if (auto *const tsn_synth_juce = dynamic_cast<TSNGranularSynthesizer *const>(_granularSynth.get())){
@@ -119,7 +119,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 }
 
 void TSNGranularAudioProcessor::writeEvents(){
-	auto const onsetsOpt = _analyzer.getOnsets();
+	auto const onsetsOpt = _timbreSpace.getOnsets();
 	if (!onsetsOpt.has_value()){
 		writeToLog("writeEvents failed: onsets optional does not contain value");
 		return;
@@ -151,7 +151,7 @@ void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
 		// now we can simply check on our own analyzer, don't even need to use source qua source
 		// then load onsets into synth
-		auto onsetsOpt = _analyzer.getOnsets();
+		auto onsetsOpt = _timbreSpace.getOnsets();
 		
 		if (onsetsOpt.has_value() and onsetsOpt->size()){
 			

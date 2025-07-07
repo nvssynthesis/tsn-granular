@@ -158,29 +158,188 @@ void TimbreSpace::valueTreePropertyChanged (juce::ValueTree &alteredTree, const 
 		std::cout << "what tree?\n";
 	}
 }
+
+void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
+	tree.setProperty("mean", stats.mean, nullptr);
+	tree.setProperty("median", stats.median, nullptr);
+	tree.setProperty("variance", stats.variance, nullptr);
+	tree.setProperty("skewness", stats.skewness, nullptr);
+	tree.setProperty("kurtosis", stats.kurtosis, nullptr);
+}
+analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueTree const &vt){
+	return {
+		.mean = vt.getProperty("mean"),
+		.median = vt.getProperty("median"),
+		.variance = vt.getProperty("variance"),
+		.skewness = vt.getProperty("skewness"),
+		.kurtosis = vt.getProperty("kurtosis")
+	};
+}
+
+juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace, std::vector<float> const &normalizedOnsets){
+	using ValueTree = juce::ValueTree;
+	
+	ValueTree vt("TimbreAnalysis");
+	{
+		ValueTree md("Metadata");
+		md.setProperty("Version", ProjectInfo::versionNumber, nullptr);
+		md.setProperty("AudioFilePath (absolute)", "N/A", nullptr);
+		md.setProperty("AudioFilePath (relative)", "N/A", nullptr);
+		md.setProperty("CreationTime", "N/A", nullptr);
+		md.setProperty("AnalysisSettings", "N/A", nullptr);
+		vt.addChild(md, 0, nullptr);
+	}
+	{
+		juce::var onsetArray;
+		for (auto const &o : normalizedOnsets) {
+			onsetArray.append(o);
+		}
+		vt.setProperty("NormalizedOnsets", onsetArray, nullptr);
+	}
+	{
+		ValueTree timbreMeasurements("TimbreMeasurements");
+		
+		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
+			const auto &frame = fullTimbreSpace[frameIdx];
+			
+			ValueTree frameTree("Frame");
+			
+			ValueTree bfccsTree("BFCCs");
+			for (int bfccIdx = 0; bfccIdx < static_cast<int>(frame.bfccs.size()); ++bfccIdx){
+				ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
+				addEventwiseStatistics(bfccTree, frame.bfccs[bfccIdx]);
+				bfccsTree.addChild(bfccTree, bfccIdx, nullptr);
+			}
+			frameTree.addChild(bfccsTree, -1, nullptr);
+			
+			// Add single-value features
+			juce::ValueTree periodicityTree("Periodicity");
+			addEventwiseStatistics(periodicityTree, frame.periodicity);
+			frameTree.addChild(periodicityTree, -1, nullptr);
+			
+			juce::ValueTree loudnessTree("Loudness");
+			addEventwiseStatistics(loudnessTree, frame.loudness);
+			frameTree.addChild(loudnessTree, -1, nullptr);
+			
+			juce::ValueTree f0Tree("F0");
+			addEventwiseStatistics(f0Tree, frame.f0);
+			frameTree.addChild(f0Tree, -1, nullptr);
+			
+			timbreMeasurements.addChild(frameTree, frameIdx, nullptr);
+			
+			vt.addChild(timbreMeasurements, 1, nullptr);
+		}
+	}
+	return vt;
+}
+juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
+	return tree.getProperty("NormalizedOnsets");
+}
+juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
+	return tree.getChildWithName("TimbreMeasurements");
+}
+int TimbreSpace::TreeManager::getNumFrames() const {
+	const auto& onsets = tree.getProperty("NormalizedOnsets");
+	jassert(onsets.isArray());
+	int const numFrames = onsets.size();
+#ifdef DBG
+	auto const timbralFramesTree = getTimbralFramesTree();
+	auto const numChildren = timbralFramesTree.getNumChildren();
+	jassert(numChildren == numFrames);
+#endif
+	return numFrames;
+}
+
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
+	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but what if the rest of this func fails? do we want a cleared tree at that point?
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		auto onsetsOpt = a->getOnsets();
-		if (onsetsOpt.has_value() and onsetsOpt->size()) {
-			fullTimbreSpace = a->stealTimbreSpaceRepresentation();
+		auto onsetsOpt = a->stealOnsets();
+		if (onsetsOpt.has_value() && onsetsOpt->size()) {
+			auto const rawTimbreSpace = a->stealTimbreSpaceRepresentation();
+			jassert (rawTimbreSpace.has_value());
+			treeManager.tree = timbreSpaceReprToVT(rawTimbreSpace.value(), onsetsOpt.value());
 			extract();
 			updateTimbreSpacePoints();
 			reshape();
 			_delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(timbres5D));
+			
+			sendChangeMessage();
 		}
 	}
 }
+
+[[nodiscard]]
+inline std::vector<analysis::Real>
+extractFeatures(const juce::ValueTree& frameTree,
+				std::vector<analysis::Features> featuresToUse,
+				analysis::Statistic statisticToUse)
+{
+	using namespace analysis;
+	std::vector<Real> out;
+	out.reserve(featuresToUse.size());
+	
+	// Get the statistic property name
+	juce::String statPropName;
+	switch (statisticToUse) {
+		case Statistic::Mean:     statPropName = "mean";     break;
+		case Statistic::Median:   statPropName = "median";   break;
+		case Statistic::Variance: statPropName = "variance"; break;
+		case Statistic::Skewness: statPropName = "skewness"; break;
+		case Statistic::Kurtosis: statPropName = "kurtosis"; break;
+		default: jassertfalse;
+	}
+	
+	for (auto f : featuresToUse) {
+		int idx = static_cast<int>(f);
+		Real value = 0.0f;
+		
+		if (0 <= idx && idx < NumBFCC) {
+			// It's a BFCC - get from BFCCs array
+			auto bfccsTree = frameTree.getChildWithName("BFCCs");
+			if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
+				auto bfccTree = bfccsTree.getChild(idx);
+				value = bfccTree.getProperty(statPropName, 0.0f);
+			}
+		}
+		else {
+			// It's one of the scalars
+			juce::String childName;
+			switch (f) {
+				case Features::Periodicity: childName = "Periodicity"; break;
+				case Features::Loudness:    childName = "Loudness";    break;
+				case Features::f0:          childName = "F0";          break;
+				default: jassertfalse;
+			}
+			
+			auto scalarTree = frameTree.getChildWithName(childName);
+			if (scalarTree.isValid()) {
+				value = scalarTree.getProperty(statPropName, 0.0f);
+			}
+		}
+		
+		out.push_back(value);
+	}
+	
+	return out;
+}
+
 void TimbreSpace::extract() {
 	auto const &featuresToExtract = settings.dimensionWisefeatures;
-	if (!fullTimbreSpace.has_value()){
+	if (nvs::util::isEmpty(treeManager.tree)){
 		std::cerr << "TsnGranularAudioProcessorEditor::TimbreSpaceNeededData::extract: timbre space empty, early exit\n";
 		return;
 	}
 	eventwiseExtractedTimbrePoints.clear();
-	eventwiseExtractedTimbrePoints.reserve(fullTimbreSpace->size());
+	eventwiseExtractedTimbrePoints.reserve(treeManager.getNumFrames());
 	
-	for (auto const &t : fullTimbreSpace.value()) {
-		std::vector<float> v = nvs::analysis::extractFeatures(t, featuresToExtract, nvs::analysis::Statistic::Median);
+//	for (auto const &t : fullTimbreSpace.value()) {
+//		std::vector<float> v = nvs::analysis::extractFeatures(t, featuresToExtract, nvs::analysis::Statistic::Median);
+//		eventwiseExtractedTimbrePoints.push_back(v);
+//	}
+	auto const &timbreTree = treeManager.getTimbralFramesTree();
+	for (int i = 0; i < timbreTree.getNumChildren(); ++i) {
+		juce::ValueTree const &frame = timbreTree.getChild(i);
+		std::vector<float> v = extractFeatures(frame, featuresToExtract, nvs::analysis::Statistic::Median);
 		eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }

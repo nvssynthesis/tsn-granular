@@ -80,8 +80,11 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	auto &a = audioProcessor.getAnalyzer();
 	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
 	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
-	a.addChangeListener(this);					// tell me to paint onsets
+//	a.addChangeListener(this);					// tell me to paint onsets
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
+	
+	auto &ts = audioProcessor.getTimbreSpace();
+	ts.addChangeListener(this);					// tell me to paint onsets
 	
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
@@ -139,7 +142,8 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 
 void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 {
-	auto onsetsOpt = audioProcessor.getAnalyzer().getOnsets();
+//	auto onsetsOpt = audioProcessor.getAnalyzer().getOnsets();
+	auto onsetsOpt = audioProcessor.getTimbreSpace().getOnsets();
 	if (!onsetsOpt.has_value()){
 		audioProcessor.writeToLog("TsnGranularAudioProcessorEditor::paintOnsetMarkers : Onsets had no value; returning\n");
 		return;
@@ -156,8 +160,8 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 	wc.repaint();
 }
 
-void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &event) {}
-void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &event) {}
+void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &) {}
+void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::drawBackground()
 {
@@ -289,8 +293,11 @@ void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadca
 	// 1. make audioProcessor the listener that does this extraction
 	// 2. make paintOnsetMarkers happen on editor constructon as well
 	
-	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		// onsets are immediately ready to draw
+//	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+//		// onsets are immediately ready to draw
+//		paintOnsetMarkers();
+//	}
+	if (auto *ts = dynamic_cast<nvs::timbrespace::TimbreSpace*>(source)) {
 		paintOnsetMarkers();
 	}
 	else {

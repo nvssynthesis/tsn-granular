@@ -33,8 +33,11 @@ public:
 		return ret;
 	}
 
-	inline std::optional<vecReal> getOnsets() const {
-		return _outputOnsets;
+	inline std::optional<vecReal> stealOnsets() {
+//		auto ret = std::move(_outputOnsets);
+//		_outputOnsets.reset();
+//		return ret;
+		return std::exchange(_outputOnsets, std::nullopt);
 	}
 	//===============================================================================
 	inline void updateSettings(juce::ValueTree settingsTree){
