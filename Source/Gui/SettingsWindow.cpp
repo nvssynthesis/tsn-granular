@@ -86,7 +86,18 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						addAndMakeVisible (s);
 
 						s.setNormalisableRange (spec.range);            // range is double
-						s.setValue ((double) spec.defaultValue);
+						
+						auto const val = [this, spec, propName](bool use_default){
+							if (use_default){
+								return static_cast<double>(spec.defaultValue);
+							}
+							else {
+								return static_cast<double>(tree.getPropertyAsValue(propName, nullptr).getValue());
+							}
+						}(false);
+						
+						s.setValue (val);
+						
 						s.setDoubleClickReturnValue(true, (double) spec.defaultValue);
 
 						s.setBounds (170, y, 300, 20);
@@ -125,12 +136,24 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						}
 
 						// Look up the default value’s ID (or fallback)
-						int defaultId = 1;
-						auto it = textToId.find (spec.defaultValue);
-						if (it != textToId.end())
-							defaultId = it->second;
-
-						cb.setSelectedId (defaultId, juce::dontSendNotification);
+						int val = [this, textToId, spec, propName](bool use_default){
+							int id = 1;
+							if (use_default){
+								auto it = textToId.find (spec.defaultValue);
+								if (it != textToId.end())
+									id = it->second;
+							}
+							else {
+								auto const val = tree.getPropertyAsValue(propName, nullptr).getValue();
+								auto it = textToId.find(val);
+								if (it != textToId.end()){
+									id = it->second;
+								}
+							}
+							return id;
+						}(false);
+						
+						cb.setSelectedId (val, juce::dontSendNotification);
 						cb.setBounds (170, y, 200, 20);
 
 						cb.onChange = [this, propName, &cb]()
@@ -143,16 +166,39 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						auto& tb = toggles[propName];
 						addAndMakeVisible (tb);
 
-						tb.setButtonText (propName);
-						tb.setToggleState (spec.defaultValue,
-										   juce::dontSendNotification);
-						tb.setBounds (10, y, 200, 24);
 
-						tb.onClick = [this, propName]()
+						
+						bool val = [this, spec, propName](bool use_default) -> bool {
+							if (use_default){
+								return bool(spec.defaultValue);
+							}
+							else {
+								auto const val = tree.getPropertyAsValue(propName, nullptr).getValue();
+								return bool(val);
+							}
+						}(false);
+						
+						std::unordered_map<bool, juce::String> displayMap {
+							{
+								false, "Off"
+							},
+							{
+								true, "On"
+							}
+						};
+						tb.setButtonText (displayMap.at(val));
+
+						tb.setToggleState (val,
+										   juce::dontSendNotification);
+						tb.setBounds (170, y, 200, 24);
+
+						tb.onClick = [this, propName, displayMap]()
 						{
+							auto const val = toggles[propName].getToggleState();
 							tree.setProperty (propName,
-											  toggles[propName].getToggleState(),
+											  val,
 											  nullptr);
+							toggles[propName].setButtonText(displayMap.at(val));
 						};
 					}
 				}, anySpec);
