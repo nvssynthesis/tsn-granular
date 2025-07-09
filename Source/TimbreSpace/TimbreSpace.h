@@ -74,7 +74,12 @@ public:
 	void valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &property) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 	//=============================================================================================================================
-
+	bool isSavePending() const {
+		return _analysisSavePending;
+	}
+	juce::ValueTree getTimbreSpaceTree() const {
+		return treeManager.tree;
+	}
 private:
 	struct Settings {
 		float histogramEqualization {0.0f};
@@ -105,8 +110,10 @@ private:
 		juce::var getOnsetsVar() const;
 		juce::ValueTree getTimbralFramesTree() const;
 		int getNumFrames() const;
+//		void save();
 	};
 	TreeManager treeManager;
+	bool _analysisSavePending {false};
 	
 	std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 	

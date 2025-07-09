@@ -68,11 +68,13 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 
 	juce::ValueTree nonAuto = root.getChildWithName ("NonAutomatable");
 	juce::ValueTree settings = nonAuto.getChildWithName("Settings");
+	std::cout << settings.toXmlString();
 	if (!nvs::analysis::verifySettingsStructure(settings)){
 		writeToLog("In setStateInformation: Settings tree invalid. Not overwriting constructed default settings.\n");
 		return;
 	}
 	nonAutomatableState = nonAuto;
+	std::cout << nonAutomatableState.toXmlString();
 	
 	writeToLog("setStateInformation successful; nonAutomatableState reassigned");
 }

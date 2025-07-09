@@ -152,7 +152,7 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 	for (auto const& [branchName, specMapPtr] : specsByBranch) {
 		auto branchId = juce::Identifier (branchName);
 		auto branchVT = settingsVT.getChildWithName (branchId);
-
+		
 		// check branch validity
 		if (! branchVT.isValid()) {
 			return false; // missing entire branch
@@ -161,8 +161,8 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 		// check every parameter key inside that branch
 		for (auto const& [propertyName, spec] : *specMapPtr) {
 			juce::Identifier propertyId (propertyName);
-			if (! branchVT.getChildWithName (propertyId).isValid()) {
-				return false; // missing this setting
+			if (!branchVT.hasProperty(propertyId)){
+				return false;
 			}
 		}
 	}

@@ -76,6 +76,27 @@ bool containsValue(const std::vector<T>& vec, T value) {
 }
 }	// anonymous namespace
 
+TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
+:	_apvts{apvts} , _timbreSpace(timbreSpace)
+{
+	_timbreSpace.addChangeListener(this);
+	if (_timbreSpace.isSavePending()){
+		showAnalysisSaveDialog();
+	}
+}
+void TimbreSpaceComponent::showAnalysisSaveDialog() {
+	callback = new Callback(*this);
+	
+	auto const result = juce::AlertWindow::showYesNoCancelBox(
+								  juce::MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
+								  "Save Analysis?", // const String &title
+								  "Would you like to save the current timbral analysis for future use?", // const String &message
+								  "Save", // const String &button1Text
+								  "Don't save", // const String &button2Text
+								  "Always save [not implemented yet, falls back to Save]", // const String &button3Text
+								  this, // Component *associatedComponent
+								callback); // ModalComponentManager::Callback *callback
+}
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	using juce::Colour;
@@ -265,6 +286,9 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		auto p = n->storedPoint;
 		setNavigatorPoint(juce::Point<float>(p[0], p[1]));
 		repaint();
+	}
+	else if (source == &_timbreSpace){
+		showAnalysisSaveDialog();
 	}
 }
 void TimbreSpaceComponent::exitSignalSent() {

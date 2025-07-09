@@ -142,7 +142,6 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 
 void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 {
-//	auto onsetsOpt = audioProcessor.getAnalyzer().getOnsets();
 	auto onsetsOpt = audioProcessor.getTimbreSpace().getOnsets();
 	if (!onsetsOpt.has_value()){
 		audioProcessor.writeToLog("TsnGranularAudioProcessorEditor::paintOnsetMarkers : Onsets had no value; returning\n");

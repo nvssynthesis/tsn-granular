@@ -182,7 +182,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 	ValueTree vt("TimbreAnalysis");
 	{
 		ValueTree md("Metadata");
-		md.setProperty("Version", ProjectInfo::versionNumber, nullptr);
+		md.setProperty("Version", ProjectInfo::versionString, nullptr);
 		md.setProperty("AudioFilePath (absolute)", "N/A", nullptr);
 		md.setProperty("AudioFilePath (relative)", "N/A", nullptr);
 		md.setProperty("CreationTime", "N/A", nullptr);
