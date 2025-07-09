@@ -254,8 +254,10 @@ void TimbreSpaceComponent::resized() {
 }
 
 void ProgressIndicator::paint(juce::Graphics &g) {
-	g.setColour(juce::Colours::black);
 	auto const b = getLocalBounds();
+	g.setColour(juce::Colours::whitesmoke);
+	g.fillRect(b);
+	g.setColour(juce::Colours::black);
 	g.drawRect(b, 2.f);
 	
 	int partialW = b.getWidth() * progress;

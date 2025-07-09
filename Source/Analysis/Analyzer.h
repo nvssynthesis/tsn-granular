@@ -130,12 +130,12 @@ inline double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
 inline void filterOnsets(std::vector<float> &onsetsInSeconds, double lengthInSeconds, float minimumOnsetDeltaSeconds = 0.02f)
 {
 	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
-	{	// filter out onsets that exceed the file length
+	{	// filter out onsets that exceed the file length (taking into account minimum onset delta)
 		
 		// starting at end, count onsets exceeding lengthInSeconds
 		size_t numProperOnsets = onsetsInSeconds.size();
 		for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
-			if (*it > lengthInSeconds){
+			if (*it > (lengthInSeconds - minimumOnsetDeltaSeconds)){
 				--numProperOnsets;
 			}
 			else {	// since the vector is sorted, we know that there are no more exceeding the proper length

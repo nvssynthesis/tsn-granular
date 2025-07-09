@@ -25,8 +25,14 @@ Analyzer::Analyzer()
 
 void Analyzer::updateSettings(juce::ValueTree newSettings){
 	// verify tree structure
-	
-	settingsTree = newSettings;
+	bool const valid = verifySettingsStructure(newSettings);
+	if (valid){
+		settingsTree = newSettings;
+	}
+	else {
+		std::cerr << "settings tree invalid\n";
+		jassertfalse;
+	}
 }
 juce::ValueTree &Analyzer::getSettings() {
 	return settingsTree;

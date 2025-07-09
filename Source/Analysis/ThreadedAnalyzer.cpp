@@ -67,14 +67,16 @@ void ThreadedAnalyzer::run() {
 		sendChangeMessage();
 		return;
 	}
+	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer.getAnalyzedFileSampleRate());
+	
+	filterOnsets(onsetOpt.value(), lengthInSeconds);
+
 	// perform onsetwise BFCC analysis
 	rls.set("Calculating Onsetwise TimbreSpace...");
 	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt, rls, shouldExit);
 	jassert (timbreMeasurementsOpt.has_value());
 	
-	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer.getAnalyzedFileSampleRate());
-	
-	filterOnsets(onsetOpt.value(), lengthInSeconds);
+
 	normalizeOnsets(onsetOpt.value(), lengthInSeconds);
 	
 	_outputOnsets = onsetOpt;

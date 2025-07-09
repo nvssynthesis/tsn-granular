@@ -337,9 +337,11 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	assert (sampleRate > 22000.f);
 	
 	Real endOfFile = static_cast<Real>((wave.size() - 1)) / sampleRate;
+	Real const a = onsetsInSeconds.back();
+	assert (a < endOfFile);
 	endTimes.back() = endOfFile;
 	assert(*(onsetsInSeconds.end() - 1) == *(endTimes.end() - 2));
-
+	
 	Algorithm* slicer = factory.create("Slicer",
 									   "timeUnits", "seconds",
 									   "sampleRate", sampleRate,
