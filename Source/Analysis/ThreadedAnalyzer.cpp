@@ -20,12 +20,19 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 	addChangeListener(listener);
 }
 
-void ThreadedAnalyzer::updateWave(std::span<float const> wave, size_t eventualFilenameHash){
+void ThreadedAnalyzer::updateWave(std::span<float const> wave){
 	_inputWave.assign(wave.begin(), wave.end());
-	_eventualFilenameHash = eventualFilenameHash;
+	_analysisIsCurrent.store(false);
 }
 
+void ThreadedAnalyzer::updateSettings(juce::ValueTree settingsTree){
+	jassert( settingsTree.hasType("Settings") );
+	
+	jassert (settingsTree.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
+	jassert(0.0 < double(settingsTree.getParent().getChildWithName("PresetInfo").getProperty("sampleRate")));
 
+	_analyzer.updateSettings(settingsTree);
+}
 
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
@@ -67,7 +74,9 @@ void ThreadedAnalyzer::run() {
 		sendChangeMessage();
 		return;
 	}
-	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), _analyzer.getAnalyzedFileSampleRate());
+	
+	auto const sr = _analyzer.getAnalyzedFileSampleRate();
+	auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), sr);
 	
 	filterOnsets(onsetOpt.value(), lengthInSeconds);
 
@@ -81,7 +90,7 @@ void ThreadedAnalyzer::run() {
 	
 	_outputOnsets = onsetOpt;
 	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt;
-	_filenameHash = _eventualFilenameHash;	// successful completion of each field updates the effective hash to that corresponding to the filepath used.
+	_analysisIsCurrent.store(true);
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();
 }

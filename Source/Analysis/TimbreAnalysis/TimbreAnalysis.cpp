@@ -14,7 +14,7 @@ namespace nvs {
 namespace analysis {
 
 namespace {
-std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, juce::ValueTree settingsTree){
+std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, AnalyzerSettings const& settings){
 #ifdef INCLUDE_AUBIO
 	size_t const N = waveSpan.size();
 	
@@ -75,52 +75,53 @@ std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, juce::
 #endif
 }
 
-PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree){
+PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings){
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	vectorInput *inVec = new vectorInput(&wave);
 	
-	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
-	auto analysisTree = settingsTree.getChildWithName ("Analysis");
-	auto pitchTree    = settingsTree.getChildWithName ("Pitch");
-	auto bfccTree = settingsTree.getChildWithName ("BFCC");
-
+	int const frameSize = settings.analysis.frameSize;
+	int const hopSize = settings.analysis.hopSize;
+	
+	int const zeroPadding = frameSize;
+	
+	double const validFrameThresholdRatio = 0.f;
 	
 	Algorithm* frameCutter = factory.create ("FrameCutter",
-		"frameSize",            (int)  analysisTree.getProperty("frameSize"),
-		"hopSize",              (int)  analysisTree.getProperty("hopSize"),
+		"frameSize",            frameSize,
+		"hopSize",              hopSize,
 		"lastFrameToEndOfFile", true,
 		"silentFrames",         "keep",
 		"startFromZero",        true,
-		"validFrameThresholdRatio", (double) analysisTree.getProperty("validFrameThresholdRatio")
+		"validFrameThresholdRatio", validFrameThresholdRatio
 	);
 	
 
 	Algorithm* windowing = factory.create ("Windowing",
 		"normalized", false,
-		"size",        (int)    analysisTree.getProperty("frameSize"),
-		"zeroPadding", (int)    analysisTree.getProperty("frameSize"),
-		"type",        analysisTree.getProperty("windowingType").toString().toStdString(),
+		"size",        frameSize,
+		"zeroPadding", zeroPadding,
+		"type",        settings.analysis.windowingType.toStdString(),
 		"zeroPhase",   false
 	);
 	
-	float sr = (float) presetInfoTree.getProperty("sampleRate");
+	float sr = settings.presetInfo.sampleRate;
 	jassert (sr > 20000.f);
-	auto maxFrequency = (float) pitchTree.getProperty ("maxFrequency");
-	auto minFrequency = (float) pitchTree.getProperty ("minFrequency");
-	auto tolerance = (float) pitchTree.getProperty ("tolerance");
+	auto maxFrequency = settings.pitch.maxFrequency;
+	auto minFrequency = settings.pitch.minFrequency;
+	auto tolerance = settings.pitch.tolerance;
 	
-	std::string pitchAlgoStr = pitchTree.getProperty ("pitchDetectionAlgorithm").toString().toStdString();
+	std::string pitchAlgoStr = settings.pitch.pitchDetectionAlgorithm.toStdString();
 	
 	std::map<std::string, std::string> pitchAlgoNicknameMap {
 		{"yin", "PitchYin"}
 	};	// for now we only handle this
 	
 	Algorithm* pitchDet = factory.create (pitchAlgoNicknameMap[pitchAlgoStr],
-		"frameSize",    (int)    analysisTree.getProperty ("frameSize"),
-		"interpolate",  (bool)   pitchTree.getProperty ("interpolate"),
+		"frameSize",   frameSize,
+		"interpolate",  settings.pitch.interpolate,
 		"maxFrequency", maxFrequency,
 		"minFrequency", minFrequency,
 		"sampleRate",   sr,
@@ -156,13 +157,12 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 
 PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
 													 streamingFactory const& factory,
-													 juce::ValueTree settingsTree)
+													 AnalyzerSettings const& settings)
 {
-	auto pitchTree = settingsTree.getChildWithName ("Pitch");
-	auto algo      = pitchTree.getProperty ("pitchDetectionAlgorithm").toString();
+	auto const algo      = settings.pitch.pitchDetectionAlgorithm.toStdString();
 
 	if (algo == "yin") {
-		return calculatePitchesEssentiaYin (waveEvent, factory, settingsTree);
+		return calculatePitchesEssentiaYin (waveEvent, factory, settings);
 	}
 	else if (algo == "pYin") {
 		jassertfalse;  // not implemented
@@ -180,17 +180,16 @@ PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
 	}
 }
 
-vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree)
+vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings)
 {
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	float sampleRate  = (float) settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
+	float sampleRate  = settings.presetInfo.sampleRate;
 
-	auto analysisTree = settingsTree.getChildWithName ("Analysis");
-	int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
-	int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
+	int    frameSize  = settings.analysis.frameSize;
+	int    hopSize    = settings.analysis.hopSize;
 
 	vectorInput *inVec = new vectorInput(&wave);
 //	Algorithm* equalLoudnessFilter = factory.create(
@@ -206,14 +205,13 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 		"startFromZero",           true,
 		"validFrameThresholdRatio", 0.0
 	);
-	jassert (analysisTree.hasProperty("windowingType"));
-	std::string windowType = analysisTree.getProperty("windowingType").toString().toStdString();
+	
 	Algorithm* windowing = factory.create (
 		"Windowing",
 		  "normalized",  false,
 		  "size",        frameSize,
 		  "zeroPadding", frameSize,
-		  "type",        windowType,
+		  "type",        settings.analysis.windowingType.toStdString(),
 		  "zeroPhase",   false
 	);
 	Algorithm* loudness = factory.create("Loudness");
@@ -238,28 +236,25 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 	return loudnesses[0];
 }
 
-vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree)
+vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings)
 {
 	size_t const waveSize = waveSpan.size();
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	float sampleRate  = (float) settingsTree.getParent().getChildWithName("PresetInfo").getProperty ("sampleRate");
-
-	auto analysisTree = settingsTree.getChildWithName ("Analysis");
-	auto bfccTree     = settingsTree.getChildWithName ("BFCC");
+	float const sampleRate  = settings.presetInfo.sampleRate;
 	
-	int    frameSize  = (int)    analysisTree.getProperty ("frameSize");
-	int    hopSize    = (int)    analysisTree.getProperty ("hopSize");
+	int const  frameSize  = settings.analysis.frameSize;
+	int const  hopSize    = settings.analysis.hopSize;
 
 	// Compute the spectrum→algorithm mapping from the BFCC tree:
-	auto spectrumTypeStr = ((juce::String) bfccTree.getProperty ("spectrumType")).toStdString();
+	auto const spectrumTypeStr = settings.bfcc.spectrumType.toStdString();
 	// If your stored property is e.g. "power" or "magnitude", branch on that:
-	bool isPower = (spectrumTypeStr == "power");
+	bool const isPower = (spectrumTypeStr == "power");
 
-	std::string specAlgoStr   = isPower ? "PowerSpectrum" : "Spectrum";
-	std::string specInputStr  = isPower ? "signal"        : "frame";
-	std::string specOutputStr = isPower ? "powerSpectrum" : "spectrum";
+	std::string const specAlgoStr   = isPower ? "PowerSpectrum" : "Spectrum";
+	std::string const specInputStr  = isPower ? "signal"        : "frame";
+	std::string const specOutputStr = isPower ? "powerSpectrum" : "spectrum";
 	
 	
 	vectorInput *inVec = new vectorInput(&wave);
@@ -274,14 +269,12 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		  "validFrameThresholdRatio", 0.0
 	);
 	
-	jassert (analysisTree.hasProperty("windowingType"));
-	std::string windowType = analysisTree.getProperty("windowingType").toString().toStdString();
 	Algorithm* windowing = factory.create (
 		"Windowing",
 		  "normalized",  false,
 		  "size",        frameSize,
 		  "zeroPadding", frameSize,
-		  "type",        windowType,
+		  "type",        settings.analysis.windowingType.toStdString(),
 		  "zeroPhase",   false
 	);
 	
@@ -295,21 +288,26 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		{ "typeII",  2 },
 		{ "typeIII", 3 }
 	};
+	std::map<std::string, std::string> logTypeMap {
+		{"PowerSpectrum", "dbpow"},
+		{"Spectrum", "dbamp"}
+	};
 	
 	Algorithm* bfcc = factory.create (
 		"BFCC",
-		  "dctType",             dctTypeStringToInt[bfccTree.getProperty ("dctType").toString()],
-		  "highFrequencyBound",  (double) bfccTree.getProperty ("highFrequencyBound"),
+		  "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
+		  "highFrequencyBound",  settings.bfcc.highFrequencyBound,
 		  "inputSize",           frameSize + 1,
-		  "liftering",           (int)    bfccTree.getProperty ("liftering"),
-		  "logType",             std::string ("dbamp"),
-		  "lowFrequencyBound",   (double) bfccTree.getProperty ("lowFrequencyBound"),
-		  "normalize",           ((juce::String) bfccTree.getProperty ("normalize")).toStdString(),
-		  "numberBands",         (int)    bfccTree.getProperty ("numBands"),
-		  "numberCoefficients",  (int)    bfccTree.getProperty ("numCoefficients"),
+		  "liftering",           settings.bfcc.liftering,
+		  "logType",             logTypeMap.at(specAlgoStr),
+									  
+		  "lowFrequencyBound",   settings.bfcc.lowFrequencyBound,
+		  "normalize",           settings.bfcc.normalize.toStdString(),
+		  "numberBands",         settings.bfcc.numBands,
+		  "numberCoefficients",  settings.bfcc.numCoefficients,
 		  "sampleRate",          sampleRate,
-		  "type",                ((juce::String) bfccTree.getProperty ("spectrumType")).toStdString(),
-		  "weighting",           ((juce::String) bfccTree.getProperty ("weightingType")).toStdString()
+		  "type",                spectrumTypeStr,
+		  "weighting",           settings.bfcc.weightingType.toStdString()
 	);
 	
 	Algorithm* barkFrameAccumulator = factory.create("VectorRealAccumulator");

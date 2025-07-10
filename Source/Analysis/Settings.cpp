@@ -9,6 +9,7 @@
 */
 
 #include "Settings.h"
+#include "Analyzer.h"
 
 namespace nvs::analysis {
 
@@ -169,5 +170,176 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 
 	return true;
 }
+
+bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree) {
+	// Verify tree structure first
+	bool const valid = verifySettingsStructure(settingsTree);
+	if (!valid) {
+		std::cerr << "settings tree invalid\n";
+		jassertfalse;
+		return false;
+	}
+	
+	auto parent = settingsTree.getParent();
+	auto analysisNode = settingsTree.getChildWithName("Analysis");
+
+	if (!analysisNode.isValid()) {
+		std::cerr << "Analysis node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!analysisNode.hasProperty("frameSize") || !analysisNode.hasProperty("hopSize") || !analysisNode.hasProperty("windowingType")) {
+		std::cerr << "Analysis node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.analysis.frameSize = analysisNode.getProperty("frameSize");
+	settings.analysis.hopSize = analysisNode.getProperty("hopSize");
+	settings.analysis.windowingType = analysisNode.getProperty("windowingType").toString();
+	
+	// BFCC settings
+	auto bfccNode = settingsTree.getChildWithName("BFCC");
+	if (!bfccNode.isValid()) {
+		std::cerr << "BFCC node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!bfccNode.hasProperty("dctType") || !bfccNode.hasProperty("highFrequencyBound") ||
+		!bfccNode.hasProperty("liftering") || !bfccNode.hasProperty("lowFrequencyBound") ||
+		!bfccNode.hasProperty("normalize") || !bfccNode.hasProperty("numBands") ||
+		!bfccNode.hasProperty("numCoefficients") || !bfccNode.hasProperty("spectrumType") ||
+		!bfccNode.hasProperty("weightingType")) {
+		std::cerr << "BFCC node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.bfcc.dctType = bfccNode.getProperty("dctType").toString();
+	settings.bfcc.highFrequencyBound = bfccNode.getProperty("highFrequencyBound");
+	settings.bfcc.liftering = bfccNode.getProperty("liftering");
+	settings.bfcc.lowFrequencyBound = bfccNode.getProperty("lowFrequencyBound");
+	settings.bfcc.normalize = bfccNode.getProperty("normalize").toString();
+	settings.bfcc.numBands = bfccNode.getProperty("numBands");
+	settings.bfcc.numCoefficients = bfccNode.getProperty("numCoefficients");
+	settings.bfcc.spectrumType = bfccNode.getProperty("spectrumType").toString();
+	settings.bfcc.weightingType = bfccNode.getProperty("weightingType").toString();
+	
+	// Onset settings
+	auto onsetNode = settingsTree.getChildWithName("Onset");
+	if (!onsetNode.isValid()) {
+		std::cerr << "Onset node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!onsetNode.hasProperty("alpha") || !onsetNode.hasProperty("numFrames_shortOnsetFilter") ||
+		!onsetNode.hasProperty("silenceThreshold") || !onsetNode.hasProperty("weight_complex") ||
+		!onsetNode.hasProperty("weight_complexPhase") || !onsetNode.hasProperty("weight_flux") ||
+		!onsetNode.hasProperty("weight_hfc") || !onsetNode.hasProperty("weight_melFlux") ||
+		!onsetNode.hasProperty("weight_rms")) {
+		std::cerr << "Onset node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.onset.alpha = onsetNode.getProperty("alpha");
+	settings.onset.numFrames_shortOnsetFilter = onsetNode.getProperty("numFrames_shortOnsetFilter");
+	settings.onset.silenceThreshold = onsetNode.getProperty("silenceThreshold");
+	settings.onset.weight_complex = onsetNode.getProperty("weight_complex");
+	settings.onset.weight_complexPhase = onsetNode.getProperty("weight_complexPhase");
+	settings.onset.weight_flux = onsetNode.getProperty("weight_flux");
+	settings.onset.weight_hfc = onsetNode.getProperty("weight_hfc");
+	settings.onset.weight_melFlux = onsetNode.getProperty("weight_melFlux");
+	settings.onset.weight_rms = onsetNode.getProperty("weight_rms");
+	
+	// Pitch settings
+	auto pitchNode = settingsTree.getChildWithName("Pitch");
+	if (!pitchNode.isValid()) {
+		std::cerr << "Pitch node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!pitchNode.hasProperty("interpolate") || !pitchNode.hasProperty("maxFrequency") ||
+		!pitchNode.hasProperty("minFrequency") || !pitchNode.hasProperty("pitchDetectionAlgorithm") ||
+		!pitchNode.hasProperty("tolerance")) {
+		std::cerr << "Pitch node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.pitch.interpolate = pitchNode.getProperty("interpolate");
+	settings.pitch.maxFrequency = pitchNode.getProperty("maxFrequency");
+	settings.pitch.minFrequency = pitchNode.getProperty("minFrequency");
+	settings.pitch.pitchDetectionAlgorithm = pitchNode.getProperty("pitchDetectionAlgorithm").toString();
+	settings.pitch.tolerance = pitchNode.getProperty("tolerance");
+	
+	// Split settings
+	auto splitNode = settingsTree.getChildWithName("Split");
+	if (!splitNode.isValid()) {
+		std::cerr << "Split node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!splitNode.hasProperty("fadeInSamps") || !splitNode.hasProperty("fadeOutSamps")) {
+		std::cerr << "Split node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.split.fadeInSamps = splitNode.getProperty("fadeInSamps");
+	settings.split.fadeOutSamps = splitNode.getProperty("fadeOutSamps");
+	
+	// TimbreSpace settings
+	auto timbreSpaceNode = settingsTree.getChildWithName("TimbreSpace");
+	if (!timbreSpaceNode.isValid()) {
+		std::cerr << "TimbreSpace node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!timbreSpaceNode.hasProperty("HistogramEqualization") || !timbreSpaceNode.hasProperty("xAxis") ||
+		!timbreSpaceNode.hasProperty("yAxis")) {
+		std::cerr << "TimbreSpace node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.timbreSpace.histogramEqualization = timbreSpaceNode.getProperty("HistogramEqualization");
+	settings.timbreSpace.xAxis = timbreSpaceNode.getProperty("xAxis").toString();
+	settings.timbreSpace.yAxis = timbreSpaceNode.getProperty("yAxis").toString();
+	
+	// sBic settings
+	auto sBicNode = settingsTree.getChildWithName("sBic");
+	if (!sBicNode.isValid()) {
+		std::cerr << "sBic node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!sBicNode.hasProperty("complexityPenaltyWeight") || !sBicNode.hasProperty("incrementFirstPass") ||
+		!sBicNode.hasProperty("incrementSecondPass") || !sBicNode.hasProperty("minSegmentLengthFrames") ||
+		!sBicNode.hasProperty("sizeFirstPass") || !sBicNode.hasProperty("sizeSecondPass")) {
+		std::cerr << "sBic node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.sBic.complexityPenaltyWeight = sBicNode.getProperty("complexityPenaltyWeight");
+	settings.sBic.incrementFirstPass = sBicNode.getProperty("incrementFirstPass");
+	settings.sBic.incrementSecondPass = sBicNode.getProperty("incrementSecondPass");
+	settings.sBic.minSegmentLengthFrames = sBicNode.getProperty("minSegmentLengthFrames");
+	settings.sBic.sizeFirstPass = sBicNode.getProperty("sizeFirstPass");
+	settings.sBic.sizeSecondPass = sBicNode.getProperty("sizeSecondPass");
+	
+	// PresetInfo settings - this is critical for your issue!
+	auto presetInfoNode = parent.getChildWithName("PresetInfo");
+	if (!presetInfoNode.isValid()) {
+		std::cerr << "PresetInfo node missing\n";
+		jassertfalse;
+		return false;
+	}
+	if (!presetInfoNode.hasProperty("sampleRate")) {
+		std::cerr << "PresetInfo node missing sampleRate property\n";
+		jassertfalse;
+		return false;
+	}
+	settings.presetInfo.sampleFilePath = presetInfoNode.getProperty("sampleFilePath").toString();
+	settings.presetInfo.author = presetInfoNode.getProperty("author").toString();
+	settings.presetInfo.sampleRate = presetInfoNode.getProperty("sampleRate");
+	
+	return true;
+}
+
 
 }	// namespace nvs::analysis

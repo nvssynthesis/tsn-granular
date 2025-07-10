@@ -17,6 +17,7 @@
 #include "TimbreAnalysis/TimbreAnalysis.h"
 #include "Features.h"
 #include "Statistics.h"
+#include "Settings.h"
 
 
 namespace nvs::analysis {
@@ -112,15 +113,14 @@ public:
 	
 	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::vector<Features> featuresToUse, Statistic statToUse);
 	
-	void setAnalyzedFileSampleRate(float sampleRate);
 	float getAnalyzedFileSampleRate() const;
 
 	void updateSettings(juce::ValueTree newSettings);
-	juce::ValueTree &getSettings();
+	AnalyzerSettings const &getSettings() const;
 	
 	nvs::ess::EssentiaHolder ess_hold;
 private:
-	juce::ValueTree settingsTree;
+	AnalyzerSettings settings;
 };
 
 inline double getLengthInSeconds(auto lengthInSamples, auto sampleRate){

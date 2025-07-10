@@ -15,6 +15,8 @@
 #include "Analysis/Settings.h"
 #include <span>
 #include <JuceHeader.h>
+#include "../Settings.h"
+
 #ifdef INCLUDE_AUBIO
 #include "../aubio/src/aubio.h"
 #endif
@@ -28,12 +30,12 @@ struct PitchesAndConfidences {
 
 
 
-PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, juce::ValueTree settingsTree);
+PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, streamingFactory const &factory, AnalyzerSettings const& settings);
 
-vecReal calculateLoudnesses(std::span<Real const> wavespan, streamingFactory const &factory, juce::ValueTree settingsTree);
+vecReal calculateLoudnesses(std::span<Real const> wavespan, streamingFactory const &factory, AnalyzerSettings const& settings);
 
 vecVecReal
-calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, juce::ValueTree settingsTree);
+calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings);
 
 vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_features_out);
 

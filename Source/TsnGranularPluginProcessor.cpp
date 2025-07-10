@@ -68,13 +68,12 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 
 	juce::ValueTree nonAuto = root.getChildWithName ("NonAutomatable");
 	juce::ValueTree settings = nonAuto.getChildWithName("Settings");
-	std::cout << settings.toXmlString();
+	
 	if (!nvs::analysis::verifySettingsStructure(settings)){
 		writeToLog("In setStateInformation: Settings tree invalid. Not overwriting constructed default settings.\n");
 		return;
 	}
 	nonAutomatableState = nonAuto;
-	std::cout << nonAutomatableState.toXmlString();
 	
 	writeToLog("setStateInformation successful; nonAutomatableState reassigned");
 }
@@ -112,9 +111,12 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 		writeToLog("TSN: askForAnalysis: buffer had no samples. Early exit.");
 		return;
 	}
-	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
-						 getSampleFilePath().hash());
-	_analyzer.updateSettings(nonAutomatableState.getChildWithName("Settings"));
+	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()));
+	
+	auto const settingsVT = nonAutomatableState.getChildWithName("Settings");
+	jassert (settingsVT.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
+	_analyzer.updateSettings(settingsVT);
+	
 	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis
 		writeToLog("analyzer onset thread started");
 	}
@@ -175,9 +177,7 @@ void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 }
 
 void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-	auto const buffer_fn_hash = _granularSynth->getFilenameHash();
-	auto const analysis_fn_hash = _analyzer.getFilenameHash();
-	if (analysis_fn_hash != buffer_fn_hash) {
+	if (!_analyzer.isAnalysisCurrent()) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());

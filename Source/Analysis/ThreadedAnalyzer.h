@@ -23,7 +23,7 @@ public:
 	~ThreadedAnalyzer(){
 		stopThread(100);
 	}
-	void updateWave(std::span<float const> wave, size_t eventualFilenameHash);
+	void updateWave(std::span<float const> wave);
 	void run() override;
 	//===============================================================================
 	inline std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> stealTimbreSpaceRepresentation()
@@ -40,17 +40,13 @@ public:
 		return std::exchange(_outputOnsets, std::nullopt);
 	}
 	//===============================================================================
-	inline void updateSettings(juce::ValueTree settingsTree){
-		jassert( settingsTree.hasType("Settings") );
-		_analyzer.updateSettings(settingsTree);
+	void updateSettings(juce::ValueTree settingsTree);
+	bool isAnalysisCurrent() const {
+		return _analysisIsCurrent.load();
 	}
 	//===============================================================================
 	Analyzer &getAnalyzer() {
 		return _analyzer;
-	}
-	//===============================================================================
-	size_t getFilenameHash() const {
-		return _filenameHash;
 	}
 	//===============================================================================
 	void stopAnalysis() { signalThreadShouldExit(); }
@@ -63,8 +59,7 @@ private:
 	std::optional<vecReal> _outputOnsets;
 	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> _outputOnsetwiseTimbreMeasurements;
 	
-	size_t _filenameHash;
-	size_t _eventualFilenameHash;
+	std::atomic<bool> _analysisIsCurrent;
 	
 	RunLoopStatus rls;
 };

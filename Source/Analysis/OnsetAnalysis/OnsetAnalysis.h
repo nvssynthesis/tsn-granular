@@ -11,6 +11,7 @@
 #pragma once
 #include "Analysis/AnalysisUsing.h"
 #include "Analysis/Settings.h"
+#include "../RunLoopStatus.h"
 #include <JuceHeader.h>
 
 namespace nvs {
@@ -21,22 +22,22 @@ namespace analysis {
 vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real const sampleRate = 44100.f);
 //===================================================================================
 
-array2dReal calculateOnsetsMatrix(vecReal const &waveform, streamingFactory const &factory, juce::ValueTree settingsTree,
+array2dReal calculateOnsetsMatrix(vecReal const &waveform, streamingFactory const &factory, AnalyzerSettings const &settings,
 								  RunLoopStatus& rls, ShouldExitFn shouldExit);
-vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory, juce::ValueTree settingsTree);
-vecVecReal featuresForSbic(vecReal const &waveform, AlgorithmFactory const &factory,  juce::ValueTree settingsTree,
+vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix, standardFactory const &factory, AnalyzerSettings const &settings);
+vecVecReal featuresForSbic(vecReal const &waveform, AlgorithmFactory const &factory,  AnalyzerSettings const &settings,
 						   RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 inline array2dReal vecVecToArray2dReal(vecVecReal const &vv){
 	return essentia::transpose(essentia::vecvecToArray2D(vv));
 }
 
-vecReal sBic(array2dReal featureMatrix, standardFactory const &factory, juce::ValueTree settingsTree);
-vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds, streamingFactory const &factory, juce::ValueTree settingsTree,
+vecReal sBic(array2dReal featureMatrix, standardFactory const &factory, AnalyzerSettings const &settings);
+vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds, streamingFactory const &factory, AnalyzerSettings const &settings,
 							   RunLoopStatus& rls, ShouldExitFn shouldExit);
-void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory, juce::ValueTree settingsTree,
+void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory, AnalyzerSettings const &settings,
 			  RunLoopStatus& rls, ShouldExitFn shouldExit);
-void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory, juce::ValueTree settingsTree,
+void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory, AnalyzerSettings const &settings,
 			   RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 }	// namespace analysis

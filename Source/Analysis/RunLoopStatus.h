@@ -27,14 +27,14 @@ public:
 		sendChangeMessage();
 	}
 	double getProgress() const {
-		return progress;
+		return progress.load();
 	}
 	juce::String getMessage() const {
 		return message;
 	}
 private:
 	juce::String message {""};
-	double progress {0.0};
+	std::atomic<double> progress {0.0};
 };
 using ShouldExitFn = std::function<bool(void)>;
 
