@@ -11,7 +11,6 @@
 #pragma once
 #include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
-#include "Gui/TimbreSpaceSettingsComponent.h"
 #include "../Analysis/Settings.h"
 
 class SettingsWindow  : public juce::DocumentWindow

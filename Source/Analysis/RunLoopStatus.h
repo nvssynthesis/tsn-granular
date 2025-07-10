@@ -33,7 +33,7 @@ public:
 		return message;
 	}
 private:
-	juce::String message {""};
+	juce::String message {""};	// ideally should have thread-safe alternative
 	std::atomic<double> progress {0.0};
 };
 using ShouldExitFn = std::function<bool(void)>;

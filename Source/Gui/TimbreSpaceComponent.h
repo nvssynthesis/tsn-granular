@@ -28,15 +28,6 @@ struct ProgressIndicator	:	public juce::Component
 	double progress {0.0};
 };
 
-namespace {
-void showSaveErrorAlert() {
-	juce::AlertWindow::showMessageBoxAsync(
-		juce::AlertWindow::WarningIcon,
-		"Save Error",
-		"Could not save the timbral analysis file. Please check the file location and try again."
-	);
-}
-}
 class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
 {
 public:
@@ -68,12 +59,8 @@ public:
 	
 	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
 	
-	void setNavigatorPoint(timbre2DPoint p){
-		nav._p2D = p;
-	}
-	ProgressIndicator &getProgressIndicator(){
-		return progressIndicator;
-	}
+	void setNavigatorPoint(timbre2DPoint p);
+	ProgressIndicator& getProgressIndicator();
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	
@@ -101,71 +88,14 @@ private:
 	class Callback 	:	public juce::ModalComponentManager::Callback
 	{
 	public:
-		Callback(TimbreSpaceComponent &comp)
-		: _ts_comp(comp)
-		{}
+		Callback(TimbreSpaceComponent &comp);
 	private:
-		void modalStateFinished(int choice) override {
-			switch (choice) {
-				case 1:
-					{
-						_ts_comp.saveAnalysis();
-						break;
-					}
-				case 2:
-					break;
-				case 0:
-					// always save functionality will be implemented later
-#pragma message("implement 'always save' functionality")
-				default:
-					break;
-			}
-		}
+		void modalStateFinished(int choice) override;
 		TimbreSpaceComponent &_ts_comp;
 	};
 	Callback *callback;
 
-	void saveAnalysis(){
-		juce::File analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-			.getChildFile("tsn_granular")
-			.getChildFile("Analyses");
-
-		analysesDir.createDirectory();	// create directory if it doesn't exist yet
-		
-		fileChooser = std::make_unique<juce::FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
-																analysesDir,
-																"*.tsan",	//  const String &filePatternsAllowed=String(),
-															    true,	// bool useOSNativeDialogBox
-															    false, 	// bool treatFilePackagesAsDirectories=false,
-															    this 	//  Component *parentComponent=nullptr
-															   );
-
-		auto const vt = _timbreSpace.getTimbreSpaceTree();
-		// Show async save dialog
-		fileChooser->launchAsync( juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
-			[vt](const juce::FileChooser& fc) {
-				auto file = fc.getResult();
-				if (file != juce::File{}) {
-					// Ensure proper extension
-					if (!file.hasFileExtension(".tsb")) {
-						file = file.withFileExtension(".tsb");
-					}
-					 
-					// Save the ValueTree to file
-					if (nvs::util::saveValueTreeToBinary(vt, file)) {
-						// Success - maybe update TimbreSpace with the saved path
-//									_ts.setCurrentAnalysisPath(file.getFullPathName());
-						std::cout << "should update other state with analysis file name\n";
-#pragma message("update other state with analysis file name")
-					}
-					else {
-						// Handle save error
-						showSaveErrorAlert();
-					}
-				}
-			}
-		);
-	}
+	void saveAnalysis();
 
 	std::unique_ptr<juce::FileChooser> fileChooser;
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos);

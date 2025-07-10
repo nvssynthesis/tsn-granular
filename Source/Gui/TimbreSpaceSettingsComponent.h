@@ -9,6 +9,8 @@
 */
 
 #pragma once
+
+#if false	// this is completely unused, opted for generic settings
 #include <JuceHeader.h>
 #include "TsnGranularPluginProcessor.h"
 #include "TsnGranularPluginEditor.h"
@@ -26,31 +28,8 @@ class TimbreSpaceSettingsComponent	:	public juce::Component,
 										private juce::Button::Listener
 {
 public:
-	TimbreSpaceSettingsComponent(TSNGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed)
-	:	proc(p), editor(ed)
-	{
-		using namespace nvs::analysis;
-		
-		for (auto f : featuresIterator()){
-			featureXMenu.addItem(toString(f), int(f) + 1);
-			featureYMenu.addItem(toString(f), int(f) + 1);
-		}
-		featureXMenu.onChange = [this]() {
-			handleXMenuChange();
-		};
-		featureYMenu.onChange = [this]() {
-			handleYMenuChange();
-		};
-		addAndMakeVisible(featureXMenu);
-		addAndMakeVisible(featureYMenu);
-		
-		setSize (100, 100);
-	}
-	void paint(juce::Graphics &g) override {}
-	void resized() override {
-		featureXMenu.setBounds(10, 10, 200, 24);
-		featureYMenu.setBounds(10, 36, 200, 24);
-	}
+	TimbreSpaceSettingsComponent(TSNGranularAudioProcessor& p, TsnGranularAudioProcessorEditor& ed);
+	void resized() override;
 private:
 	TSNGranularAudioProcessor& proc;
 	TsnGranularAudioProcessorEditor& editor;
@@ -58,24 +37,11 @@ private:
 	juce::ComboBox featureXMenu;
 	juce::ComboBox featureYMenu;
 	
-	void handleXMenuChange()
-	{
-		using namespace nvs::analysis;
-		int selectedId = featureXMenu.getSelectedId();
-		std::cout << "x menu selection: " << toString(Features(selectedId)) << " \n";
-	}
-	void handleYMenuChange()
-	{
-		using namespace nvs::analysis;
-		int selectedId = featureYMenu.getSelectedId();
-		std::cout << "y menu selection: " << toString(Features(selectedId)) << " \n";
-	}
+	void handleXMenuChange();
+	void handleYMenuChange();
 	juce::TextButton applyButton;
 	
-	void buttonClicked(juce::Button *button) override {
-		if (button == &applyButton){
-			// set settings in value tree!
-		}
-	}
+	void buttonClicked(juce::Button *button) override;	// wanted to set settings in VT?
 };
 
+#endif

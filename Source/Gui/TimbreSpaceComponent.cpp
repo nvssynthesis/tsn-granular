@@ -343,3 +343,85 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 	y = unibi(y);
 	return juce::Point<float>(x,y);
 }
+
+void TimbreSpaceComponent::setNavigatorPoint(timbre2DPoint p){
+	nav._p2D = p;
+}
+ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
+	return progressIndicator;
+}
+
+namespace {
+void showSaveErrorAlert() {
+	juce::AlertWindow::showMessageBoxAsync(
+		juce::AlertWindow::WarningIcon,
+		"Save Error",
+		"Could not save the timbral analysis file. Please check the file location and try again."
+	);
+}
+}
+
+void TimbreSpaceComponent::saveAnalysis(){
+	juce::File analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+		.getChildFile("tsn_granular")
+		.getChildFile("Analyses");
+
+	analysesDir.createDirectory();	// create directory if it doesn't exist yet
+	
+	fileChooser = std::make_unique<juce::FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
+															analysesDir,
+															"*.tsan",	//  const String &filePatternsAllowed=String(),
+															true,	// bool useOSNativeDialogBox
+															false, 	// bool treatFilePackagesAsDirectories=false,
+															this 	//  Component *parentComponent=nullptr
+														   );
+
+	auto const vt = _timbreSpace.getTimbreSpaceTree();
+	// Show async save dialog
+	fileChooser->launchAsync( juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+		[vt](const juce::FileChooser& fc) {
+			auto file = fc.getResult();
+			if (file != juce::File{}) {
+				// Ensure proper extension
+				if (!file.hasFileExtension(".tsb")) {
+					file = file.withFileExtension(".tsb");
+				}
+				// Save the ValueTree to file
+				if (nvs::util::saveValueTreeToBinary(vt, file)) {
+					// Success - maybe update TimbreSpace with the saved path
+//									_ts.setCurrentAnalysisPath(file.getFullPathName());
+					std::cout << "should update other state with analysis file name\n";
+#pragma message("update other state with analysis file name")
+				}
+				else {
+					// Handle save error
+					showSaveErrorAlert();
+				}
+			}
+		}
+	);
+}
+
+TimbreSpaceComponent::Callback::Callback(TimbreSpaceComponent &comp)
+: _ts_comp(comp)
+{}
+void TimbreSpaceComponent::Callback::modalStateFinished(int choice) {
+	switch (choice) {
+		case 1:
+		{
+			_ts_comp.saveAnalysis();
+			break;
+		}
+		case 2:
+			break;
+		case 0:
+			// always save functionality will be implemented later
+#pragma message("implement 'always save' functionality")
+		{
+			_ts_comp.saveAnalysis();
+			break;
+		}
+		default:
+			break;
+	}
+}
