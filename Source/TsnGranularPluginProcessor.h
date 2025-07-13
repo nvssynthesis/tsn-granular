@@ -13,23 +13,9 @@
 #include "./Navigation/LFO.h"
 #include "../slicer_granular/Source/misc_util.h"
 
-struct timbre5DPoint {
-	using timbre2DPoint = juce::Point<float>;
-	using timbre3DPoint = std::array<float, 3>;
-	timbre2DPoint _p2D;			// used to locate the point in x,y plane
-	timbre3DPoint _p3D;	// used to describe the colour (hsv)
-
-	bool operator==(timbre5DPoint const &other) const;
-	timbre2DPoint get2D() const { return _p2D; }
-	timbre3DPoint get3D() const { return _p3D; }
-
-	// to easily trade hsv for rbg
-	std::array<juce::uint8, 3> toUnsigned() const;
-};
-
 //==============================================================================
 
-class TSNGranularAudioProcessor  : public SlicerGranularAudioProcessor
+class TSNGranularAudioProcessor  :	public SlicerGranularAudioProcessor
 ,									private juce::ChangeListener
 {
 	friend class SlicerGranularAudioProcessor;	// allow base class to access private ctor
@@ -71,21 +57,12 @@ public:
 	}
 	
 	void writeEvents();
+	
+//	void actionListenerCallback(juce::String const &message) override;
+	void saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback);
+	
 protected:
-	void initSynth() override {
-		_granularSynth = std::make_unique<TSNGranularSynthesizer>(apvts);
-		if (dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
-			writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
-		}
-		else if (_granularSynth.get() == nullptr){
-			writeToLog("Null JuceTsnGranularSynthesizer");
-			jassertfalse;
-		}
-		else {
-			writeToLog("Failed to dynamic cast JuceTsnGranularSynthesizer");
-			jassertfalse;
-		}
-	}
+	void initSynth() override;
 private:
 	TSNGranularAudioProcessor();
 
@@ -98,8 +75,6 @@ private:
 	TimbreSpace _timbreSpace;
 	
 	//========================================================================================================================
-
-	
 	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TSNGranularAudioProcessor)

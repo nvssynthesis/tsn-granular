@@ -18,7 +18,7 @@
 TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAudioProcessor& p)
 :	AudioProcessorEditor (&p)
 ,	GranularEditorCommon (p)
-,	timbreSpaceComponent(p.getAPVTS(), p.getTimbreSpace())
+,	timbreSpaceComponent(p)
 ,	backgroundNeedsUpdate(true)
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
@@ -73,6 +73,13 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
+//	if (auto *actionListener = dynamic_cast<juce::ActionListener *>(&processor)){
+//		timbreSpaceComponent.addActionListener(actionListener);
+//	}
+//	else {
+//		fmt::print("unable to dynamic cast\n");
+//		jassertfalse;
+//	}
 	
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
 	paintOnsetMarkers();

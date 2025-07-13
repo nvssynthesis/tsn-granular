@@ -49,6 +49,20 @@ TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	_analyzer.removeChangeListener(&_timbreSpace);
 }
 //==============================================================================
+void TSNGranularAudioProcessor::initSynth() {
+	_granularSynth = std::make_unique<TSNGranularSynthesizer>(apvts);
+	if (dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
+		writeToLog("dynamic cast to JuceTsnGranularSynthesizer successful");
+	}
+	else if (_granularSynth.get() == nullptr){
+		writeToLog("Null JuceTsnGranularSynthesizer");
+		jassertfalse;
+	}
+	else {
+		writeToLog("Failed to dynamic cast JuceTsnGranularSynthesizer");
+		jassertfalse;
+	}
+}
 juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 	TsnGranularAudioProcessorEditor* ed = new TsnGranularAudioProcessorEditor (*this);
 	return ed;
@@ -56,8 +70,6 @@ juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 
 void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	SlicerGranularAudioProcessor::setStateInformation(data, sizeInBytes);	// loads preset info & synthesis parameters
-	
 	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
 
 	if (xmlState == nullptr || ! xmlState->hasTagName ("PluginState")){
@@ -66,24 +78,76 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 	
 	juce::ValueTree root = juce::ValueTree::fromXml (*xmlState);
 
-	juce::ValueTree nonAuto = root.getChildWithName ("NonAutomatable");
-	juce::ValueTree settings = nonAuto.getChildWithName("Settings");
+	if (auto params = root.getChildWithName (apvts.state.getType()); params.isValid()){
+		apvts.replaceState (params);
+	}
 	
+	nonAutomatableState = root.getChildWithName ("NonAutomatable");
+	if (!nonAutomatableState.isValid()){ writeToLog("nonAutomatableState invalid; returning\n"); return; }
+
+	auto const settings = nonAutomatableState.getChildWithName("Settings");
 	if (!nvs::analysis::verifySettingsStructure(settings)){
 		writeToLog("In setStateInformation: Settings tree invalid. Not overwriting constructed default settings.\n");
 		return;
 	}
-	nonAutomatableState = nonAuto;
 	
-	writeToLog("setStateInformation successful; nonAutomatableState reassigned");
+	if (juce::String fp = nonAutomatableState.getProperty("analysisFile", {}); !fp.isEmpty()) {
+		juce::File file(fp);
+		auto fstream = juce::FileInputStream(file);
+		
+		if (fstream.failedToOpen()){
+			writeToLog( fstream.getStatus().getErrorMessage() );
+#pragma message("would be good to give popup opportunity for user to otherwise find the file")
+			return;
+		}
+		
+		auto const analysisFileStream = juce::ValueTree::readFromStream(fstream);
+		auto const analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
+		if (analysisFileTree.isValid()){
+			_timbreSpace.setTimbreSpaceTree(analysisFileTree);
+		}
+	}
+	
+	if (auto const presetInfo = nonAutomatableState.getChildWithName ("PresetInfo"); presetInfo.isValid()) {
+		auto const audioSamplePath = presetInfo.getProperty ("sampleFilePath").toString();
+		if (audioSamplePath.isNotEmpty()) {
+			loadAudioFile ({ audioSamplePath }, true);
+		}
+	}
+	writeToLog("setStateInformation fully successful\n");
+}
+void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) {
+	juce::ValueTree vt("super");
+	nonAutomatableState.setProperty("analysisFile", filePath, nullptr);
+	vt.addChild(nonAutomatableState, 0, nullptr);
+	auto tsTree = _timbreSpace.getTimbreSpaceTree();
+//	tsTree.getChildWithName("Metadata").setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
+	vt.addChild(tsTree, 1, nullptr);
+	
+	bool success = [vt, filePath](bool useBinary){
+		juce::File const file(filePath);
+		if (useBinary){
+			return nvs::util::saveValueTreeToBinary(vt, file);
+		}
+		else {
+			return nvs::util::saveValueTreeToJSON(vt, file);
+		}
+	}(true);
+	juce::MessageManager::callAsync([resultCallback, success](){
+		resultCallback(success);
+	});
 }
 //==============================================================================
-
 void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	writeToLog("TSN: loadAudioFile\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);
-	askForAnalysis();
+	
+	// if _timbreSpace's audio file hash does not match _sampleManagementGuts' audio file hash:
+	if (!_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
+		askForAnalysis();
+	}
+	
 	writeToLog("TSN: loadAudioFile exiting");
 }
 
@@ -102,7 +166,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	if (_analyzer.Thread::isThreadRunning()){
 		_analyzer.stopAnalysis();
 	}
-	auto const buffer = sampleManagementGuts.sampleBuffer;
+	auto const buffer = sampleManagementGuts.getSampleBuffer();
 	if (!buffer.getNumChannels()){
 		writeToLog("TSN: askForAnalysis: buffer had no channels. Early exit.");
 		return;
@@ -128,7 +192,7 @@ void TSNGranularAudioProcessor::writeEvents(){
 		writeToLog("writeEvents failed: onsets optional does not contain value");
 		return;
 	}
-	auto const buffer = sampleManagementGuts.sampleBuffer;
+	auto const buffer = sampleManagementGuts.getSampleBuffer();
 	auto const waveSpan = std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples());
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -138,14 +202,12 @@ void TSNGranularAudioProcessor::writeEvents(){
 	float sr = 	nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleRate");
 
 	std::vector<float> onsetsTmp = onsetsOpt.value();
-	auto analyzer = _analyzer.getAnalyzer();
 
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
 	
-	
 	nvs::analysis::RunLoopStatus rls;
 	nvs::analysis::ShouldExitFn shouldExitFn = [](){return false;};
-	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath.toStdString(), analyzer, rls, shouldExitFn);
+	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath.toStdString(), _analyzer.getAnalyzer(), rls, shouldExitFn);
 }
 
 
@@ -175,15 +237,14 @@ void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 		writeToLog("TsnGranularAudioProcessor::changeListenerCallback: dynamic cast from ChangeBroadcaster to ThreadedAnalyzer unsuccessful");
 	}
 }
-
 void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-	if (!_analyzer.isAnalysisCurrent()) {
+	if (!_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());
 		}
 		
-		logRateLimited("TsnGranularAudioProcessor::processBlock: synthesis/analysis hash mismatch, exiting early", 1200);
+		logRateLimited("TsnGranularAudioProcessor::processBlock: analysis not current, exiting early", 1200);
 		return;
 	}
 	SlicerGranularAudioProcessor::processBlock (buffer, midiMessages);

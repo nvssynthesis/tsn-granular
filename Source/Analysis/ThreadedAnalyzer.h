@@ -19,49 +19,38 @@ class ThreadedAnalyzer	:	public juce::Thread
 ,							public juce::ChangeBroadcaster
 {
 public:
+	//===============================================================================
+	struct AnalysisResult {
+		vecReal onsets;
+		std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements;
+		juce::String audioHash {};
+	};
+	//===============================================================================
 	ThreadedAnalyzer(juce::ChangeListener *listener);
-	~ThreadedAnalyzer(){
-		stopThread(100);
-	}
+	~ThreadedAnalyzer();
+	//===============================================================================
 	void updateWave(std::span<float const> wave);
-	void run() override;
-	//===============================================================================
-	inline std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> stealTimbreSpaceRepresentation()
-	{
-		auto ret = std::move(_outputOnsetwiseTimbreMeasurements);
-		_outputOnsetwiseTimbreMeasurements.reset();
-		return ret;
-	}
-
-	inline std::optional<vecReal> stealOnsets() {
-//		auto ret = std::move(_outputOnsets);
-//		_outputOnsets.reset();
-//		return ret;
-		return std::exchange(_outputOnsets, std::nullopt);
-	}
-	//===============================================================================
 	void updateSettings(juce::ValueTree settingsTree);
-	bool isAnalysisCurrent() const {
-		return _analysisIsCurrent.load();
-	}
 	//===============================================================================
-	Analyzer &getAnalyzer() {
-		return _analyzer;
-	}
-	//===============================================================================
+	void run() override;
 	void stopAnalysis() { signalThreadShouldExit(); }
-	RunLoopStatus &getStatus() noexcept { return rls; }
+	//===============================================================================
+	inline std::optional<AnalysisResult> stealTimbreSpaceRepresentation() {
+		return std::exchange(_analysisResult, std::nullopt);
+	}
+	//===============================================================================
+	Analyzer &getAnalyzer() { return _analyzer; }
+	RunLoopStatus &getStatus() noexcept { return _rls; }
+	//===============================================================================
 private:
 	Analyzer _analyzer;
 	
 	vecReal _inputWave;
 	
-	std::optional<vecReal> _outputOnsets;
-	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> _outputOnsetwiseTimbreMeasurements;
+	std::optional<AnalysisResult> _analysisResult;
+	juce::String _settingsHash {};
 	
-	std::atomic<bool> _analysisIsCurrent;
-	
-	RunLoopStatus rls;
+	RunLoopStatus _rls;
 };
 
 }	// namespace analysis

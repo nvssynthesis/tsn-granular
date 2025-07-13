@@ -115,7 +115,7 @@ public:
 	
 	float getAnalyzedFileSampleRate() const;
 
-	void updateSettings(juce::ValueTree newSettings);
+	bool updateSettings(juce::ValueTree newSettings);
 	AnalyzerSettings const &getSettings() const;
 	
 	nvs::ess::EssentiaHolder ess_hold;

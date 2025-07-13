@@ -66,20 +66,20 @@ public:
 										 float higher3Dweight,
 										 PointSelectionMethod method = PointSelectionMethod::TRIANGULATION_BASED);
 	//=============================================================================================================================
-	// these once belonged in TimbreSpaceNeededData, which was silly design
-
 	using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
 	
-
 	void valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &property) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 	//=============================================================================================================================
+	bool hasValidAnalysisFor(juce::String const &audioHash) const;
+	
 	bool isSavePending() const {
 		return _analysisSavePending;
 	}
 	juce::ValueTree getTimbreSpaceTree() const {
 		return treeManager.tree;
 	}
+	void setTimbreSpaceTree(juce::ValueTree const &tree);
 private:
 	struct Settings {
 		float histogramEqualization {0.0f};
@@ -90,8 +90,8 @@ private:
 			nvs::analysis::Features::bfcc4,
 			nvs::analysis::Features::bfcc5
 		};
-	};
-	Settings settings;
+	} settings;
+	juce::String _audioFileHash;
 
 	juce::Array<Timbre5DPoint> timbres5D;
 	std::unique_ptr<delaunator::Delaunator> _delaunator;
@@ -104,23 +104,22 @@ private:
 	std::vector<Range> _ranges {}; // min, max per dimension
 	std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
 
-//	std::optional<std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>>> fullTimbreSpace;	// gets stolen FROM analyzer (saves significant memory)
 	struct TreeManager {
 		juce::ValueTree tree;
 		juce::var getOnsetsVar() const;
 		juce::ValueTree getTimbralFramesTree() const;
 		int getNumFrames() const;
-//		void save();
-	};
-	TreeManager treeManager;
+	} treeManager;
+	
 	bool _analysisSavePending {false};
+	
+	void signalSaveAnalysisOption();
 	
 	std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 	
-	void updateTimbreSpacePoints();
+	void fullSelfUpdate(bool verbose);	// simply calls the following 3 functions:	
 	void extract();
-	//=============================================================================================================================
-	// this once was a free function, but now it only is about changing stuff internal to TimbreSpace, not communicating between 2 coupled classes
+	void updateTimbreSpacePoints();
 	void reshape(bool verbose=false);
 	//=============================================================================================================================
 };

@@ -19,10 +19,13 @@ ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
 {
 	addChangeListener(listener);
 }
+ThreadedAnalyzer::~ThreadedAnalyzer(){
+	stopThread(100);
+}
 
 void ThreadedAnalyzer::updateWave(std::span<float const> wave){
 	_inputWave.assign(wave.begin(), wave.end());
-	_analysisIsCurrent.store(false);
+	_analysisResult.reset();
 }
 
 void ThreadedAnalyzer::updateSettings(juce::ValueTree settingsTree){
@@ -31,29 +34,22 @@ void ThreadedAnalyzer::updateSettings(juce::ValueTree settingsTree){
 	jassert (settingsTree.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
 	jassert(0.0 < double(settingsTree.getParent().getChildWithName("PresetInfo").getProperty("sampleRate")));
 
-	_analyzer.updateSettings(settingsTree);
+	if (_analyzer.updateSettings(settingsTree)){
+		_settingsHash = util::hashValueTree(settingsTree);
+	}
+	else {
+		jassertfalse;
+	}
 }
 
 void ThreadedAnalyzer::run() {
 	// first, clear everything so that if any analysis is terminated early, we don't have garbage leftover
-	if (!_outputOnsets){
-		_outputOnsets.emplace();    // default‑construct an empty vector
-	}
-	else {
-		_outputOnsets->clear();
-	}
-	
-	if (!_outputOnsetwiseTimbreMeasurements){
-		_outputOnsetwiseTimbreMeasurements.emplace();    // default‑construct empty vector
-	}
-	else {
-		_outputOnsetwiseTimbreMeasurements->clear();
-	}
+	_analysisResult.reset();
 	
 	if (!(_inputWave.data() && _inputWave.size())){
 		return;
 	}
-	rls.set(0.0);
+	_rls.set(0.0);
 	// let any sub-step know if we’ve been asked to exit:
 	auto shouldExit = [this]() {
 		bool retval = threadShouldExit();
@@ -63,10 +59,9 @@ void ThreadedAnalyzer::run() {
 		return retval;;
 	};
 
-	
 	// perform onset analysis
-	rls.set("Calculating Onsets...");
-	auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, rls, shouldExit);
+	_rls.set("Calculating Onsets...");
+	auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, _rls, shouldExit);
 	jassert (onsetOpt.has_value());
 
 	if (!onsetOpt.value().size()){
@@ -81,16 +76,18 @@ void ThreadedAnalyzer::run() {
 	filterOnsets(onsetOpt.value(), lengthInSeconds);
 
 	// perform onsetwise BFCC analysis
-	rls.set("Calculating Onsetwise TimbreSpace...");
-	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt, rls, shouldExit);
+	_rls.set("Calculating Onsetwise TimbreSpace...");
+	auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, *onsetOpt, _rls, shouldExit);
 	jassert (timbreMeasurementsOpt.has_value());
 	
 
 	normalizeOnsets(onsetOpt.value(), lengthInSeconds);
 	
-	_outputOnsets = onsetOpt;
-	_outputOnsetwiseTimbreMeasurements = timbreMeasurementsOpt;
-	_analysisIsCurrent.store(true);
+	_analysisResult.emplace(AnalysisResult{
+		.onsets = onsetOpt.value(),
+		.timbreMeasurements = timbreMeasurementsOpt.value(),
+		.audioHash = nvs::util::hashAudioData(_inputWave)
+	});
 	// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 	sendChangeMessage();
 }

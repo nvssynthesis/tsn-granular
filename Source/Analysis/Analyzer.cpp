@@ -20,7 +20,7 @@ Analyzer::Analyzer()
 ,	ess_hold(ess_init)
 {}
 
-void Analyzer::updateSettings(juce::ValueTree newSettings){
+bool Analyzer::updateSettings(juce::ValueTree newSettings){
 	// verify tree structure
 	bool const valid = verifySettingsStructure(newSettings);
 	jassert (newSettings.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
@@ -32,6 +32,7 @@ void Analyzer::updateSettings(juce::ValueTree newSettings){
 		std::cerr << "settings tree invalid\n";
 		jassertfalse;
 	}
+	return valid;
 }
 AnalyzerSettings const &Analyzer::getSettings() const {
 	return settings;

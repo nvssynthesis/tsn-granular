@@ -9,6 +9,7 @@
 */
 
 #include "TimbreSpaceComponent.h"
+#include "../TsnGranularPluginProcessor.h"
 #include "../slicer_granular/Source/Params/params.h"
 #include "Analysis/ThreadedAnalyzer.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
@@ -76,11 +77,19 @@ bool containsValue(const std::vector<T>& vec, T value) {
 }
 }	// anonymous namespace
 
-TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
-:	_apvts{apvts} , _timbreSpace(timbreSpace)
+
+
+//===================================================================================================================
+TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 {
-	_timbreSpace.addChangeListener(this);
-	if (_timbreSpace.isSavePending()){
+	_proc = dynamic_cast<TSNGranularAudioProcessor *>(&proc);
+	if (_proc == nullptr){
+		fmt::print("TSComp: dynamic cast failure\n");
+	}
+	
+	auto &ts = _proc->getTimbreSpace();
+	ts.addChangeListener(this);
+	if (ts.isSavePending()){
 		showAnalysisSaveDialog();
 	}
 }
@@ -123,11 +132,13 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
-	auto const &timbres5D = _timbreSpace.getTimbreSpace();
+	
+	auto &timbreSpace = _proc->getTimbreSpace();
+	auto &timbres5D = timbreSpace.getTimbreSpace();
 	{
 		std::vector<Timbre5DPoint> current_points;
-		current_points.reserve(_timbreSpace.getCurrentPointIndices().size());
-		for (auto & p : _timbreSpace.getCurrentPointIndices()){
+		current_points.reserve(timbreSpace.getCurrentPointIndices().size());
+		for (auto & p : timbreSpace.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[p.idx]);
 		}
 		
@@ -208,7 +219,8 @@ void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]}
 	};
 	
-	setLfoOffsetParamsFromPoint(_apvts, p2D_norm);
+	auto &apvts = _proc->getAPVTS();
+	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
 }
 
 void TimbreSpaceComponent::mouseDrag(const juce::MouseEvent &event) {
@@ -289,7 +301,7 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		setNavigatorPoint(juce::Point<float>(p[0], p[1]));
 		repaint();
 	}
-	else if (source == &_timbreSpace){
+	else if (source == &_proc->getTimbreSpace()){
 		showAnalysisSaveDialog();
 	}
 }
@@ -329,7 +341,8 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 }
 
 std::vector<nvs::util::WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
-	return _timbreSpace.getCurrentPointIndices();
+	auto const &ts = _proc->getTimbreSpace();
+	return ts.getCurrentPointIndices();
 }
 
 juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point<int> pos){
@@ -351,16 +364,6 @@ ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 	return progressIndicator;
 }
 
-namespace {
-void showSaveErrorAlert() {
-	juce::AlertWindow::showMessageBoxAsync(
-		juce::AlertWindow::WarningIcon,
-		"Save Error",
-		"Could not save the timbral analysis file. Please check the file location and try again."
-	);
-}
-}
-
 void TimbreSpaceComponent::saveAnalysis(){
 	juce::File analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
 		.getChildFile("tsn_granular")
@@ -376,30 +379,34 @@ void TimbreSpaceComponent::saveAnalysis(){
 															this 	//  Component *parentComponent=nullptr
 														   );
 
-	auto const vt = _timbreSpace.getTimbreSpaceTree();
+	auto const &timbreSpace = _proc->getTimbreSpace();
+	auto const vt = timbreSpace.getTimbreSpaceTree();
 	// Show async save dialog
-	fileChooser->launchAsync( juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
-		[vt](const juce::FileChooser& fc) {
-			auto file = fc.getResult();
-			if (file != juce::File{}) {
-				// Ensure proper extension
-				if (!file.hasFileExtension(".tsb")) {
-					file = file.withFileExtension(".tsb");
-				}
-				// Save the ValueTree to file
-				if (nvs::util::saveValueTreeToBinary(vt, file)) {
-					// Success - maybe update TimbreSpace with the saved path
-//									_ts.setCurrentAnalysisPath(file.getFullPathName());
-					std::cout << "should update other state with analysis file name\n";
-#pragma message("update other state with analysis file name")
-				}
-				else {
-					// Handle save error
-					showSaveErrorAlert();
-				}
+	fileChooser->launchAsync
+	(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+	 [this](const juce::FileChooser& fc)
+	 {
+		auto file = fc.getResult();
+		if (file != juce::File{}) {
+			// Ensure proper extension
+			if (!file.hasFileExtension(".tsb")) {
+				file = file.withFileExtension(".tsb");
 			}
+			_proc->saveAnalysisToFile(file.getFullPathName(), [this](bool success)
+			{
+				if (!success){
+					juce::AlertWindow::showMessageBoxAsync(
+						juce::AlertWindow::WarningIcon,	// iconType
+						"Save Error",	// title
+						"Could not save the timbral analysis file. Please check the file location and try again.",	// message
+						"",	// buttonText
+						this,	// associatedComponent
+					    nullptr	// ModalComponentManager::Callback* callback
+					);
+				}
+			});
 		}
-	);
+	});
 }
 
 TimbreSpaceComponent::Callback::Callback(TimbreSpaceComponent &comp)

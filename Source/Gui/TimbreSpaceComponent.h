@@ -12,6 +12,7 @@
 
 #include <JuceHeader.h>
 #include "fmt/core.h"
+#include "../TsnGranularPluginProcessor.h"
 #include "../../slicer_granular/Source/misc_util.h"
 #include "../TimbreSpace/TimbreSpace.h"
 /**
@@ -28,22 +29,22 @@ struct ProgressIndicator	:	public juce::Component
 	double progress {0.0};
 };
 
-class TimbreSpaceComponent	:	public juce::Component, public juce::ChangeListener, public juce::Thread::Listener
+class TimbreSpaceComponent	:	public juce::Component
+, 								public juce::ChangeListener
+, 								public juce::Thread::Listener
 {
 public:
 	using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
 	using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
-	
-	struct Navigator {
-		timbre2DPoint _p2D {0.f, 0.f};
-	};
 
-	TimbreSpaceComponent(juce::AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace);
+	TimbreSpaceComponent(juce::AudioProcessor &proc);
 	
+	//==========================================================================================
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void exitSignalSent() override;
-	
+	//==========================================================================================
+
 	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
 	void clear();
 	void paint(juce::Graphics &g) override;
@@ -61,8 +62,10 @@ public:
 	
 	void setNavigatorPoint(timbre2DPoint p);
 	ProgressIndicator& getProgressIndicator();
+	
+
 private:
-	juce::AudioProcessorValueTreeState &_apvts;
+	TSNGranularAudioProcessor *_proc {nullptr};
 	
 	ProgressIndicator progressIndicator;
 	
@@ -80,9 +83,10 @@ private:
 	void updateCursor();
 	
 	TSNMouse tsn_mouse;
-	Navigator nav;
 	
-	TimbreSpace &_timbreSpace;
+	struct Navigator {
+		timbre2DPoint _p2D {0.f, 0.f};
+	} nav;
 	
 	void showAnalysisSaveDialog();
 	class Callback 	:	public juce::ModalComponentManager::Callback
