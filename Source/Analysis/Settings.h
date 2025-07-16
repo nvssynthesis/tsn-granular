@@ -55,6 +55,7 @@ extern const std::map<juce::String, const std::map<juce::String,AnySpec>*> specs
 
 struct AnalyzerSettings {
 	struct Analysis {
+		double sampleRate = 0.0;
 		int frameSize = 1024;
 		int hopSize = 1024;
 		juce::String windowingType = "hann";
@@ -112,11 +113,10 @@ struct AnalyzerSettings {
 		int sizeSecondPass = 200;
 	} sBic;
 	
-	struct PresetInfo {
+	struct Info {
 		juce::String sampleFilePath;
 		juce::String author;
-		double sampleRate = 0.0;
-	} presetInfo;
+	} info;
 };
 bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree);
 

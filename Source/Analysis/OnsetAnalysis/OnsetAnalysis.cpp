@@ -34,7 +34,7 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  AnalyzerSettings const &settings,
 						  RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
-	auto const input_sr     = settings.presetInfo.sampleRate;
+	auto const input_sr     = settings.analysis.sampleRate;
 	assert(0.0 < input_sr);
 	auto const internal_sr  = 44100.0f;
 	auto const framesize    = settings.analysis.frameSize;
@@ -232,7 +232,7 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 {
 	vectorInput *inVec = new vectorInput(&waveform);
 
-	float const sr = settings.presetInfo.sampleRate;
+	float const sr = settings.analysis.sampleRate;
 	assert (0.0 < sr);
 	int const frameSize = settings.analysis.frameSize;
 	int const hopSize = settings.analysis.hopSize;
@@ -345,7 +345,7 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	std::copy(onsetsInSeconds.begin() + 1, onsetsInSeconds.end(), endTimes.begin());
 	assert(onsetsInSeconds[1] == endTimes[0]);
 	
-	float const sampleRate = settings.presetInfo.sampleRate;
+	float const sampleRate = settings.analysis.sampleRate;
 	assert (sampleRate > 22000.f);
 	
 	Real const endOfFile = static_cast<Real>((wave.size() - 1)) / sampleRate;
@@ -398,7 +398,7 @@ void writeWav(vecReal const &wave, std::string_view name, streamingFactory const
 			  AnalyzerSettings const &settings,
 			  RunLoopStatus& rls, ShouldExitFn shouldExit)
 {
-	float const sr = settings.presetInfo.sampleRate;
+	float const sr = settings.analysis.sampleRate;
 	jassert (sr > 20000.f);
 	Algorithm* writer = factory.create("MonoWriter",
 									   "filename", std::string(name) + ".wav",

@@ -73,7 +73,6 @@ void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target,
 }
 
 bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
-	fmt::print("incoming hash: {}, member hash: {}\n", audioHash.toStdString(), _audioFileHash.toStdString());
 	return _audioFileHash.compare(audioHash) == 0;
 }
 
@@ -112,12 +111,23 @@ analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueT
 }
 void TimbreSpace::setTimbreSpaceTree(juce::ValueTree const &tree) {
 	treeManager.tree = tree;
-	_audioFileHash = tree.getChildWithName("Metadata").getProperty("AudioFileHash", {}).toString();
+	auto const mdTree = tree.getChildWithName("Metadata");
+	_audioFileHash = mdTree.getProperty("AudioFileHash", _audioFileHash).toString();
+	_audioFileAbsPath = mdTree.getProperty("AudioFilePath (absolute)", _audioFileAbsPath).toString();
+	_audioFileRelPath = mdTree.getProperty("AudioFilePath (relative)", _audioFileRelPath).toString();
+
 	fullSelfUpdate(true);
 }
+void TimbreSpace::setAudioPaths(juce::String absPath, juce::String relPath){
+	_audioFileAbsPath = absPath;
+	_audioFileRelPath = relPath;
+}
+
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
-									juce::String audioFileHash){
+									juce::String audioFileHash,
+									juce::String audioAbsPath,
+									juce::String audioRelPath){
 	using ValueTree = juce::ValueTree;
 	
 	ValueTree vt("TimbreAnalysis");
@@ -125,10 +135,10 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		ValueTree md("Metadata");
 		md.setProperty("Version", ProjectInfo::versionString, nullptr);
 		md.setProperty("AudioFileHash", audioFileHash, nullptr);
-		md.setProperty("AudioFilePath (absolute)", "N/A", nullptr);
-		md.setProperty("AudioFilePath (relative)", "N/A", nullptr);
-		md.setProperty("CreationTime", "N/A", nullptr);
-		md.setProperty("AnalysisSettings", "N/A", nullptr);
+		md.setProperty("AudioFilePath (absolute)", audioAbsPath, nullptr);
+		md.setProperty("AudioFilePath (relative)", audioRelPath, nullptr);
+		md.setProperty("CreationTime", {}, nullptr);
+		md.setProperty("AnalysisSettings", {}, nullptr);
 		vt.addChild(md, 0, nullptr);
 	}
 	{
@@ -282,7 +292,7 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 			fmt::print("Onsets have 0 length");
 			return;
 		}
-		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash));
+		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath, _audioFileRelPath));
 		signalSaveAnalysisOption();
 	}
 }

@@ -30,7 +30,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	setResizable(true, true);
 	
 	addAndMakeVisible(grainBusyDisplay);
-	addAndMakeVisible(fileComp);
+	addAndMakeVisible(presetPanel);
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
 		if (TSNGranularAudioProcessor* a = dynamic_cast<TSNGranularAudioProcessor*>(&processor)){
@@ -250,7 +250,7 @@ void TsnGranularAudioProcessorEditor::resized()
 	localBounds.reduce(smallPad, smallPad);
 	
 	int x(localBounds.getX()), y(0);
-	y = placeFileCompAndGrainBusyDisplay(localBounds, smallPad, grainBusyDisplay, fileComp, y);
+	y = placeFileCompAndGrainBusyDisplay(localBounds, smallPad, grainBusyDisplay, presetPanel, y);
 
 	{
 		int buttonWidth = 90;

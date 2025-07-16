@@ -23,7 +23,7 @@ Analyzer::Analyzer()
 bool Analyzer::updateSettings(juce::ValueTree newSettings){
 	// verify tree structure
 	bool const valid = verifySettingsStructure(newSettings);
-	jassert (newSettings.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
+	jassert (newSettings.getParent().hasProperty("sampleRate"));
 	
 	if (valid){
 		updateSettingsFromValueTree(settings, newSettings);
@@ -39,7 +39,7 @@ AnalyzerSettings const &Analyzer::getSettings() const {
 }
 
 float Analyzer::getAnalyzedFileSampleRate() const {
-	return settings.presetInfo.sampleRate;
+	return settings.analysis.sampleRate;
 }
 
 std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit){

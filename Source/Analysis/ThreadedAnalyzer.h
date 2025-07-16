@@ -23,7 +23,10 @@ public:
 	struct AnalysisResult {
 		vecReal onsets;
 		std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements;
+		
 		juce::String audioHash {};
+//		juce::String audioFileAbsPath {};
+//		juce::String audioFileRelPath {};
 	};
 	//===============================================================================
 	ThreadedAnalyzer(juce::ChangeListener *listener);
@@ -41,6 +44,7 @@ public:
 	//===============================================================================
 	Analyzer &getAnalyzer() { return _analyzer; }
 	RunLoopStatus &getStatus() noexcept { return _rls; }
+	juce::String getSettingsHash() const noexcept { return _settingsHash; }
 	//===============================================================================
 private:
 	Analyzer _analyzer;

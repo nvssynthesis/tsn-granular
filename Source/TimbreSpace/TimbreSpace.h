@@ -73,6 +73,11 @@ public:
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(juce::String const &audioHash) const;
 	
+	void setAudioPaths(juce::String absPath = "", juce::String relPath = "");
+	juce::String getAudioAbsolutePath() const {
+		return _audioFileAbsPath;
+	}
+	
 	bool isSavePending() const {
 		return _analysisSavePending;
 	}
@@ -92,6 +97,7 @@ private:
 		};
 	} settings;
 	juce::String _audioFileHash;
+	juce::String _audioFileAbsPath, _audioFileRelPath;
 
 	juce::Array<Timbre5DPoint> timbres5D;
 	std::unique_ptr<delaunator::Delaunator> _delaunator;

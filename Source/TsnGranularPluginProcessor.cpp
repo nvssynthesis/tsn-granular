@@ -38,14 +38,14 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	writeToLog("TsnGranularAudioProcessor RELEASE MODE\n");
 #endif
 	
-	juce::ValueTree settingsVT = nonAutomatableState.getOrCreateChildWithName("Settings", nullptr);
-	nvs::analysis::initializeSettingsBranches(settingsVT);
+	juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
+	nvs::analysis::initializeSettingsBranches(settingsVT, false);
 	
-	getNonAutomatableState().addListener(&_timbreSpace);
+	apvts.state.addListener(&_timbreSpace);
 	_analyzer.addChangeListener(&_timbreSpace);
 }
 TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
-	getNonAutomatableState().removeListener(&_timbreSpace);
+	apvts.state.removeListener(&_timbreSpace);
 	_analyzer.removeChangeListener(&_timbreSpace);
 }
 //==============================================================================
@@ -79,19 +79,19 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 	juce::ValueTree root = juce::ValueTree::fromXml (*xmlState);
 
 	if (auto params = root.getChildWithName (apvts.state.getType()); params.isValid()){
-		apvts.replaceState (params);
+		apvts.replaceState (root);
 	}
 	
-	nonAutomatableState = root.getChildWithName ("NonAutomatable");
-	if (!nonAutomatableState.isValid()){ writeToLog("nonAutomatableState invalid; returning\n"); return; }
+//	nonAutomatableState = root.getChildWithName ("NonAutomatable");
+//	if (!nonAutomatableState.isValid()){ writeToLog("nonAutomatableState invalid; returning\n"); return; }
 
-	auto const settings = nonAutomatableState.getChildWithName("Settings");
+	auto const settings = apvts.state.getChildWithName("Settings");
 	if (!nvs::analysis::verifySettingsStructure(settings)){
-		writeToLog("In setStateInformation: Settings tree invalid. Not overwriting constructed default settings.\n");
-		return;
+		juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
+		nvs::analysis::initializeSettingsBranches(settingsVT);
 	}
 	
-	if (juce::String fp = nonAutomatableState.getProperty("analysisFile", {}); !fp.isEmpty()) {
+	if (juce::String fp = apvts.state.getProperty("analysisFile", {}); !fp.isEmpty()) {
 		juce::File file(fp);
 		auto fstream = juce::FileInputStream(file);
 		
@@ -104,27 +104,40 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 		auto const analysisFileStream = juce::ValueTree::readFromStream(fstream);
 		auto const analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
 		if (analysisFileTree.isValid()){
+			fmt::print("setting via setStateInformation\n");
 			_timbreSpace.setTimbreSpaceTree(analysisFileTree);
 		}
 	}
 	
-	if (auto const presetInfo = nonAutomatableState.getChildWithName ("PresetInfo"); presetInfo.isValid()) {
-		auto const audioSamplePath = presetInfo.getProperty ("sampleFilePath").toString();
-		if (audioSamplePath.isNotEmpty()) {
-			loadAudioFile ({ audioSamplePath }, true);
+	if (auto const sampleFilePath = apvts.state.getProperty("sampleFilePath"); sampleFilePath.isString()) {
+		auto path = sampleFilePath.toString();
+		if (path.isNotEmpty()) {
+			loadAudioFile ({ path }, true);
 		}
 	}
 	writeToLog("setStateInformation fully successful\n");
 }
 void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) {
-	juce::ValueTree vt("super");
-	nonAutomatableState.setProperty("analysisFile", filePath, nullptr);
-	vt.addChild(nonAutomatableState, 0, nullptr);
+	apvts.state.setProperty("analysisFile", filePath, nullptr);
+
+	juce::ValueTree analysisVT("super");
+//	analysisVT.addChild(nonAutomatableState, 0, nullptr);
+	/* metadata needs:
+ 	 -audio sample absolute path (for loading audio file when analysis is imported)
+	 -audio file sample rate?
+	 -settings hash (to quickly confirm that analysis has/has not been done for a given analysisSettings on a given audio file)
+	 -audio wave hash (for confirming that the analysis is definitely relevant for a given audio file (e.g. if the audio gets analyzed, but then is later edited, this will require new analysis))
+	 -later: maybe the settings themselves, which would allow to load analysis file and populate the settings of the plugin instance?
+	*/
 	auto tsTree = _timbreSpace.getTimbreSpaceTree();
-//	tsTree.getChildWithName("Metadata").setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
-	vt.addChild(tsTree, 1, nullptr);
+	auto mdTree = tsTree.getChildWithName("Metadata");
+	mdTree.setProperty("sampleFilePath", apvts.state.getProperty("sampleFilePath"), nullptr);
+	mdTree.setProperty("sampleRate", apvts.state.getProperty("sampleRate"), nullptr);
+	mdTree.setProperty("waveformHash", sampleManagementGuts.getHash(), nullptr);
+	mdTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
+	analysisVT.addChild(tsTree, 1, nullptr);
 	
-	bool success = [vt, filePath](bool useBinary){
+	bool success = [vt=analysisVT, filePath](bool useBinary){
 		juce::File const file(filePath);
 		if (useBinary){
 			return nvs::util::saveValueTreeToBinary(vt, file);
@@ -141,8 +154,11 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
 	writeToLog("TSN: loadAudioFile\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
-	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);
+	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
 	
+	juce::String const absPath = f.getFullPathName();
+	
+	_timbreSpace.setAudioPaths(absPath);
 	// if _timbreSpace's audio file hash does not match _sampleManagementGuts' audio file hash:
 	if (!_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
 		askForAnalysis();
@@ -177,8 +193,8 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	}
 	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()));
 	
-	auto const settingsVT = nonAutomatableState.getChildWithName("Settings");
-	jassert (settingsVT.getParent().getChildWithName("PresetInfo").hasProperty("sampleRate"));
+	auto const settingsVT = apvts.state.getChildWithName("Settings");
+	jassert (settingsVT.getParent().hasProperty("sampleRate"));
 	_analyzer.updateSettings(settingsVT);
 	
 	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis
@@ -198,8 +214,8 @@ void TSNGranularAudioProcessor::writeEvents(){
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	// any reason to use getPropertyAsValue instead?
-	juce::String sampleFilePath = nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleFilePath");
-	float sr = 	nonAutomatableState.getChildWithName("PresetInfo").getProperty("sampleRate");
+	juce::String sampleFilePath = apvts.state.getProperty("sampleFilePath");
+	float sr = 	apvts.state.getProperty("sampleRate");
 
 	std::vector<float> onsetsTmp = onsetsOpt.value();
 

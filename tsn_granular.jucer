@@ -32,10 +32,19 @@
       <GROUP id="{25569BE4-1D08-8E17-69E1-71A1BCB05513}" name="Params">
         <FILE id="x9tnzn" name="params.h" compile="0" resource="0" file="slicer_granular/Source/Params/params.h"/>
       </GROUP>
+      <GROUP id="{1008621A-F381-69E1-055E-A58D80EF6050}" name="Service">
+        <GROUP id="{DEB7AB7F-A332-ADB9-B99D-3520953A437D}" name="slicer">
+          <FILE id="faEKb0" name="PresetManager.cpp" compile="1" resource="0"
+                file="slicer_granular/Source/Service/PresetManager.cpp"/>
+          <FILE id="u1vQH3" name="PresetManager.h" compile="0" resource="0" file="slicer_granular/Source/Service/PresetManager.h"/>
+        </GROUP>
+      </GROUP>
       <GROUP id="{684762DD-4DD0-A438-CA5D-E313C0536F62}" name="Gui">
         <FILE id="CyH1Ji" name="LAF.cpp" compile="1" resource="0" file="Source/Gui/LAF.cpp"/>
         <FILE id="g7nFoB" name="LAF.h" compile="0" resource="0" file="Source/Gui/LAF.h"/>
         <GROUP id="{287A4327-D847-104B-C7ED-CD46148FFA1A}" name="slicer">
+          <FILE id="pzDDVh" name="PresetPanel.cpp" compile="1" resource="0" file="slicer_granular/Source/Gui/PresetPanel.cpp"/>
+          <FILE id="pCkT67" name="PresetPanel.h" compile="0" resource="0" file="slicer_granular/Source/Gui/PresetPanel.h"/>
           <FILE id="XZrPwx" name="GrainBusyDisplay.cpp" compile="1" resource="0"
                 file="slicer_granular/Source/Gui/GrainBusyDisplay.cpp"/>
           <FILE id="JAbq7z" name="GrainBusyDisplay.h" compile="0" resource="0"

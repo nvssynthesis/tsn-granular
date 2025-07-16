@@ -107,7 +107,7 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 		"zeroPhase",   false
 	);
 	
-	float sr = settings.presetInfo.sampleRate;
+	float sr = settings.analysis.sampleRate;
 	jassert (sr > 20000.f);
 	auto maxFrequency = settings.pitch.maxFrequency;
 	auto minFrequency = settings.pitch.minFrequency;
@@ -186,7 +186,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	float sampleRate  = settings.presetInfo.sampleRate;
+	float sampleRate  = settings.analysis.sampleRate;
 
 	int    frameSize  = settings.analysis.frameSize;
 	int    hopSize    = settings.analysis.hopSize;
@@ -242,7 +242,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 	vecReal wave(waveSize);
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
-	float const sampleRate  = settings.presetInfo.sampleRate;
+	float const sampleRate  = settings.analysis.sampleRate;
 	
 	int const  frameSize  = settings.analysis.frameSize;
 	int const  hopSize    = settings.analysis.hopSize;

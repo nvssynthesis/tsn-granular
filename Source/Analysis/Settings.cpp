@@ -181,6 +181,15 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	}
 	
 	auto parent = settingsTree.getParent();
+	settings.info.sampleFilePath = parent.getProperty("sampleFilePath").toString();
+	settings.info.author = parent.getProperty("author").toString();
+	if (!parent.hasProperty("sampleRate")) {
+		std::cerr << "Parent node missing required properties\n";
+		jassertfalse;
+		return false;
+	}
+	settings.analysis.sampleRate = parent.getProperty("sampleRate");
+
 	auto analysisNode = settingsTree.getChildWithName("Analysis");
 
 	if (!analysisNode.isValid()) {
@@ -188,7 +197,8 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 		jassertfalse;
 		return false;
 	}
-	if (!analysisNode.hasProperty("frameSize") || !analysisNode.hasProperty("hopSize") || !analysisNode.hasProperty("windowingType")) {
+	if (!analysisNode.hasProperty("frameSize") || !analysisNode.hasProperty("hopSize")
+		|| !analysisNode.hasProperty("windowingType")) {
 		std::cerr << "Analysis node missing required properties\n";
 		jassertfalse;
 		return false;
@@ -321,22 +331,6 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	settings.sBic.minSegmentLengthFrames = sBicNode.getProperty("minSegmentLengthFrames");
 	settings.sBic.sizeFirstPass = sBicNode.getProperty("sizeFirstPass");
 	settings.sBic.sizeSecondPass = sBicNode.getProperty("sizeSecondPass");
-	
-	// PresetInfo settings - this is critical for your issue!
-	auto presetInfoNode = parent.getChildWithName("PresetInfo");
-	if (!presetInfoNode.isValid()) {
-		std::cerr << "PresetInfo node missing\n";
-		jassertfalse;
-		return false;
-	}
-	if (!presetInfoNode.hasProperty("sampleRate")) {
-		std::cerr << "PresetInfo node missing sampleRate property\n";
-		jassertfalse;
-		return false;
-	}
-	settings.presetInfo.sampleFilePath = presetInfoNode.getProperty("sampleFilePath").toString();
-	settings.presetInfo.author = presetInfoNode.getProperty("author").toString();
-	settings.presetInfo.sampleRate = presetInfoNode.getProperty("sampleRate");
 	
 	return true;
 }

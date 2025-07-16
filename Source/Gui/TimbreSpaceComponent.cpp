@@ -370,10 +370,13 @@ void TimbreSpaceComponent::saveAnalysis(){
 		.getChildFile("Analyses");
 
 	analysesDir.createDirectory();	// create directory if it doesn't exist yet
+	auto absPath = _proc->getTimbreSpace().getAudioAbsolutePath();
+	absPath = juce::File(absPath).getFileNameWithoutExtension();
+	analysesDir = analysesDir.getChildFile(absPath);
 	
 	fileChooser = std::make_unique<juce::FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
 															analysesDir,
-															"*.tsan",	//  const String &filePatternsAllowed=String(),
+															"*.tsb",	//  const String &filePatternsAllowed=String(),
 															true,	// bool useOSNativeDialogBox
 															false, 	// bool treatFilePackagesAsDirectories=false,
 															this 	//  Component *parentComponent=nullptr
@@ -381,6 +384,8 @@ void TimbreSpaceComponent::saveAnalysis(){
 
 	auto const &timbreSpace = _proc->getTimbreSpace();
 	auto const vt = timbreSpace.getTimbreSpaceTree();
+	auto const par = vt.getParent();
+	fmt::print("par: {}\n", par.getType().toString().toStdString());
 	// Show async save dialog
 	fileChooser->launchAsync
 	(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,

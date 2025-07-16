@@ -16,7 +16,6 @@
 //==============================================================================
 
 class TSNGranularAudioProcessor  :	public SlicerGranularAudioProcessor
-,									private juce::ChangeListener
 {
 	friend class SlicerGranularAudioProcessor;	// allow base class to access private ctor
 public:

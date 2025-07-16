@@ -25,9 +25,7 @@ SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
 	tabs.reset (new juce::TabbedComponent (juce::TabbedButtonBar::TabsAtTop));
 	tabs->setSize (500, 400);
 	
-	auto settingsVT = proc.getNonAutomatableState()
-						 .getChildWithName ("Settings");
-
+	auto settingsVT = proc.getAPVTS().state.getChildWithName ("Settings");
 	
 	// For each branch in our specs map, create a tab
 	for (auto& [branchName, specMapPtr] : nvs::analysis::specsByBranch)
