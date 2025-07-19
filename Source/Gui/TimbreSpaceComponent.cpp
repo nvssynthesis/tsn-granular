@@ -88,7 +88,7 @@ TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 	}
 	
 	auto &ts = _proc->getTimbreSpace();
-	ts.addChangeListener(this);
+	ts.addActionListener(this);
 	if (ts.isSavePending()){
 		showAnalysisSaveDialog();
 	}
@@ -134,7 +134,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	auto const h = r_bounds.getHeight();
 	
 	auto &timbreSpace = _proc->getTimbreSpace();
-	auto &timbres5D = timbreSpace.getTimbreSpace();
+	auto const &timbres5D = timbreSpace.getTimbreSpace();
 	{
 		std::vector<Timbre5DPoint> current_points;
 		current_points.reserve(timbreSpace.getCurrentPointIndices().size());
@@ -301,7 +301,9 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		setNavigatorPoint(juce::Point<float>(p[0], p[1]));
 		repaint();
 	}
-	else if (source == &_proc->getTimbreSpace()){
+}
+void TimbreSpaceComponent::actionListenerCallback (const juce::String &message) {
+	if (message.compare("saveAnalysis") == 0) {
 		showAnalysisSaveDialog();
 	}
 }

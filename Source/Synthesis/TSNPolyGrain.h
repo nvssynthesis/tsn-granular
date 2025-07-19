@@ -19,10 +19,6 @@
 /** TODO:
 	-bake in some way to be sure that the currently held onsets match the current span
 */
-struct EventInfo {
-	double start_pos;
-	double end_pos;
-};
 
 namespace nvs	{
 namespace gran	{
@@ -39,14 +35,8 @@ public:
 	void setWaveEvent(size_t index);
 	void setWaveEvents(std::vector<WeightedIdx> weightedIndices);
 	//================================================================================================================================================
-
-	
-	bool readyForProcess() const {
-		return _onsetsNormalized.size() > 0;
-	}
 private:
 	std::vector<double> _onsetsNormalized;
-	EventInfo _currentEventInfo;
 };
 
 }	// namespace gran

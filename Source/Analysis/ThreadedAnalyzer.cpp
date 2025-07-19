@@ -14,11 +14,9 @@
 namespace nvs {
 namespace analysis {
 
-ThreadedAnalyzer::ThreadedAnalyzer(juce::ChangeListener *listener)
+ThreadedAnalyzer::ThreadedAnalyzer()
 :	juce::Thread("Analyzer")
-{
-	addChangeListener(listener);
-}
+{}
 ThreadedAnalyzer::~ThreadedAnalyzer(){
 	stopThread(100);
 }

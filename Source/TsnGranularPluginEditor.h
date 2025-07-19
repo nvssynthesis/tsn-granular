@@ -14,6 +14,7 @@
 
 class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
 ,											public GranularEditorCommon
+,											private juce::ActionListener
 {
 public:
 	TsnGranularAudioProcessorEditor (TSNGranularAudioProcessor&);
@@ -22,31 +23,29 @@ public:
 	void paint (juce::Graphics&) override;
 	void resized() override;
 	//===============================================================================
-	void paintOnsetMarkers();
-	
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
+	//===============================================================================
 	ProgressIndicator &getProgressIndicator() {
 		return timbreSpaceComponent.getProgressIndicator();
 	}
 protected:
 private:
 	nvs::gui::LAF laf;
-
 	TimbreSpaceComponent timbreSpaceComponent;
-
+	//===============================================================================
+	void drawBackground();
+	void paintOnsetMarkers();
+	//===============================================================================
+	juce::Image  backgroundImage;
+	bool backgroundNeedsUpdate;
 	std::array<juce::Colour, 3> gradientColors {
 		juce::Colours::darkgrey,
 		juce::Colours::transparentBlack,
 		juce::Colours::darkgrey
 	};
 	size_t colourOffsetIndex {0};
-	
-	void drawBackground();
-
-	juce::Image  backgroundImage;
-	bool backgroundNeedsUpdate;
-	
+	//=================================================================
 	juce::TextButton askForAnalysisButton;
 	juce::TextButton writeWavsButton;
 	juce::TextButton settingsButton;
@@ -54,12 +53,10 @@ private:
 	//=================================================================
 	void popupSettings(bool native);
 	juce::Array<juce::Component::SafePointer<juce::Component>> windows;
-	//=================================================================
 	void closeAllWindows();
 	//=================================================================
-
-	void changeListenerCallback(juce::ChangeBroadcaster*  source) override;
-		
+	void actionListenerCallback(juce::String const &message) override;
+	//=================================================================
 	TSNGranularAudioProcessor& audioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)
 };

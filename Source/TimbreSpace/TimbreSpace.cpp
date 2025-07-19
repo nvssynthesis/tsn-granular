@@ -21,8 +21,12 @@ namespace nvs::timbrespace {
 
 //===============================================TimbreSpace=================================================
 
-TimbreSpace::TimbreSpace() = default;
-TimbreSpace::~TimbreSpace() = default;
+TimbreSpace::TimbreSpace() {
+	treeManager.tree.addListener(this);
+}
+TimbreSpace::~TimbreSpace() {
+	treeManager.tree.removeListener(this);
+}
 
 void TimbreSpace::add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D){
 	using namespace nvs::util;
@@ -72,11 +76,24 @@ void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target,
 	currentPointIndices = weightedIndices;
 }
 
+std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
+	juce::var onsetsVar = treeManager.getOnsetsVar();
+	if (onsetsVar.isArray()) {
+		juce::Array<juce::var>* arr = onsetsVar.getArray();
+		std::vector<float> out;
+		out.reserve(arr->size());
+		for (auto onset : *arr){
+			out.push_back(onset);
+		}
+		return out;
+	}
+	return std::nullopt;
+}
 bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
 	return _audioFileHash.compare(audioHash) == 0;
 }
 
-void TimbreSpace::valueTreePropertyChanged (juce::ValueTree &alteredTree, const juce::Identifier &) {
+void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &) {
 	std::cout << "value tree changed!!!!!\n";
 	if (alteredTree.hasType("TimbreSpace")){
 		std::cout << "tree changed! redrawing points...\n";
@@ -109,7 +126,7 @@ analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueT
 		.kurtosis = vt.getProperty("kurtosis")
 	};
 }
-void TimbreSpace::setTimbreSpaceTree(juce::ValueTree const &tree) {
+void TimbreSpace::setTimbreSpaceTree(ValueTree const &tree) {
 	treeManager.tree = tree;
 	auto const mdTree = tree.getChildWithName("Metadata");
 	_audioFileHash = mdTree.getProperty("AudioFileHash", _audioFileHash).toString();
@@ -165,15 +182,15 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
-			juce::ValueTree periodicityTree("Periodicity");
+			ValueTree periodicityTree("Periodicity");
 			addEventwiseStatistics(periodicityTree, frame.periodicity);
 			frameTree.addChild(periodicityTree, -1, nullptr);
 			
-			juce::ValueTree loudnessTree("Loudness");
+			ValueTree loudnessTree("Loudness");
 			addEventwiseStatistics(loudnessTree, frame.loudness);
 			frameTree.addChild(loudnessTree, -1, nullptr);
 			
-			juce::ValueTree f0Tree("F0");
+			ValueTree f0Tree("F0");
 			addEventwiseStatistics(f0Tree, frame.f0);
 			frameTree.addChild(f0Tree, -1, nullptr);
 			
@@ -273,8 +290,16 @@ int TimbreSpace::TreeManager::getNumFrames() const {
 	return numFrames;
 }
 
-void TimbreSpace::signalSaveAnalysisOption() {
-	sendChangeMessage(); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
+void TimbreSpace::signalSaveAnalysisOption() const {
+	sendActionMessage("saveAnalysis"); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
+}
+void TimbreSpace::signalTimbreSpaceUpdated() const {
+	sendActionMessage("reportAvailability");	// who needs it? TsnGranularPluginEditor and TsnGranularAudioProcessor
+}
+void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
+	if (&treeWhichHasBeenChanged == &treeManager.tree){
+		signalTimbreSpaceUpdated();
+	}
 }
 
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
@@ -294,6 +319,7 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 		}
 		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath, _audioFileRelPath));
 		signalSaveAnalysisOption();
+		signalTimbreSpaceUpdated();
 	}
 }
 void TimbreSpace::fullSelfUpdate(bool verbose){
@@ -303,7 +329,7 @@ void TimbreSpace::fullSelfUpdate(bool verbose){
 	updateTimbreSpacePoints();
 	if(verbose) {fmt::print("reshaping timbre space\n");}
 	reshape(verbose);
-	if(verbose) {fmt::print("computing delaunary triangulation\n");}
+	if(verbose) {fmt::print("computing delaunay triangulation\n");}
 	_delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(timbres5D));
 }
 [[nodiscard]]
@@ -370,13 +396,9 @@ void TimbreSpace::extract() {
 	eventwiseExtractedTimbrePoints.clear();
 	eventwiseExtractedTimbrePoints.reserve(treeManager.getNumFrames());
 	
-//	for (auto const &t : fullTimbreSpace.value()) {
-//		std::vector<float> v = nvs::analysis::extractFeatures(t, featuresToExtract, nvs::analysis::Statistic::Median);
-//		eventwiseExtractedTimbrePoints.push_back(v);
-//	}
 	auto const &timbreTree = treeManager.getTimbralFramesTree();
 	for (int i = 0; i < timbreTree.getNumChildren(); ++i) {
-		juce::ValueTree const &frame = timbreTree.getChild(i);
+		ValueTree const &frame = timbreTree.getChild(i);
 		std::vector<float> v = extractFeatures(frame, featuresToExtract, nvs::analysis::Statistic::Median);
 		eventwiseExtractedTimbrePoints.push_back(v);
 	}

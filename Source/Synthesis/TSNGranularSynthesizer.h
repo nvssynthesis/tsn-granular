@@ -21,9 +21,7 @@ public:
 	using WeightedIdx = nvs::util::WeightedIdx;
 	
 	TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
-	bool readyForProcess() const {
-		return false;
-	}
+
 	void loadOnsets(const std::span<float> onsets);
 	void setWaveEvents(std::vector<WeightedIdx> points);
 	std::vector<WeightedIdx> getCurrentIndices() const {

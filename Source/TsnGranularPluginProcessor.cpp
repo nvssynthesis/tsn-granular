@@ -14,8 +14,8 @@ nvs::util::LoggingGuts::LoggingGuts()
 
 TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 :	SlicerGranularAudioProcessor()
-,	_analyzer(this)			// effectively adding this as listener to the analyzer
-,	navigator{ [this](const std::vector<double>& v) -> void
+,	_analyzer()
+,	_navigator{ [this](const std::vector<double>& v) -> void
 	{
 		// set navigator of timbre space component
 		auto const p2 = juce::Point<float>(v[0], v[1]);
@@ -43,10 +43,12 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	
 	apvts.state.addListener(&_timbreSpace);
 	_analyzer.addChangeListener(&_timbreSpace);
+	_timbreSpace.addActionListener(this);
 }
 TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	apvts.state.removeListener(&_timbreSpace);
 	_analyzer.removeChangeListener(&_timbreSpace);
+	_timbreSpace.removeActionListener(this);	// is this even necessary if processor owns timbreSpace?
 }
 //==============================================================================
 void TSNGranularAudioProcessor::initSynth() {
@@ -70,58 +72,26 @@ juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 
 void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
-
-	if (xmlState == nullptr || ! xmlState->hasTagName ("PluginState")){
+	std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+	if (xmlState == nullptr || !xmlState->hasTagName("PLUGIN_STATE")) {
 		return;
 	}
 	
-	juce::ValueTree root = juce::ValueTree::fromXml (*xmlState);
-
-	if (auto params = root.getChildWithName (apvts.state.getType()); params.isValid()){
-		apvts.replaceState (root);
-	}
+	juce::ValueTree root = juce::ValueTree::fromXml(*xmlState);
+	apvts.replaceState(root);
 	
-//	nonAutomatableState = root.getChildWithName ("NonAutomatable");
-//	if (!nonAutomatableState.isValid()){ writeToLog("nonAutomatableState invalid; returning\n"); return; }
-
-	auto const settings = apvts.state.getChildWithName("Settings");
-	if (!nvs::analysis::verifySettingsStructure(settings)){
-		juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
-		nvs::analysis::initializeSettingsBranches(settingsVT);
-	}
+	ensureSettingsStructure();
+	loadAnalysisFileFromState();
 	
-	if (juce::String fp = apvts.state.getProperty("analysisFile", {}); !fp.isEmpty()) {
-		juce::File file(fp);
-		auto fstream = juce::FileInputStream(file);
-		
-		if (fstream.failedToOpen()){
-			writeToLog( fstream.getStatus().getErrorMessage() );
-#pragma message("would be good to give popup opportunity for user to otherwise find the file")
-			return;
-		}
-		
-		auto const analysisFileStream = juce::ValueTree::readFromStream(fstream);
-		auto const analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
-		if (analysisFileTree.isValid()){
-			fmt::print("setting via setStateInformation\n");
-			_timbreSpace.setTimbreSpaceTree(analysisFileTree);
-		}
-	}
-	
-	if (auto const sampleFilePath = apvts.state.getProperty("sampleFilePath"); sampleFilePath.isString()) {
-		auto path = sampleFilePath.toString();
-		if (path.isNotEmpty()) {
-			loadAudioFile ({ path }, true);
-		}
-	}
 	writeToLog("setStateInformation fully successful\n");
 }
 void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) {
-	apvts.state.setProperty("analysisFile", filePath, nullptr);
+	auto fileInfo = apvts.state.getChildWithName("FileInfo");
+	if (!fileInfo.isValid()) return;
+	fileInfo.setProperty("analysisFile", filePath, nullptr);
 
 	juce::ValueTree analysisVT("super");
-//	analysisVT.addChild(nonAutomatableState, 0, nullptr);
+
 	/* metadata needs:
  	 -audio sample absolute path (for loading audio file when analysis is imported)
 	 -audio file sample rate?
@@ -156,14 +126,16 @@ void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEdi
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
 	
-	juce::String const absPath = f.getFullPathName();
-	
-	_timbreSpace.setAudioPaths(absPath);
-	// if _timbreSpace's audio file hash does not match _sampleManagementGuts' audio file hash:
-	if (!_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
+	_timbreSpace.setAudioPaths(f.getFullPathName());
+
+	if (_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
+		/* do nothing */
+		fmt::print("TSNGranularAudioProcessor::loadAudioFile: already had valid analysis for {}", f.getFullPathName().toStdString());
+	}
+	else if (!loadAnalysisFileFromState())	// try to load analysis from state; if it fails then do fresh analysis
+	{
 		askForAnalysis();
 	}
-	
 	writeToLog("TSN: loadAudioFile exiting");
 }
 
@@ -171,10 +143,12 @@ void TSNGranularAudioProcessor::setReadBoundsFromChosenPoint() {
 	auto const pIndices = _timbreSpace.getCurrentPointIndices();
 	auto const onsetOpt = _timbreSpace.getOnsets();
 
-	if (onsetOpt.has_value() and (onsetOpt.value().size() != 0)){
-		if (auto *const tsn_synth_juce = dynamic_cast<TSNGranularSynthesizer *const>(_granularSynth.get())){
-			tsn_synth_juce->setWaveEvents(pIndices);
-		}
+	if (!onsetOpt.has_value() || (onsetOpt.value().size() == 0)){
+		return;
+	}
+	if (auto *const tsn_synth_juce = dynamic_cast<TSNGranularSynthesizer *const>(_granularSynth.get())){
+		// could check if it's ready for processing here to avoid chance of assigning events beyond numOnsets
+		tsn_synth_juce->setWaveEvents(pIndices);
 	}
 }
 
@@ -226,17 +200,10 @@ void TSNGranularAudioProcessor::writeEvents(){
 	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath.toStdString(), _analyzer.getAnalyzer(), rls, shouldExitFn);
 }
 
-
-void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	writeToLog("processor: change message received\n");
-	if (&_analyzer == dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		writeToLog("processor: dynamic cast to threaded analyzer successful\n");
-		// now we can simply check on our own analyzer, don't even need to use source qua source
-		// then load onsets into synth
+void TSNGranularAudioProcessor::actionListenerCallback(juce::String const &message) {
+	if (message.compare("reportAvailability") == 0){
 		auto onsetsOpt = _timbreSpace.getOnsets();
-		
-		if (onsetsOpt.has_value() and onsetsOpt->size()){
-			
+		if (onsetsOpt.has_value() && onsetsOpt->size()){
 			if (auto *tsn_granular_synth = dynamic_cast<TSNGranularSynthesizer *>(_granularSynth.get())){
 				tsn_granular_synth->loadOnsets(onsetsOpt.value());
 				writeToLog("TsnGranularAudioProcessor::changeListenerCallback: loaded onsets successfully");
@@ -249,10 +216,8 @@ void TSNGranularAudioProcessor::changeListenerCallback(juce::ChangeBroadcaster* 
 			writeToLog("TsnGranularAudioProcessor::changeListenerCallback: either onsets optional has no value or has 0 size");
 		}
 	}
-	else {
-		writeToLog("TsnGranularAudioProcessor::changeListenerCallback: dynamic cast from ChangeBroadcaster to ThreadedAnalyzer unsuccessful");
-	}
 }
+
 void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
 	if (!_timbreSpace.hasValidAnalysisFor(sampleManagementGuts.getHash())) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt

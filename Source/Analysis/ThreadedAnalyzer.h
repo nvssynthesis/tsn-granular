@@ -29,7 +29,7 @@ public:
 //		juce::String audioFileRelPath {};
 	};
 	//===============================================================================
-	ThreadedAnalyzer(juce::ChangeListener *listener);
+	ThreadedAnalyzer();
 	~ThreadedAnalyzer();
 	//===============================================================================
 	void updateWave(std::span<float const> wave);

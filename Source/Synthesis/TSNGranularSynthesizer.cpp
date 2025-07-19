@@ -54,6 +54,10 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 	}
 }
 void TSNGranularSynthesizer::setWaveEvents(std::vector<WeightedIdx> indices)
+/*
+ needs to happen AFTER proper onsets are loaded; otherwise the indices could be out of bounds
+ However, since setWaveEvents happens based on a separate timer, the processing currently just exits early if the weighted indices exceed the numOnsets
+*/
 {
 	auto const numVoices = getNumVoices();
 	for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){

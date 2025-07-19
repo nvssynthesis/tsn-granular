@@ -73,13 +73,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
-//	if (auto *actionListener = dynamic_cast<juce::ActionListener *>(&processor)){
-//		timbreSpaceComponent.addActionListener(actionListener);
-//	}
-//	else {
-//		fmt::print("unable to dynamic cast\n");
-//		jassertfalse;
-//	}
 	
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
 	paintOnsetMarkers();
@@ -87,12 +80,11 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	auto &a = audioProcessor.getAnalyzer();
 	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
 	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
-//	a.addChangeListener(this);					// tell me to paint onsets
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
 	
 	auto &ts = audioProcessor.getTimbreSpace();
-	ts.addChangeListener(this);					// tell me to paint onsets
-	
+//	ts.addChangeListener(this);					// tell me to paint onsets
+	ts.addActionListener(this);
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
 	}
@@ -116,7 +108,7 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
 	audioProcessor.getNavigator().removeChangeListener(&timbreSpaceComponent);
 	
-	audioProcessor.getTimbreSpace().removeChangeListener(this);
+	audioProcessor.getTimbreSpace().removeActionListener(this);
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()
@@ -295,18 +287,8 @@ void TsnGranularAudioProcessorEditor::resized()
 	}
 }
 
-void TsnGranularAudioProcessorEditor::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	// 1. make audioProcessor the listener that does this extraction
-	// 2. make paintOnsetMarkers happen on editor constructon as well
-	
-//	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-//		// onsets are immediately ready to draw
-//		paintOnsetMarkers();
-//	}
-	if (auto *ts = dynamic_cast<nvs::timbrespace::TimbreSpace*>(source)) {
+void TsnGranularAudioProcessorEditor::actionListenerCallback(juce::String const &message) {
+	if (message.compare("reportAvailability") == 0){
 		paintOnsetMarkers();
-	}
-	else {
-		GranularEditorCommon::changeListenerCallback(source);
 	}
 }

@@ -47,7 +47,9 @@ void TSNPolyGrain::setWaveEvents(std::vector<WeightedIdx> weightedIndices) {
 	wrbs.reserve(weightedIndices.size());
 	for (auto wi : weightedIndices){
 		auto index = wi.idx;
-		assert(index < (int)_onsetsNormalized.size());
+		if (index >= (int)_onsetsNormalized.size()){
+			return; // invalid
+		}
 		auto const nextIdx = (index + 1) % _onsetsNormalized.size();
 		
 		wrbs.emplace_back(
