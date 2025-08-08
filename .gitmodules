@@ -1,9 +1,6 @@
-[submodule "slicer_granular"]
-	path = slicer_granular
+[submodule "plugin/slicer_granular"]
+	path = plugin/slicer_granular
 	url = https://github.com/nvssynthesis/slicer_granular.git
-[submodule "aubio"]
-	path = aubio
-	url = https://github.com/aubio/aubio.git
-[submodule "delaunator-cpp"]
-	path = delaunator-cpp
-	url = https://github.com/nvssynthesis/delaunator-cpp.git
+[submodule "plugin/delaunator-cpp"]
+        path = plugin/delaunator-cpp
+        url = https://github.com/nvssynthesis/delaunator-cpp.git

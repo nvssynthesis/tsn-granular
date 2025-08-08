@@ -3,3 +3,9 @@ Builds/
 ..bfg-report/
 JuceLibraryCode/
 .vscode/
+.idea/
+cmake-build-debug/
+mason_packages/
+
+# CMake-managed dependency (gets cloned and built by CMakeLists.txt)
+plugin/essentia/

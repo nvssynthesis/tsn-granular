@@ -2,7 +2,6 @@
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
 #include "Analysis/Settings.h"
-#include "JucePluginDefines.h"
 
 //==============================================================================
 nvs::util::LoggingGuts::LoggingGuts()
