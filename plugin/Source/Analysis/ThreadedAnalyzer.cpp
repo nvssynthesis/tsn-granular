@@ -28,9 +28,6 @@ void ThreadedAnalyzer::updateWave(std::span<float const> wave){
 
 void ThreadedAnalyzer::updateSettings(juce::ValueTree settingsTree){
 	jassert( settingsTree.hasType("Settings") );
-	
-	jassert (settingsTree.getParent().hasProperty("sampleRate"));
-	jassert(0.0 < double(settingsTree.getParent().getProperty("sampleRate")));
 
 	if (_analyzer.updateSettings(settingsTree)){
 		_settingsHash = util::hashValueTree(settingsTree);

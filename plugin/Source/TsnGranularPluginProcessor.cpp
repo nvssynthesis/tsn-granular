@@ -69,8 +69,9 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 	if (xmlState == nullptr || !xmlState->hasTagName("PLUGIN_STATE")) {
 		return;
 	}
-	
-	juce::ValueTree root = juce::ValueTree::fromXml(*xmlState);
+
+	const juce::ValueTree root = juce::ValueTree::fromXml(*xmlState);
+
 	apvts.replaceState(root);
 	
 	ensureSettingsStructure();
@@ -161,7 +162,8 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()));
 	
 	auto const settingsVT = apvts.state.getChildWithName("Settings");
-	jassert (settingsVT.getParent().hasProperty("sampleRate"));
+	auto const par = settingsVT.getParent();
+	jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
 	_analyzer.updateSettings(settingsVT);
 	
 	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis

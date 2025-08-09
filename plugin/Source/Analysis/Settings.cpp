@@ -109,7 +109,7 @@ const std::map<juce::String, const std::map<juce::String,AnySpec>*>
 };
 
 void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
-										const juce::String& branchName)  {
+										const juce::String& branchName) {
 	auto branchVT = settingsVT.getOrCreateChildWithName (branchName, nullptr);
 
 	if (auto it = specsByBranch.find (branchName); it != specsByBranch.end()) {
@@ -181,14 +181,17 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	}
 	
 	auto parent = settingsTree.getParent();
-	settings.info.sampleFilePath = parent.getProperty("sampleFilePath").toString();
-	settings.info.author = parent.getProperty("author").toString();
-	if (!parent.hasProperty("sampleRate")) {
+	auto const fileInfoTree = parent.getChildWithName("FileInfo");
+	settings.info.sampleFilePath = fileInfoTree.getProperty("sampleFilePath").toString();
+	// settings.info.author = parent.getProperty("author").toString();
+	if (!fileInfoTree.hasProperty("sampleRate")) {
 		std::cerr << "Parent node missing required properties\n";
 		jassertfalse;
 		return false;
 	}
-	settings.analysis.sampleRate = parent.getProperty("sampleRate");
+	settings.analysis.sampleRate = fileInfoTree.getProperty("sampleRate");
+	jassert(0.0 < settings.analysis.sampleRate);
+
 
 	auto analysisNode = settingsTree.getChildWithName("Analysis");
 

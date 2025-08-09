@@ -23,7 +23,7 @@ Analyzer::Analyzer()
 bool Analyzer::updateSettings(juce::ValueTree newSettings){
 	// verify tree structure
 	bool const valid = verifySettingsStructure(newSettings);
-	jassert (newSettings.getParent().hasProperty("sampleRate"));
+	jassert (newSettings.getParent().getChildWithName("FileInfo").hasProperty("sampleRate"));
 	
 	if (valid){
 		updateSettingsFromValueTree(settings, newSettings);
