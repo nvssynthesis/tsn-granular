@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
 
 # Add slicer_granular as subdirectory (this will handle its own dependencies including JUCE)
-add_compile_definitions(TSN=1) # needs to be defined to alter slicer-granular's compilation
+#add_compile_definitions(TSN=1) # needs to be defined to alter slicer-granular's compilation
 add_subdirectory(slicer_granular)
 get_target_property(SLICER_LINK_LIBS slicer-granular INTERFACE_LINK_LIBRARIES)
 
@@ -352,7 +352,8 @@ juce_generate_juce_header(tsn-granular)
 target_include_directories(tsn-granular
         PRIVATE
         Source
-        slicer_granular/Source
+#        slicer_granular/Source
+#        slicer_granular/nvs_libraries
         ${ESSENTIA_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
         delaunator-cpp/include
@@ -378,6 +379,7 @@ target_link_libraries(tsn-granular
 target_compile_definitions(tsn-granular
         PRIVATE
         FMT_HEADER_ONLY=1
+        TSN=1
         PUBLIC
         JUCE_STRICT_REFCOUNTEDPOINTER=1
         JUCE_VST3_CAN_REPLACE_VST2=0

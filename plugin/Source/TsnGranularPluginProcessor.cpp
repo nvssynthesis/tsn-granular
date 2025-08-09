@@ -4,12 +4,6 @@
 #include "Analysis/Settings.h"
 
 //==============================================================================
-nvs::util::LoggingGuts::LoggingGuts()
-: logFile(juce::File::getSpecialLocation(juce::File::SpecialLocationType::currentApplicationFile).getSiblingFile("log.txt"))
-, fileLogger(logFile, "tsn_granular logging")
-{
-	juce::Logger::setCurrentLogger (&fileLogger);
-}
 
 TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 :	SlicerGranularAudioProcessor()
