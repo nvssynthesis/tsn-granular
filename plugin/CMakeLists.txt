@@ -9,13 +9,10 @@ message(STATUS "Slicer-granular links: ${SLICER_LINK_LIBS}")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(FetchContent)
+
 # Options for external dependencies
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
-
-# Add slicer_granular as subdirectory (this will handle its own dependencies including JUCE)
-#add_compile_definitions(TSN=1) # needs to be defined to alter slicer-granular's compilation
-add_subdirectory(slicer_granular)
-get_target_property(SLICER_LINK_LIBS slicer-granular INTERFACE_LINK_LIBRARIES)
 
 find_package(Eigen3 REQUIRED NO_MODULE)
 
@@ -309,6 +306,7 @@ set_target_properties(essentia_built PROPERTIES
         INTERFACE_LINK_LIBRARIES "${ESSENTIA_SYSTEM_LIBRARIES}"
 )
 
+add_subdirectory(slicer_granular/JUCE)
 
 # Create the plugin target
 juce_add_plugin(tsn-granular
@@ -348,12 +346,53 @@ target_sources(tsn-granular PRIVATE
 
 juce_generate_juce_header(tsn-granular)
 
+set(SLICER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/slicer_granular/Source)
+file(GLOB_RECURSE SLICER_SOURCES
+        "${SLICER_SOURCE_DIR}/*.cpp"
+        "${SLICER_SOURCE_DIR}/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/slicer_granular/nvs_libraries/nvs_libraries/src/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/slicer_granular/nvs_libraries/nvs_libraries/include/*.h"
+)
+list(REMOVE_ITEM SLICER_SOURCES "${SLICER_SOURCE_DIR}/createPluginFilter.cpp")
+
+target_sources(tsn-granular PRIVATE ${SLICER_SOURCES})
+
+# Copy the dependency fetch logic from slicer_granular/CMakeLists.txt
+# (Xoshiro, and any other FetchContent dependencies)
+if(USE_SYSTEM_LIBRARIES AND DEFINED XOSHIRO_ROOT)
+    set(XOSHIRO_INCLUDE_DIR ${XOSHIRO_ROOT})
+else()
+    FetchContent_Declare(
+            Xoshiro
+            GIT_REPOSITORY https://github.com/Reputeless/Xoshiro-cpp.git
+            GIT_TAG master
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND ""
+    )
+    FetchContent_MakeAvailable(Xoshiro)
+    set(XOSHIRO_INCLUDE_DIR ${xoshiro_SOURCE_DIR})
+endif()
+
+# fmt library
+if(USE_SYSTEM_LIBRARIES)
+    find_package(fmt REQUIRED)
+else()
+    FetchContent_Declare(
+            fmt
+            GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+            GIT_TAG 11.2.0
+    )
+    FetchContent_MakeAvailable(fmt)
+endif()
+
 # Include directories
 target_include_directories(tsn-granular
         PRIVATE
         Source
-#        slicer_granular/Source
-#        slicer_granular/nvs_libraries
+        slicer_granular/Source
+        slicer_granular/nvs_libraries
+        slicer_granular/nvs_libraries/nvs_libraries/external/sprout
+        ${XOSHIRO_INCLUDE_DIR}  # Now manually added
         ${ESSENTIA_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
         delaunator-cpp/include
@@ -365,10 +404,25 @@ target_include_directories(tsn-granular
 # Link libraries
 target_link_libraries(tsn-granular
         PRIVATE
-        slicer-granular
+#        slicer-granular
         fmt::fmt
         essentia_built
         Eigen3::Eigen  # Add this line
+        # Add any other libraries that slicer-granular was providing
+        juce::juce_audio_basics
+        juce::juce_audio_devices
+        juce::juce_audio_formats
+        juce::juce_audio_plugin_client
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+        juce::juce_core
+        juce::juce_cryptography
+        juce::juce_data_structures
+        juce::juce_dsp
+        juce::juce_events
+        juce::juce_graphics
+        juce::juce_gui_basics
+        juce::juce_gui_extra
         PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
