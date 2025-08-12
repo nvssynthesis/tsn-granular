@@ -125,7 +125,7 @@ endif()
 
 # Configure with minimal features to reduce build time and dependencies
 # Add --no-msse for M1 Macs to avoid archiver issues
-set(WAF_CONFIGURE_ARGS "waf" "configure" "--build-static" "--prefix=${ESSENTIA_INSTALL_DIR}" "--lightweight=" "--no-msse")
+set(WAF_CONFIGURE_ARGS "waf" "configure" "--build-static" "--prefix=${ESSENTIA_INSTALL_DIR}" "--lightweight=libsamplerate" "--fft=ACCELERATE" "--no-msse")
 
 execute_process(
         COMMAND ${PYTHON3_EXECUTABLE} ${WAF_CONFIGURE_ARGS}
@@ -134,6 +134,7 @@ execute_process(
         OUTPUT_VARIABLE WAF_CONFIGURE_OUTPUT
         ERROR_VARIABLE WAF_CONFIGURE_ERROR
 )
+message(STATUS "WAF Help Output:\n${WAF_HELP_OUTPUT}")
 
 if(NOT WAF_CONFIGURE_RESULT EQUAL 0)
     message(STATUS "WAF Configure Output: ${WAF_CONFIGURE_OUTPUT}")
@@ -150,7 +151,7 @@ endif()
 
 # Build Essentia
 execute_process(
-        COMMAND ${PYTHON3_EXECUTABLE} waf -j ${CMAKE_BUILD_PARALLEL_LEVEL}
+        COMMAND ${PYTHON3_EXECUTABLE} waf -j ${CMAKE_BUILD_PARALLEL_LEVEL} -v
         WORKING_DIRECTORY ${ESSENTIA_DIR}
         RESULT_VARIABLE WAF_BUILD_RESULT
         OUTPUT_VARIABLE WAF_BUILD_OUTPUT
@@ -279,11 +280,21 @@ if(APPLE)
     find_library(FFTW3_LIB fftw3 PATHS /usr/local/lib /opt/local/lib)
     find_library(FFTW3F_LIB fftw3f PATHS /usr/local/lib /opt/local/lib)
 
+    # Add libsamplerate for Resample algorithm
+    find_library(SAMPLERATE_LIB samplerate PATHS /usr/local/lib /opt/local/lib /opt/homebrew/lib)
+
     if(FFTW3_LIB AND FFTW3F_LIB)
         list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${FFTW3_LIB} ${FFTW3F_LIB})
         message(STATUS "Found FFTW3 libraries: ${FFTW3_LIB}, ${FFTW3F_LIB}")
     else()
         message(STATUS "FFTW3 not found, using built-in FFT")
+    endif()
+
+    if(SAMPLERATE_LIB)
+        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${SAMPLERATE_LIB})
+        message(STATUS "Found libsamplerate: ${SAMPLERATE_LIB}")
+    else()
+        message(FATAL_ERROR "libsamplerate not found, but required for Resample algorithm")
     endif()
 elseif(UNIX)
     # Minimal Linux dependencies
@@ -292,9 +303,16 @@ elseif(UNIX)
     # Try to find FFTW3 on Linux
     find_library(FFTW3_LIB fftw3)
     find_library(FFTW3F_LIB fftw3f)
+    find_library(SAMPLERATE_LIB samplerate)
 
     if(FFTW3_LIB AND FFTW3F_LIB)
         list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${FFTW3_LIB} ${FFTW3F_LIB})
+    endif()
+
+    if(SAMPLERATE_LIB)
+        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${SAMPLERATE_LIB})
+    else()
+        message(FATAL_ERROR "libsamplerate not found, but required for Resample algorithm")
     endif()
 endif()
 
