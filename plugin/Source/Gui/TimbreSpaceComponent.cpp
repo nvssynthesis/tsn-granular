@@ -354,6 +354,8 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 	x /= bounds.getWidth();
 	y /= bounds.getHeight();
 	using namespace nvs::memoryless;
+	x = clamp(x, 0.0f, 1.0f);
+	y = clamp(y, 0.0f, 1.0f);
 	x = unibi(x);
 	y = unibi(y);
 	return juce::Point<float>(x,y);
