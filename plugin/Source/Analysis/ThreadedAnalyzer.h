@@ -53,7 +53,9 @@ private:
 	
 	std::optional<AnalysisResult> _analysisResult;
 	juce::String _settingsHash {};
-	
+
+	std::atomic<bool> analysisError{false};
+
 	RunLoopStatus _rls;
 };
 
