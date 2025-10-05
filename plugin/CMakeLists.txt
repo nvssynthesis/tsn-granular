@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 add_compile_options(-w)
 
-project(tsn-granular VERSION 0.4.0)
+project(tsn-granular VERSION 0.4.1)
 
 message(STATUS "Slicer-granular links: ${SLICER_LINK_LIBS}")
 
@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
+include(ExternalProject)
 
 # Options for external dependencies
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
@@ -38,6 +39,7 @@ else()
 endif()
 # Check if Essentia directory exists and has content, if not clone it
 set(ESSENTIA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/essentia")
+set(ESSENTIA_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/essentia_install")
 
 if(NOT EXISTS "${ESSENTIA_DIR}/wscript")
     message(STATUS "Essentia not found or incomplete, cloning from GitHub...")
@@ -91,10 +93,6 @@ execute_process(
 
 message(STATUS "Python version: ${PYTHON_VERSION}")
 
-# Set up build directory for Essentia
-set(ESSENTIA_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/essentia_build")
-set(ESSENTIA_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/essentia_install")
-
 # Configure Essentia with minimal dependencies
 message(STATUS "Configuring Essentia...")
 
@@ -108,161 +106,62 @@ if(APPLE)
     )
 
     message(STATUS "macOS SDK path: ${MACOS_SDK_PATH}")
-    message(STATUS "Using Eigen from: ${EIGEN_INCLUDE_DIR}")
 
-    # Set environment variables for the waf build, including Eigen path
-    set(ENV{SDKROOT} ${MACOS_SDK_PATH})
-    set(ENV{CPPFLAGS} "-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}")
-    set(ENV{CFLAGS} "-isysroot ${MACOS_SDK_PATH}")
-    set(ENV{CXXFLAGS} "-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}")
-    set(ENV{LDFLAGS} "-isysroot ${MACOS_SDK_PATH}")
+    set(ESSENTIA_ENV
+            "SDKROOT=${MACOS_SDK_PATH}"
+            "CPPFLAGS=-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}"
+            "CFLAGS=-isysroot ${MACOS_SDK_PATH}"
+            "CXXFLAGS=-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}"
+            "LDFLAGS=-isysroot ${MACOS_SDK_PATH}"
+    )
 else()
     # For Linux, just add Eigen to the compiler flags
-    message(STATUS "Using Eigen from: ${EIGEN_INCLUDE_DIR}")
-    set(ENV{CPPFLAGS} "-I${EIGEN_INCLUDE_DIR}")
-    set(ENV{CXXFLAGS} "-I${EIGEN_INCLUDE_DIR}")
+    set(ESSENTIA_ENV
+            "CPPFLAGS=-I${EIGEN_INCLUDE_DIR}"
+            "CXXFLAGS=-I${EIGEN_INCLUDE_DIR}"
+    )
 endif()
-
-# Configure with minimal features to reduce build time and dependencies
-# Add --no-msse for M1 Macs to avoid archiver issues
-set(WAF_CONFIGURE_ARGS "waf" "configure" "--build-static" "--prefix=${ESSENTIA_INSTALL_DIR}" "--lightweight=libsamplerate" "--fft=ACCELERATE" "--no-msse")
-
-execute_process(
-        COMMAND ${PYTHON3_EXECUTABLE} ${WAF_CONFIGURE_ARGS}
-        WORKING_DIRECTORY ${ESSENTIA_DIR}
-        RESULT_VARIABLE WAF_CONFIGURE_RESULT
-        OUTPUT_VARIABLE WAF_CONFIGURE_OUTPUT
-        ERROR_VARIABLE WAF_CONFIGURE_ERROR
-)
-message(STATUS "WAF Help Output:\n${WAF_HELP_OUTPUT}")
-
-if(NOT WAF_CONFIGURE_RESULT EQUAL 0)
-    message(STATUS "WAF Configure Output: ${WAF_CONFIGURE_OUTPUT}")
-    message(STATUS "WAF Configure Error: ${WAF_CONFIGURE_ERROR}")
-    message(FATAL_ERROR "Essentia waf configure failed")
-endif()
-
-message(STATUS "Building Essentia...")
+message(STATUS "Using Eigen from: ${EIGEN_INCLUDE_DIR}")
 
 # Set parallel jobs - use a default if CMAKE_BUILD_PARALLEL_LEVEL is not set
 if(NOT CMAKE_BUILD_PARALLEL_LEVEL)
     set(CMAKE_BUILD_PARALLEL_LEVEL 4)
 endif()
 
-# Build Essentia
-execute_process(
-        COMMAND ${PYTHON3_EXECUTABLE} waf -j ${CMAKE_BUILD_PARALLEL_LEVEL} -v
-        WORKING_DIRECTORY ${ESSENTIA_DIR}
-        RESULT_VARIABLE WAF_BUILD_RESULT
-        OUTPUT_VARIABLE WAF_BUILD_OUTPUT
-        ERROR_VARIABLE WAF_BUILD_ERROR
+# Use ExternalProject_Add to build Essentia properly
+ExternalProject_Add(essentia_external
+        SOURCE_DIR ${ESSENTIA_DIR}
+        DOWNLOAD_COMMAND ""  # Already cloned above
+        CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
+        ${PYTHON3_EXECUTABLE} waf configure
+        --build-static
+        --prefix=${ESSENTIA_INSTALL_DIR}
+        --lightweight=libsamplerate
+        --fft=ACCELERATE
+        --no-msse
+        BUILD_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
+        ${PYTHON3_EXECUTABLE} waf -j ${CMAKE_BUILD_PARALLEL_LEVEL}
+        INSTALL_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
+        ${PYTHON3_EXECUTABLE} waf install
+        BUILD_IN_SOURCE 1
+        BUILD_ALWAYS 0  # Only build when needed
+        LOG_CONFIGURE ON
+        LOG_BUILD ON
+        LOG_INSTALL ON
 )
-
-if(NOT WAF_BUILD_RESULT EQUAL 0)
-    message(STATUS "WAF Build Output: ${WAF_BUILD_OUTPUT}")
-    message(STATUS "WAF Build Error: ${WAF_BUILD_ERROR}")
-    message(FATAL_ERROR "Essentia waf build failed")
-endif()
-
-message(STATUS "Installing Essentia...")
-
-# Install Essentia
-execute_process(
-        COMMAND ${PYTHON3_EXECUTABLE} waf install
-        WORKING_DIRECTORY ${ESSENTIA_DIR}
-        RESULT_VARIABLE WAF_INSTALL_RESULT
-        OUTPUT_VARIABLE WAF_INSTALL_OUTPUT
-        ERROR_VARIABLE WAF_INSTALL_ERROR
-)
-
-# Check if install actually succeeded even if waf returned an error
-# Look for key files that should be installed
-set(EXPECTED_HEADER "${ESSENTIA_INSTALL_DIR}/include/essentia/essentia.h")
-set(EXPECTED_VERSION "${ESSENTIA_INSTALL_DIR}/include/essentia/version.h")
-
-if(EXISTS "${EXPECTED_HEADER}" OR EXISTS "${EXPECTED_VERSION}")
-    message(STATUS "Essentia installation appears successful (found expected files)")
-    set(INSTALL_SUCCESS TRUE)
-elseif(WAF_INSTALL_RESULT EQUAL 0)
-    message(STATUS "Essentia installed successfully")
-    set(INSTALL_SUCCESS TRUE)
-else()
-    message(STATUS "WAF Install Output: ${WAF_INSTALL_OUTPUT}")
-    message(STATUS "WAF Install Error: ${WAF_INSTALL_ERROR}")
-    set(INSTALL_SUCCESS FALSE)
-endif()
-
-if(NOT INSTALL_SUCCESS)
-    message(FATAL_ERROR "Essentia waf install failed")
-endif()
-
-message(STATUS "Essentia built and installed successfully")
 
 # Set up Essentia variables for linking
-# Try install directory first, then fall back to build directory
-if(EXISTS "${ESSENTIA_INSTALL_DIR}/include")
-    set(ESSENTIA_INCLUDE_DIRS
-            ${ESSENTIA_INSTALL_DIR}/include/essentia
-            ${ESSENTIA_INSTALL_DIR}/include
-            ${ESSENTIA_DIR}/src
-    )
-    set(ESSENTIA_LIBRARY_DIRS ${ESSENTIA_INSTALL_DIR}/lib)
-    message(STATUS "Using installed Essentia from: ${ESSENTIA_INSTALL_DIR}")
-else()
-    # Fall back to build directory
-    set(ESSENTIA_INCLUDE_DIRS
-            ${ESSENTIA_DIR}/src
-            ${ESSENTIA_DIR}/build/src
-    )
-    set(ESSENTIA_LIBRARY_DIRS
-            ${ESSENTIA_DIR}/build/src
-            ${ESSENTIA_DIR}/build
-    )
-    message(STATUS "Using built Essentia from: ${ESSENTIA_DIR}/build")
-endif()
-
-# Debug: Check what actually got installed/built
-message(STATUS "Checking Essentia files...")
-message(STATUS "Include directories: ${ESSENTIA_INCLUDE_DIRS}")
-message(STATUS "Library directories: ${ESSENTIA_LIBRARY_DIRS}")
-
-foreach(LIB_DIR ${ESSENTIA_LIBRARY_DIRS})
-    if(EXISTS "${LIB_DIR}")
-        file(GLOB LIB_CONTENTS "${LIB_DIR}/*essentia*")
-        if(LIB_CONTENTS)
-            message(STATUS "Found in ${LIB_DIR}: ${LIB_CONTENTS}")
-        endif()
-    endif()
-endforeach()
-
-# Find the built Essentia library - try multiple locations and names
-find_library(ESSENTIA_LIBRARY
-        NAMES essentia libessentia
-        PATHS ${ESSENTIA_LIBRARY_DIRS}
-        NO_DEFAULT_PATH
+set(ESSENTIA_INCLUDE_DIRS
+        ${ESSENTIA_INSTALL_DIR}/include/essentia
+        ${ESSENTIA_INSTALL_DIR}/include
+        ${ESSENTIA_DIR}/src
 )
+set(ESSENTIA_LIBRARY_DIRS ${ESSENTIA_INSTALL_DIR}/lib)
 
-# If not found, try a broader search
-if(NOT ESSENTIA_LIBRARY)
-    file(GLOB_RECURSE ESSENTIA_LIBS
-            "${ESSENTIA_INSTALL_DIR}/*essentia*.a"
-            "${ESSENTIA_DIR}/build/*essentia*.a"
-            "${ESSENTIA_DIR}/build/*essentia*.dylib"
-            "${ESSENTIA_DIR}/build/*essentia*.so"
-    )
+message(STATUS "Essentia will be installed to: ${ESSENTIA_INSTALL_DIR}")
 
-    if(ESSENTIA_LIBS)
-        # Use the first library found
-        list(GET ESSENTIA_LIBS 0 ESSENTIA_LIBRARY)
-        message(STATUS "Found Essentia library via search: ${ESSENTIA_LIBRARY}")
-    endif()
-endif()
-
-if(NOT ESSENTIA_LIBRARY)
-    message(FATAL_ERROR "Could not find built Essentia library. Searched in: ${ESSENTIA_LIBRARY_DIRS}")
-endif()
-
-message(STATUS "Found Essentia library: ${ESSENTIA_LIBRARY}")
+# Find the built Essentia library
+set(ESSENTIA_LIBRARY ${ESSENTIA_INSTALL_DIR}/lib/libessentia.a)
 
 if(APPLE)
     # Only essential system frameworks for basic functionality
@@ -324,6 +223,9 @@ set_target_properties(essentia_built PROPERTIES
         INTERFACE_LINK_LIBRARIES "${ESSENTIA_SYSTEM_LIBRARIES}"
 )
 
+# Make sure essentia_built depends on essentia_external
+add_dependencies(essentia_built essentia_external)
+
 add_subdirectory(slicer_granular/JUCE)
 
 # Create the plugin target
@@ -336,7 +238,7 @@ juce_add_plugin(tsn-granular
         EDITOR_WANTS_KEYBOARD_FOCUS FALSE
         COPY_PLUGIN_AFTER_BUILD TRUE
         PLUGIN_MANUFACTURER_CODE Crrd
-        PLUGIN_CODE Slgr
+        PLUGIN_CODE Tngr
         FORMATS AU VST3 Standalone
         PRODUCT_NAME "tsn-granular"
         COMPANY_WEBSITE "https://nvssynthesis.github.io/"
@@ -471,8 +373,13 @@ if(APPLE)
     target_compile_options(tsn-granular PRIVATE
             -Wall -Wextra -Wshadow -Wuninitialized
             -ftemplate-backtrace-limit=0
+#            -g3  # Maximum debug info
+#            -fno-omit-frame-pointer  # Better stack traces
     )
 endif()
+
+#add_compile_options(-fsanitize=thread)
+#add_link_options(-fsanitize=thread)
 
 # Build type specific definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
