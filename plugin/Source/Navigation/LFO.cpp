@@ -13,40 +13,12 @@
 
 namespace nvs::nav {
 
-void TendencyPointLowpass::setSampleRate(double fs){
-	sampleRate = fs;
-}
-
-void TendencyPointLowpass::setParams(double fc, double gain){
-	double const w = 2.0 * juce::MathConstants<double>::pi * fc / sampleRate; // Pole angle
-	double const q = 1.0 - w / (2.0 * (gain + 0.5 / (1.0 + w)) + w - 2.0); // Pole magnitude
-	_r = q * q;
-	_c = _r + 1.0 - 2.0 * cos(w) * q;
-}
-
-double TendencyPointLowpass::operator()(double v){
-	/* Accelerate vibra by signal-vibra, multiplied by lowpasscutoff */
-	vibraspeed += (v - vibrapos) * _c;
-	
-	/* Add velocity to vibra's position */
-	vibrapos += vibraspeed;
-	
-	/* Attenuate/amplify vibra's velocity by resonance */
-	vibraspeed *= _r;
-	
-	/* Check clipping */
-	double tmp = vibrapos;
-	tmp = juce::jlimit(-32768.0, 32767.0, tmp);
-//	tmp *= (1.0 / 32767.0);
-	
-	return tmp;
-}
 
 
 LFO2D::LFO2D(juce::AudioProcessorValueTreeState &apvts, double updateRateHz)
-:	_apvts(apvts)
-,	frequencyHz(*_apvts.getRawParameterValue("nav_lfo_rate"))
-, 	updateIntervalMs(1000.0 / updateRateHz)
+    :	_apvts(apvts)
+    ,	frequencyHz(*_apvts.getRawParameterValue("nav_lfo_rate"))
+    , 	updateIntervalMs(1000.0 / updateRateHz)
 {
 	setFrequency(*_apvts.getRawParameterValue("nav_lfo_rate"));
 	amplitude = (*_apvts.getRawParameterValue("nav_lfo_amount"));
@@ -128,8 +100,8 @@ void LFO2D::timerCallback() {
 
 
 RandomWalkND::RandomWalkND(juce::AudioProcessorValueTreeState &apvts, int dimensions, int rateMs, double stepSize)
-:	_apvts(apvts)
-,	dims(dimensions)
+    :	_apvts(apvts)
+    ,	dims(dimensions)
 {
 	walkers.reserve(dims);
 	for (int i = 0; i < dims; ++i) {

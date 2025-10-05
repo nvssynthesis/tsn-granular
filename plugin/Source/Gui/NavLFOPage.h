@@ -11,10 +11,12 @@
 #pragma once
 #include <JuceHeader.h>
 #include "../slicer_granular/Source/Gui/AttachedSlider.h"
+#include "../slicer_granular/Source/Gui/AttachedComboBox.h"
 #include "../Navigation/LFO.h"
 
-struct NavigatorPanel	:	public juce::Component
+class NavigatorPanel	:	public juce::Component
 {
+public:
 	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::String paramsSubGroup);
 	void paint(juce::Graphics &g) override;
 	void resized() override;
@@ -22,28 +24,18 @@ private:
 	std::vector<std::unique_ptr<AttachedSlider>> sliders;
 };
 
-
-struct NavigatorPage :	public juce::Component, public juce::ComboBox::Listener
+class NavigatorPage :	public juce::Component
 {
-	NavigatorPage(juce::AudioProcessorValueTreeState &apvts, nvs::nav::Navigator &navigatorVar);
-	~NavigatorPage();
+public:
+	explicit NavigatorPage(juce::AudioProcessorValueTreeState &apvts);
+	~NavigatorPage() override;
 	void resized() override;
-	void comboBoxChanged(juce::ComboBox* cb) override;
 
-	void showPanel(int menuId);
-	
-	
-	void activateLFO2D();
-	void activateRandomWalk();
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
-	juce::ComboBox navigatorTypeMenu;
+	AttachedComboBox navigatorTypeMenu;
 
 	std::unique_ptr<NavigatorPanel> selPanel;
 	std::unique_ptr<NavigatorPanel> navPanel;
-	
-	nvs::nav::Navigator &_navigator;
-	
-
 };
 

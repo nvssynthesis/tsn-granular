@@ -24,14 +24,14 @@ class TimbreSpace	:	public juce::ChangeListener
 {
 public:
 	TimbreSpace();
-	~TimbreSpace();
+	~TimbreSpace() override;
 	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
 	TimbreSpace(const TimbreSpace&) = delete;
 	TimbreSpace& operator=(const TimbreSpace& other) = delete;
 	TimbreSpace(TimbreSpace&&) noexcept = delete;
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
-	void add5DPoint(timbre2DPoint p2D, std::array<float, 3> p3D);
+	void add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D);
 	void clear();
 	juce::Array<Timbre5DPoint> const &getTimbreSpace() const { return timbres5D; }
 	std::vector<util::WeightedIdx> getCurrentPointIndices() const { return currentPointIndices; }
@@ -61,7 +61,6 @@ public:
 	//=============================================================================================================================
 	bool isSavePending() const { return _analysisSavePending; }
 private:
-	
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
@@ -82,9 +81,8 @@ private:
 	//=============================================================================================================================
 	juce::Array<Timbre5DPoint> timbres5D;
 	std::unique_ptr<delaunator::Delaunator> _delaunator;
-	std::vector<util::WeightedIdx> currentPointIndices {{},{},{},{}};
+	std::vector<util::WeightedIdx> currentPointIndices {{},{},{}};
 	//=============================================================================================================================
-	// these once belonged in TimbreSpaceNeededData, which was silly design
 	typedef std::pair<float, float> Range;
 	std::vector<Range> _ranges {}; // min, max per dimension
 	std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
@@ -111,11 +109,11 @@ private:
 };
 
 std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
-												   const juce::Array<Timbre5DPoint>&  database,
-												   int K,
-												   int numToPick,
-												   double sharpness,
-												   float higher3Dweight);
+												    const juce::Array<Timbre5DPoint>&  database,
+												    int K,
+												    int numToPick,
+												    double sharpness,
+												    float higher3Dweight);
 
 std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
 															const juce::Array<Timbre5DPoint>& database,

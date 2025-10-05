@@ -4,7 +4,7 @@
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               version="0.3.0" companyName="nvssynthesis" companyWebsite="https://nvssynthesis.github.io/"
               pluginCharacteristicsValue="pluginIsSynth,pluginProducesMidiOut,pluginWantsMidiIn"
-              pluginManufacturerCode="Nvss" pluginCode="Slgr" pluginAUIsSandboxSafe="1"
+              pluginManufacturerCode="Nvss" pluginCode="Tngr" pluginAUIsSandboxSafe="1"
               cppLanguageStandard="20" headerPath="/Users/nicholassolem/development/essentia/essentia/src&#10;/Users/nicholassolem/development/boost_1_80_0&#10;/Users/nicholassolem/development/eigen-3.4.0&#10;/Users/nicholassolem/development/thirdparty/Signalsmith&#10;/Users/nicholassolem/development/thirdparty/fmt/include&#10;/Users/nicholassolem/development/thirdparty/frozen/include&#10;../../Source&#10;/Users/nicholassolem/development/thirdparty/Xoshiro-cpp&#10;/Users/nicholassolem/development/thirdparty/Sprout&#10;/Users/nicholassolem/development/slicer_granular/Source&#10;"
               defines="TSN&#10;_LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS" pluginFormats="buildAU,buildStandalone,buildVST3">
   <MAINGROUP id="HJxsOe" name="tsn_granular">
@@ -167,6 +167,8 @@
       <GROUP id="{8CCD81F4-72A5-A473-1770-8228AF8E983D}" name="Navigation">
         <FILE id="TbGvBi" name="LFO.cpp" compile="1" resource="0" file="Source/Navigation/LFO.cpp"/>
         <FILE id="EKaMsG" name="LFO.h" compile="0" resource="0" file="Source/Navigation/LFO.h"/>
+        <FILE id="uphd6s" name="Navigator.cpp" compile="1" resource="0" file="Source/Navigation/Navigator.cpp"/>
+        <FILE id="NcQDbY" name="Navigator.h" compile="0" resource="0" file="Source/Navigation/Navigator.h"/>
       </GROUP>
       <GROUP id="{47F42E1A-BFED-51DF-EF45-B553B6D48E18}" name="util">
         <FILE id="WrZlTL" name="DataStructures.h" compile="0" resource="0"

@@ -23,7 +23,6 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
-,	positionQuantizeStrengthComboBox("Position Quantize Strength")
 ,	audioProcessor(p)
 {
 	setSize (680, 950);
@@ -48,29 +47,15 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 		popupSettings(false);
 	};
 	
-	addAndMakeVisible(positionQuantizeStrengthComboBox);
-	positionQuantizeStrengthComboBox.addItem("None", 1);
-	positionQuantizeStrengthComboBox.addItem("Lax", 2);
-	positionQuantizeStrengthComboBox.addItem("Strict", 3);
-	positionQuantizeStrengthComboBox.setSelectedId(1);
-	positionQuantizeStrengthComboBox.onChange = [this] {
-		auto id = positionQuantizeStrengthComboBox.getSelectedId();
-		fmt::print("current id: {}", id);
-	};
-	
-	auto &nav = audioProcessor.getNavigator();
-	nav.addChangeListener(&timbreSpaceComponent);
-	tabbedPages.addTab("Navigator", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS(), nav), true);
+	tabbedPages.addTab("Navigator", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS()), true);
 	tabbedPages.moveTab(3, -1);	// fx, which is added in basic TabbedPages constructor (used already in slicer version), should still be last tab
 	
 	addAndMakeVisible(tabbedPages);
 	addAndMakeVisible(waveformAndPositionComponent);
 	waveformAndPositionComponent.hideSlider();
-	audioProcessor.getTsnGranularSynthesizer()->addChangeListener(&(waveformAndPositionComponent.wc));	// to highlight current event
-	
-#pragma message("set navigator PANEL to have this update function!!!!!")
-	// set navigator PANEL to have this update function!!!!!
-	
+
+	// audioProcessor.getTsnGranularSynthesizer()->addChangeListener(&(waveformAndPositionComponent.wc));	// to highlight current event
+
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
@@ -83,8 +68,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
 	
 	auto &ts = audioProcessor.getTimbreSpace();
-//	ts.addChangeListener(this);					// tell me to paint onsets
-	ts.addActionListener(this);
+	ts.addActionListener(this); // tell me to paint onsets
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
 	}
@@ -105,9 +89,7 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	a.removeChangeListener(&timbreSpaceComponent);
 	a.removeChangeListener(this);
 	
-	audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
-	audioProcessor.getNavigator().removeChangeListener(&timbreSpaceComponent);
-	
+	// audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
 	audioProcessor.getTimbreSpace().removeActionListener(this);
 }
 //==============================================================================
@@ -255,7 +237,6 @@ void TsnGranularAudioProcessorEditor::resized()
 		x += buttonWidth;
 		buttonWidth = buttonHeight;
 		x += buttonWidth;
-		positionQuantizeStrengthComboBox.setBounds(x, y, 200, buttonHeight);
 		y += buttonHeight;
 //		y += smallPad;
 	}

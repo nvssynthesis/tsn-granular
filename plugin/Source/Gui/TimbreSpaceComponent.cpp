@@ -13,34 +13,51 @@
 #include "../slicer_granular/Source/Params/params.h"
 #include "Analysis/ThreadedAnalyzer.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../Navigation/LFO.h"
+#include "../Navigation/Navigator.h"
 
 //============================================TimbreSpaceComponent=============================================
 
 namespace {
-using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
-using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
-using Timbre5DPoint = nvs::timbrespace::Timbre5DPoint;
+using namespace nvs::timbrespace;
 
-auto pointToRect = [](timbre2DPoint p, float pt_sz) -> juce::Rectangle<float> {
-	timbre2DPoint upperLeft{p}, bottomRight{p};
-	float halfDotSize {2.f * pt_sz};
-	upperLeft.addXY(-halfDotSize, -halfDotSize);
-	bottomRight.addXY(halfDotSize, halfDotSize);
-	return juce::Rectangle<float>(upperLeft, bottomRight);
+juce::Point<float> p2DtoJucePoint(Timbre2DPoint p2D) {
+    return {p2D[0], p2D[1]};
+}
+
+Timbre2DPoint jucePointToTimbre2DPoint(juce::Point<float> p2D) {
+    return Timbre2DPoint {p2D.x, p2D.y};
+}
+
+juce::Rectangle<float> pointToRect(Timbre2DPoint p, float pt_sz) {
+	Timbre2DPoint upperLeft{p}, bottomRight{p};
+    const float halfDotSize {2.f * pt_sz};
+	upperLeft += Timbre2DPoint(-halfDotSize, -halfDotSize);
+	bottomRight += Timbre2DPoint(halfDotSize, halfDotSize);
+	return juce::Rectangle<float>(
+	    p2DtoJucePoint(upperLeft),
+	    p2DtoJucePoint(bottomRight));
+};
+juce::Rectangle<float> pointToRect(juce::Point<float> p, float pt_sz) {
+    juce::Point<float> upperLeft{p}, bottomRight{p};
+    const float halfDotSize {2.f * pt_sz};
+    upperLeft.addXY(-halfDotSize, -halfDotSize);
+    bottomRight.addXY(halfDotSize, halfDotSize);
+    return juce::Rectangle<float>(
+        upperLeft,
+        bottomRight);
 };
 
-auto transformFromZeroOrigin = [](timbre2DPoint p) -> timbre2DPoint
+auto transformFromZeroOrigin = [](Timbre2DPoint p) -> Timbre2DPoint
 {
 //	input bounds:  ([-1..1], [-1..1])
 //	output bounds: ([0..1], [0..1])
-	p.addXY(1.f, 1.f);	// [0..2]
+	p += Timbre2DPoint(1.f, 1.f);	// [0..2]
 	p *= 0.5f;			// [-1..1]
 	return p;
 };
 
-timbre2DPoint bipolar2dPointToComponentSpace(timbre2DPoint p2D, float componentWidth, float componentHeight){
-	return transformFromZeroOrigin(p2D) * timbre2DPoint(componentWidth, componentHeight);
+Timbre2DPoint bipolar2dPointToComponentSpace(Timbre2DPoint p2D, float componentWidth, float componentHeight){
+	return Timbre2DPoint(componentWidth, componentHeight).cwiseProduct(transformFromZeroOrigin(p2D));
 }
 
 auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f, float const s = 0.6f, float const scale = 5.f) -> float
@@ -49,15 +66,15 @@ auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f
 	return y;
 };
 
-timbre3DPoint biuni(timbre3DPoint const &bipolar_p3){
+Timbre3DPoint biuni(Timbre3DPoint const &bipolar_p3){
 	using nvs::memoryless::biuni;
-	timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
+	Timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
 	return uni_pts3;
 }
 auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){
 	return out_low + (x - in_low) * (out_high - out_low) / (in_high - in_low);
 }
-juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
+juce::Colour p3ToColour(Timbre3DPoint const &p3, float alpha=1.f){
 	float const h = p3[0];
 	float const s = p3[1];
 	float v = p3[2];
@@ -66,9 +83,9 @@ juce::Colour p3ToColour(timbre3DPoint const &p3, float alpha=1.f){
 	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
 	return juce::Colour(h, s, v, alpha);
 }
-void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, timbre2DPoint p2D){
-	apvts.getParameterAsValue("nav_tendency_x") = p2D.getX();
-	apvts.getParameterAsValue("nav_tendency_y") = p2D.getY();
+void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
+	apvts.getParameterAsValue("nav_tendency_x") = p2D(0);
+	apvts.getParameterAsValue("nav_tendency_y") = p2D(1);
 }
 
 template<typename T>
@@ -92,7 +109,12 @@ TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 	if (ts.isSavePending()){
 		showAnalysisSaveDialog();
 	}
+    startTimerHz(30);
 }
+TimbreSpaceComponent::~TimbreSpaceComponent() {
+    stopTimer();
+}
+
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
 	callback = new Callback(*this);
 	
@@ -143,8 +165,8 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		}
 		
 		for (auto p5 : timbres5D){
-			timbre2DPoint p2 = bipolar2dPointToComponentSpace(p5.get2D(), w, h);
-			auto const p3 = p5.get3D();
+			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
+			auto const p3 = get3D(p5);
 			
 			auto const uni_p3 = biuni(p3);
 			juce::Colour fillColour = p3ToColour(uni_p3);
@@ -175,8 +197,8 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		}
 		// draw lines from target to nearby (selected, current) points 
 		for (auto const &p : current_points){
-			auto const center = bipolar2dPointToComponentSpace(nav._p2D, w, h);
-			auto const dest = bipolar2dPointToComponentSpace(p.get2D(), w, h);
+			auto const center = p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h));
+			auto const dest = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p), w, h));
 			auto const l = juce::Line<float>(center, dest);
 			auto const norm = [l, w, h](){
 				auto const a = l.getLength() / std::sqrt( (w * w) + (h * h) );
@@ -213,12 +235,8 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	tsn_mouse._dragging = true;
-	juce::Point<float> p2D_norm = normalizePosition_neg1_pos1(mousePos);
-	Timbre5DPoint p5D {
-		._p2D{p2D_norm},
-		._p3D{tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]}
-	};
-	
+	const auto p2D_norm =  jucePointToTimbre2DPoint(normalizePosition_neg1_pos1(mousePos));
+	Timbre5DPoint p5D =	to5D(p2D_norm, Timbre3DPoint(tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]));
 	auto &apvts = _proc->getAPVTS();
 	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
 }
@@ -295,15 +313,9 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		std::cout << "timbre space comp: ThreadedAnalyzer: CHANGE listener: hiding progress indicator\n";
 		progressIndicator.setVisible(false);
 	}
-	else if (auto const *n = dynamic_cast<nvs::nav::Navigator*>(source)){
-		// move navigation indicator
-		auto p = n->storedPoint;
-		setNavigatorPoint(juce::Point<float>(p[0], p[1]));
-		repaint();
-	}
 }
 void TimbreSpaceComponent::actionListenerCallback (const juce::String &message) {
-	if (message.compare("saveAnalysis") == 0) {
+	if (message == "saveAnalysis") {
 		showAnalysisSaveDialog();
 	}
 }
@@ -311,7 +323,9 @@ void TimbreSpaceComponent::exitSignalSent() {
 	std::cout << "timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator\n";
 	progressIndicator.setVisible(false);
 }
-
+void TimbreSpaceComponent::timerCallback() {
+    // repaint();
+}
 
 void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	juce::Image image(juce::Image::ARGB, 16, 16, true);
@@ -361,9 +375,9 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 	return juce::Point<float>(x,y);
 }
 
-void TimbreSpaceComponent::setNavigatorPoint(timbre2DPoint p){
-	nav._p2D = p;
-}
+// void TimbreSpaceComponent::setNavigatorPoint(Timbre2DPoint p){
+// 	nav._p2D = p;
+// }
 ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 	return progressIndicator;
 }

@@ -49,7 +49,6 @@ private:
 	juce::TextButton askForAnalysisButton;
 	juce::TextButton writeWavsButton;
 	juce::TextButton settingsButton;
-	juce::ComboBox positionQuantizeStrengthComboBox;
 	//=================================================================
 	void popupSettings(bool native);
 	juce::Array<juce::Component::SafePointer<juce::Component>> windows;

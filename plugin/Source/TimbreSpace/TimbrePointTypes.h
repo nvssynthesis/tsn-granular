@@ -9,25 +9,37 @@
 */
 
 #pragma once
+#include <Eigen/Dense>
 #include <JuceHeader.h>
 
 namespace nvs::timbrespace {
 
-using timbre2DPoint = juce::Point<float>;
-using timbre3DPoint = std::array<float, 3>;
+template<int Dimensions>
+using TimbrePoint = Eigen::Vector<float, Dimensions>;
 
-struct Timbre5DPoint {
-	
-	timbre2DPoint _p2D;			// used to locate the point in x,y plane
-	timbre3DPoint _p3D;	// used to describe the colour (hsv)
-	
-	bool operator==(Timbre5DPoint const &other) const;
-	timbre2DPoint get2D() const { return _p2D; }
-	timbre3DPoint get3D() const { return _p3D; }
-	
-	// to easily trade hsv for rbg
-	std::array<juce::uint8, 3> toUnsigned() const;
-};
+using Timbre2DPoint = TimbrePoint<2>;
+using Timbre3DPoint = TimbrePoint<3>;
+using Timbre4DPoint = TimbrePoint<4>;
+using Timbre5DPoint = TimbrePoint<5>;
+
+inline Timbre2DPoint get2D(Timbre5DPoint p) {
+    return Timbre2DPoint{p[0], p[1]};
+}
+inline Timbre3DPoint get3D(Timbre5DPoint p) {
+    return Timbre3DPoint{p[2], p[3], p[4]};
+}
+inline Timbre5DPoint to5D(Timbre2DPoint p2, Timbre3DPoint p3) {
+    return Timbre5DPoint{p2[0], p2[1], p3[0], p3[1], p3[2]};
+}
+std::array<juce::uint8, 3> toUnsigned(Timbre3DPoint p);
+
+
+bool inRange0_1(const auto& point) {
+    return (point.array() >= 0.f).all() && (point.array() <= 1.f);
+}
+bool inRangeM1_1(const auto& point) {
+    return (point.array().abs() <= 1.0f).all();
+}
 
 static constexpr bool inRange0_1(float x){
 	return ( (x >= 0.f) && (x <= 1.f) );

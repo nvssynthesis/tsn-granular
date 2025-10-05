@@ -33,18 +33,21 @@ class TimbreSpaceComponent	:	public juce::Component
 , 								public juce::ChangeListener
 , 								public juce::Thread::Listener
 ,								private juce::ActionListener
+,                               private juce::Timer
 {
 public:
-	using timbre2DPoint = nvs::timbrespace::timbre2DPoint;
-	using timbre3DPoint = nvs::timbrespace::timbre3DPoint;
+	using Timbre2DPoint = nvs::timbrespace::Timbre2DPoint;
+	using Timbre3DPoint = nvs::timbrespace::Timbre3DPoint;
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
-	TimbreSpaceComponent(juce::AudioProcessor &proc);
-	
+    explicit TimbreSpaceComponent(juce::AudioProcessor &proc);
+	~TimbreSpaceComponent();
+
 	//==========================================================================================
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void actionListenerCallback (const juce::String &message) override;
 	void exitSignalSent() override;
+    void timerCallback() override;
 	//==========================================================================================
 	void paint(juce::Graphics &g) override;
 	void resized() override;
@@ -57,11 +60,11 @@ public:
 	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 	//==========================================================================================
 
-	void add5DPoint(timbre2DPoint p2D, timbre3DPoint p3D);
+	void add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D);
 	void clear();
 	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
 	
-	void setNavigatorPoint(timbre2DPoint p);
+	void setNavigatorPoint(Timbre2DPoint p);
 	ProgressIndicator& getProgressIndicator();
 	
 
@@ -76,7 +79,7 @@ private:
 		TSNMouse() {
 			createMouseImage();
 		}
-		timbre3DPoint _uvz {0.f, 0.6f, 0.f};
+		Timbre3DPoint _uvz {0.f, 0.6f, 0.f};
 		juce::Image _image;
 		bool _dragging {false};
 	};
@@ -84,8 +87,8 @@ private:
 	
 	TSNMouse tsn_mouse;
 	
-	struct Navigator {
-		timbre2DPoint _p2D {0.f, 0.f};
+	struct NavigatorPoint {
+		Timbre2DPoint _p2D {0.f, 0.f};
 	} nav;
 	
 	void showAnalysisSaveDialog();

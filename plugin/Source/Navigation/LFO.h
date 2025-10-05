@@ -13,33 +13,9 @@
 #include <cmath>
 #include <functional>
 #include <random>	// replace with Xoshirocpp
-
+#include "Synthesis/ResoLowpass.h"
 
 namespace nvs::nav {
-
-
-
-class TendencyPointLowpass
-{
-	// 2-pole lowpass used to smooth tendency point and other changes in an energy-preserving manner
-	// for now adapted from https://www.musicdsp.org/en/latest/Filters/27-resonant-iir-lowpass-12db-oct.html
-//	resofreq = pole frequency
-//	amp = magnitude at pole frequency (approx)
-
-private:
-	double _r, _c;
-	double sampleRate;
-	
-	double vibrapos {0.0};
-	double vibraspeed {0.0};
-
-public:
-	void setSampleRate(double fs);
-	
-	void setParams(double frequency, double gain);
-	
-	double operator()(double v);
-};
 
 class LFO2D : public juce::Timer
 {
@@ -56,7 +32,7 @@ private:
 	
 	void setFrequency(double newFrequencyHz);
 	
-	TendencyPointLowpass xLP, yLP;
+	nvs::dsp::ResoLowpass xLP, yLP;
 
 	double frequencyHz;
 	double amplitude;
@@ -159,7 +135,7 @@ private:
 	std::vector<double> latest;
 };
 
-struct Navigator	:	juce::ChangeBroadcaster
+struct Navigator//	:	juce::ChangeBroadcaster
 {
 	using ActiveNavigator = std::variant<LFO2D, RandomWalkND>;
 
@@ -184,7 +160,7 @@ struct Navigator	:	juce::ChangeBroadcaster
 			auto fullOnUpdateFn = [this](auto const& v){
 				storedPoint = v;
 				onUpdate(v);
-				sendChangeMessage();
+				// sendChangeMessage();
 			};
 			nav.setOnUpdateCallback(fullOnUpdateFn);
 		}, activeNavigator);

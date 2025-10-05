@@ -13,21 +13,41 @@
 #include "../../slicer_granular/Source/Synthesis/GranularSynthesizer.h"
 #include "../../slicer_granular/Source/misc_util.h"
 
-class TSNGranularSynthesizer
+namespace nvs::gran {
+class TSNGranularSynthesizer final
 :	public GranularSynthesizer
-,	public juce::ChangeBroadcaster
+,   private juce::AudioProcessorValueTreeState::Listener
+,   private juce::ActionListener
 {
 public:
-	using WeightedIdx = nvs::util::WeightedIdx;
-	
-	TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
+    using WeightedIdx = nvs::util::WeightedIdx;
+    using TimbreSpace = timbrespace::TimbreSpace;
 
-	void loadOnsets(const std::span<float> onsets);
-	void setWaveEvents(std::vector<WeightedIdx> points);
-	std::vector<WeightedIdx> getCurrentIndices() const {
-		return currentIndices;
-	}
+    explicit TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
+    ~TSNGranularSynthesizer() override;
+
+    void loadOnsets(const std::span<float> onsets);
+    std::vector<WeightedIdx> getCurrentIndices() const {
+        return currentIndices;
+    }
+
+    TimbreSpace &getTimbreSpace() {
+        return _timbreSpace;
+    }
+    void actionListenerCallback(juce::String const &message) override;
+    void setCurrentPlaybackSampleRate(double newSampleRate) override;
+    void processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi) override;
 private:
-	std::vector<WeightedIdx> currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
-};
+    //==============================================================================
+    using Navigator = timbrespace::Navigator<nvs::timbrespace::Timbre5DPoint>;
+    Navigator _navigator;
+    TimbreSpace _timbreSpace;
 
+    //==============================================================================
+    void parameterChanged(const String &parameterID, float newValue) override;  // AudioProcessorValueTreeState::Listener
+    //==============================================================================
+    std::vector<WeightedIdx> currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
+
+    void setReadBoundsFromChosenPoint();
+};
+}   // nvs::gran

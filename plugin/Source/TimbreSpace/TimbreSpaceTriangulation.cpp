@@ -17,8 +17,8 @@ std::vector<double> make2dCoordinates(juce::Array<Timbre5DPoint> points){
 	std::vector<double> coords;
 	coords.reserve(points.size() * 2);
 	for (auto const & p : points){
-		coords.push_back(p.get2D().getX());
-		coords.push_back(p.get2D().getY());
+		coords.push_back(p[0]);
+		coords.push_back(p[1]);
 	}
 	assert(coords.size() == static_cast<size_t>(points.size() * 2));
 	return coords;
@@ -51,92 +51,92 @@ void getUniqueEdges(const delaunator::Delaunator& d)
 }
 
 // Test if point p is inside triangle formed by vertices a, b, c
-bool pointInTriangle(const timbre2DPoint& p, const timbre2DPoint& a, const timbre2DPoint& b, const timbre2DPoint& c) {
-	// Compute vectors
-	double v0x = c.x - a.x, v0y = c.y - a.y;
-	double v1x = b.x - a.x, v1y = b.y - a.y;
-	double v2x = p.x - a.x, v2y = p.y - a.y;
-	
-	// Compute dot products
-	double dot00 = v0x * v0x + v0y * v0y;
-	double dot01 = v0x * v1x + v0y * v1y;
-	double dot02 = v0x * v2x + v0y * v2y;
-	double dot11 = v1x * v1x + v1y * v1y;
-	double dot12 = v1x * v2x + v1y * v2y;
-	
-	// Compute barycentric coordinates
-	double invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-	double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-	double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-	
-	// Check if point is in triangle
-	return (u >= 0) && (v >= 0) && (u + v <= 1);
+bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& c) {
+    // Compute vectors
+    const Timbre2DPoint v0 = c - a;
+    const Timbre2DPoint v1 = b - a;
+    const Timbre2DPoint v2 = p - a;
+
+    const double dot00 = v0.dot(v0);
+    const double dot01 = v0.dot(v1);
+    const double dot02 = v0.dot(v2);
+    const double dot11 = v1.dot(v1);
+    const double dot12 = v1.dot(v2);
+
+    // Compute barycentric coordinates
+    const double invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+    const double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    const double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    // Check if point is in triangle
+    return (u >= 0) && (v >= 0) && (u + v <= 1);
 }
 
 // Find triangle containing target point using Delaunator results
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
-															const timbre2DPoint& target)
+                                              const Timbre2DPoint& target)
 {
-	
-	// Iterate through all triangles
-	for (size_t i = 0; i < d.triangles.size(); i += 3) {
-		// Get triangle vertex indices
-		size_t idx0 = d.triangles[i];
-		size_t idx1 = d.triangles[i + 1];
-		size_t idx2 = d.triangles[i + 2];
-		
-		// Get triangle vertex coordinates
-		timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
-		timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
-		timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
-		
-		// Test if target is inside this triangle
-		if (pointInTriangle(target, a, b, c)) {
-			return std::array<size_t, 3>{idx0, idx1, idx2};
-		}
-	}
-	
-	// No triangle contains the point
-	return std::nullopt;
+
+    // Iterate through all triangles
+    for (size_t i = 0; i < d.triangles.size(); i += 3) {
+       // Get triangle vertex indices
+       size_t idx0 = d.triangles[i];
+       size_t idx1 = d.triangles[i + 1];
+       size_t idx2 = d.triangles[i + 2];
+
+       // Get triangle vertex coordinates
+       Timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
+       Timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
+       Timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
+
+       // Test if target is inside this triangle
+       if (pointInTriangle(target, a, b, c)) {
+          return std::array<size_t, 3>{idx0, idx1, idx2};
+       }
+    }
+
+    // No triangle contains the point
+    return std::nullopt;
 }
 
 // Compute barycentric coordinates for interpolation weights
-std::array<double, 3> computeBarycentricWeights(const timbre2DPoint& p,
-												const timbre2DPoint& a,
-												const timbre2DPoint& b,
-												const timbre2DPoint& c) {
-	
-	double v0x = c.x - a.x, v0y = c.y - a.y;
-	double v1x = b.x - a.x, v1y = b.y - a.y;
-	double v2x = p.x - a.x, v2y = p.y - a.y;
-	
-	double dot00 = v0x * v0x + v0y * v0y;
-	double dot01 = v0x * v1x + v0y * v1y;
-	double dot02 = v0x * v2x + v0y * v2y;
-	double dot11 = v1x * v1x + v1y * v1y;
-	double dot12 = v1x * v2x + v1y * v2y;
-	
-	double invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-	double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-	double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-	double w = 1.0 - u - v;
-	
-	return {w, v, u}; // weights for vertices a, b, c respectively
+// Compute barycentric coordinates for interpolation weights
+std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
+                                     const Timbre2DPoint& a,
+                                     const Timbre2DPoint& b,
+                                     const Timbre2DPoint& c) {
+
+    Timbre2DPoint v0 = c - a;
+    Timbre2DPoint v1 = b - a;
+    Timbre2DPoint v2 = p - a;
+
+    double dot00 = v0.dot(v0);
+    double dot01 = v0.dot(v1);
+    double dot02 = v0.dot(v2);
+    double dot11 = v1.dot(v1);
+    double dot12 = v1.dot(v2);
+
+    double invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+    double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    double w = 1.0 - u - v;
+
+    return {w, v, u}; // weights for vertices a, b, c respectively
 }
 
 // Usage example:
 /*
  Delaunator d(coordinates);
- timbre2DPoint target(x, y);
+ Timbre2DPoint target(x, y);
  
  auto triangleOpt = findContainingTriangle(d, target);
  if (triangleOpt) {
  auto [idx0, idx1, idx2] = *triangleOpt;
  
  // Get the actual triangle points
- timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
- timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
- timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
+ Timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
+ Timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
+ Timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
  
  // Compute interpolation weights
  auto weights = computeBarycentricWeights(target, a, b, c);
@@ -145,27 +145,5 @@ std::array<double, 3> computeBarycentricWeights(const timbre2DPoint& p,
  // Use weights[0], weights[1], weights[2] as amplitudes
  }
 */
-
-class Foo {
-public:
-	void foo(){
-		std::vector<double> coords = {-1, 1, 1, 1, 1, -1, -1, -1};
-		
-		//triangulation happens here
-		delaunator::Delaunator d(coords);
-		
-		for(std::size_t i = 0; i < d.triangles.size(); i+=3) {
-			printf(
-				   "Triangle points: [[%f, %f], [%f, %f], [%f, %f]]\n",
-				   d.coords[2 * d.triangles[i]],        //tx0
-				   d.coords[2 * d.triangles[i] + 1],    //ty0
-				   d.coords[2 * d.triangles[i + 1]],    //tx1
-				   d.coords[2 * d.triangles[i + 1] + 1],//ty1
-				   d.coords[2 * d.triangles[i + 2]],    //tx2
-				   d.coords[2 * d.triangles[i + 2] + 1] //ty2
-				   );
-		}
-	}
-};
 
 }	// namespace nvs::timbrespace
