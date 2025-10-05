@@ -126,7 +126,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(vecReal const &wave, std::vector<float> 
 	
 	rls.set("Splitting Wave into Events...");
 	
-	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settings, rls, shouldExit);
+	vecVecReal events = splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settings, rls, shouldExit);
 #pragma message("probably need some normalization, possibly based on variance")
 	
 	std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
@@ -170,7 +170,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(std::vector<FeatureContainer<Ev
 		V.push_back(extractFeatures(f, featuresToUse, Statistic::Median));
 	}
 	
-	vecVecReal pca = nvs::analysis::PCA(V, ess_hold.standardFactory, 6);
+	vecVecReal pca = PCA(V, ess_hold.standardFactory, 6);
 	std::cout << "calculated PCAs\n";
 	return pca;
 }
@@ -216,8 +216,8 @@ void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSec
 	auto settings = analyzer.getSettings();
 //	denormalizeOnsets(normalizedOnsets, getLengthInSeconds(wave.size(), analyzer._analysisSettings.sampleRate));
 //	auto const &onsetsInSeconds = normalizedOnsets;	// merely renaming because now normalizedOnsets are in fact not normalized; they are in seconds.
-	vecVecReal events = nvs::analysis::splitWaveIntoEvents(wave, onsetsInSeconds,
-														   analyzer.ess_hold.factory, settings, rls, shouldExit);
+	vecVecReal events = splitWaveIntoEvents(wave, onsetsInSeconds,
+											analyzer.ess_hold.factory, settings, rls, shouldExit);
 	juce::WavAudioFormat format;
 	std::unique_ptr<juce::AudioFormatWriter> writer;
 
