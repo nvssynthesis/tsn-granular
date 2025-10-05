@@ -1,5 +1,8 @@
 .DS_Store
 Builds/
+# xcode build directory
+build/
+
 ..bfg-report/
 JuceLibraryCode/
 .vscode/
@@ -9,3 +12,5 @@ mason_packages/
 
 # CMake-managed dependency (gets cloned and built by CMakeLists.txt)
 plugin/essentia/
+
+.clang-format
