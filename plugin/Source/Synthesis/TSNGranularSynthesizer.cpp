@@ -45,7 +45,6 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
 
-    _navigator.setNavigationStrategy(nvs::timbrespace::NavigationType_e::RandomWalk);
     _navigator.setNavigationPeriod(300);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {

@@ -112,7 +112,9 @@ template<typename Point_t>
 void Navigator<Point_t>::setSampleRate(double sampleRate) {
     _sampleRate = sampleRate;
     updateNavPeriodSamples();
-    _navigationStrategy->setSampleRate(sampleRate);
+    if (_navigationStrategy != nullptr) {
+        _navigationStrategy->setSampleRate(sampleRate);
+    }
 }
 template<typename Point_t>
 void Navigator<Point_t>:: setNavigationPeriod(double navPeriodMs) {
@@ -133,7 +135,12 @@ void Navigator<Point_t>::updateStrategyRate() {
 }
 template<typename Point_t>
 Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElapsed) {
+    if (_navigationStrategy == nullptr) {
+        return Point_t::Zero();
+    }
+
     jassert (_navPeriodSamps > 0);
+
     const int numStepsToTake = [this](double numSamplesElapsed) {
         _sampleCounter += numSamplesElapsed;
         int stepsToTake = 0;
@@ -144,7 +151,6 @@ Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElap
         return stepsToTake;
     }(numSamplesElapsed);
 
-    if (_navigationStrategy == nullptr) { return {}; }
     for (int i = 0; i < numStepsToTake; ++i) {
        _previousPoint = _navigationStrategy->navigate(_apvts, space, _previousPoint);
     }

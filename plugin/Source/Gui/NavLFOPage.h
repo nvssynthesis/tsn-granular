@@ -10,9 +10,9 @@
 
 #pragma once
 #include <JuceHeader.h>
-#include "../slicer_granular/Source/Gui/AttachedSlider.h"
-#include "../slicer_granular/Source/Gui/AttachedComboBox.h"
 #include "../Navigation/LFO.h"
+#include "../slicer_granular/Source/Gui/AttachedComboBox.h"
+#include "../slicer_granular/Source/Gui/AttachedSlider.h"
 
 class NavigatorPanel	:	public juce::Component
 {
@@ -25,17 +25,21 @@ private:
 };
 
 class NavigatorPage :	public juce::Component
+,                       private juce::ComboBox::Listener
 {
 public:
 	explicit NavigatorPage(juce::AudioProcessorValueTreeState &apvts);
 	~NavigatorPage() override;
 	void resized() override;
+    void paint(juce::Graphics &g) override;
 
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	AttachedComboBox navigatorTypeMenu;
+    void comboBoxChanged(ComboBox *comboBoxThatHasChanged) override;
 
 	std::unique_ptr<NavigatorPanel> selPanel;
 	std::unique_ptr<NavigatorPanel> navPanel;
+    juce::Rectangle<int> navPanelBounds;
 };
 

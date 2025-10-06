@@ -55,8 +55,31 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
 	}
 	selPanel = std::make_unique<NavigatorPanel>(_apvts, "selection");
 	addAndMakeVisible(selPanel.get());
+    navigatorTypeMenu._comboBox.addListener(this);
 }
 NavigatorPage::~NavigatorPage() = default;
+
+static std::map<nvs::timbrespace::NavigationType_e, juce::String> navTypeParamSubgroupMap
+{
+{nvs::timbrespace::NavigationType_e::LFO, "nav_lfo"},
+{nvs::timbrespace::NavigationType_e::RandomWalk, "nav_rwalk"},
+{nvs::timbrespace::NavigationType_e::Lorenz, "nav_lorenz"}
+};
+
+void NavigatorPage::comboBoxChanged(ComboBox *comboBoxThatHasChanged) {
+    if (comboBoxThatHasChanged == &navigatorTypeMenu._comboBox) {
+        auto const navType = static_cast<nvs::timbrespace::NavigationType_e>(comboBoxThatHasChanged->getSelectedId() - 1);
+        navPanel.reset();
+        navPanel = std::make_unique<NavigatorPanel>(_apvts, navTypeParamSubgroupMap.at(navType));
+        addAndMakeVisible(navPanel.get());
+        repaint();
+    }
+}
+void NavigatorPage::paint(juce::Graphics &g) {
+    if (navPanel != nullptr) {
+        navPanel->setBounds(navPanelBounds);
+    }
+}
 
 void NavigatorPage::resized() {
 	// carve out a strip for the combo box at the top
@@ -85,9 +108,7 @@ void NavigatorPage::resized() {
 		if (selPanel != nullptr){
 			selPanel->setBounds(left);
 		}
-		if (navPanel != nullptr){
-			navPanel->setBounds(right);
-		}
+		navPanelBounds = right;
 	}
 }
 
