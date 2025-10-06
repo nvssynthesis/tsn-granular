@@ -72,12 +72,16 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
 	}
-	
+
+    startTimerHz(30);
+
 	getConstrainer()->setMinimumSize(240, 360);
 }
 
 TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
+    stopTimer();
+
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(nullptr);
 	}
@@ -142,6 +146,11 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 
 void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &) {}
 void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
+//==============================================================================
+void TsnGranularAudioProcessorEditor::timerCallback() {
+    timbreSpaceComponent.repaint();
+}
+
 //==============================================================================
 void TsnGranularAudioProcessorEditor::drawBackground()
 {

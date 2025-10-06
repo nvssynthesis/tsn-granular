@@ -45,7 +45,7 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
 
-    _navigator.setNavigationPeriod(300);
+    _navigator.setNavigationPeriod(50);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {
     _synth_shared_state._apvts.state.removeListener(&_timbreSpace);
@@ -112,15 +112,15 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
 
     jassert(p5D.norm() < 100.f);
 
-    // Route to synth (synth-specific interface)
-    // routeModulationToSynth(navPoint);
     const auto &apvts = _synth_shared_state._apvts;
 
     const float K_neighbors = *apvts.getRawParameterValue("nav_selection_neighborhood");
     const float sharpness = *apvts.getRawParameterValue("nav_selection_sharpness");
     const float higher3Dweight = 0.05f;
 
-    _timbreSpace.setProbabilisticPointFromTarget(p5D, K_neighbors, sharpness, higher3Dweight, TimbreSpace::PointSelectionMethod::TRIANGULATION_BASED);
+    _timbreSpace.setTargetPoint(p5D);
+    _timbreSpace.computeExistingPointsFromTarget(K_neighbors, sharpness, higher3Dweight, TimbreSpace::PointSelectionMethod::TRIANGULATION_BASED);
+
     setReadBoundsFromChosenPoint();
 
     // Synthesize

@@ -109,10 +109,6 @@ TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 	if (ts.isSavePending()){
 		showAnalysisSaveDialog();
 	}
-    startTimerHz(30);
-}
-TimbreSpaceComponent::~TimbreSpaceComponent() {
-    stopTimer();
 }
 
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
@@ -163,6 +159,12 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		for (auto & p : timbreSpace.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[p.idx]);
 		}
+
+
+
+	    setNavigatorPoint(get2D(timbreSpace.getTargetPoint()));
+
+
 		
 		for (auto p5 : timbres5D){
 			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
@@ -323,9 +325,6 @@ void TimbreSpaceComponent::exitSignalSent() {
 	std::cout << "timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator\n";
 	progressIndicator.setVisible(false);
 }
-void TimbreSpaceComponent::timerCallback() {
-    // repaint();
-}
 
 void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	juce::Image image(juce::Image::ARGB, 16, 16, true);
@@ -375,9 +374,9 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 	return juce::Point<float>(x,y);
 }
 
-// void TimbreSpaceComponent::setNavigatorPoint(Timbre2DPoint p){
-// 	nav._p2D = p;
-// }
+void TimbreSpaceComponent::setNavigatorPoint(Timbre2DPoint p){
+	nav._p2D = p;
+}
 ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 	return progressIndicator;
 }

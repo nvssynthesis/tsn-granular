@@ -41,23 +41,29 @@ void TimbreSpace::clear() {
 
 std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
 
+Timbre5DPoint TimbreSpace::getTargetPoint() const {
+    return _target;
+}
+
+void TimbreSpace::setTargetPoint(const Timbre5DPoint& target) {
+    _target = target;
+}
 // Modified main function with method parameter
-void TimbreSpace::setProbabilisticPointFromTarget(const Timbre5DPoint& target,
-												  int K_neighbors,
+void TimbreSpace::computeExistingPointsFromTarget(int K_neighbors,
 												  double sharpness,
 												  float higher3Dweight,
 												  PointSelectionMethod method)
 {
 	if (timbres5D.size() == 0) { return; }
 	
-	std::vector<util::WeightedIdx> const weightedIndices = [&target, K_neighbors, sharpness, higher3Dweight, method, this]()
+	std::vector<util::WeightedIdx> const weightedIndices = [this, K_neighbors, sharpness, higher3Dweight, method]()
 	{
 		switch (method) {
 			case PointSelectionMethod::TRIANGULATION_BASED:
-				return findPointsTriangulationBased(target, timbres5D, *_delaunator.get());
+				return findPointsTriangulationBased(_target, timbres5D, *_delaunator.get());
 				break;
 			case PointSelectionMethod::DISTANCE_BASED:
-				return findPointsDistanceBased(target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
+				return findPointsDistanceBased(_target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
 				break;
 		}
 	}();

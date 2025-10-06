@@ -33,7 +33,6 @@ class TimbreSpaceComponent	:	public juce::Component
 , 								public juce::ChangeListener
 , 								public juce::Thread::Listener
 ,								private juce::ActionListener
-,                               private juce::Timer
 {
 public:
 	using Timbre2DPoint = nvs::timbrespace::Timbre2DPoint;
@@ -41,13 +40,10 @@ public:
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
     explicit TimbreSpaceComponent(juce::AudioProcessor &proc);
-	~TimbreSpaceComponent();
-
 	//==========================================================================================
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void actionListenerCallback (const juce::String &message) override;
 	void exitSignalSent() override;
-    void timerCallback() override;
 	//==========================================================================================
 	void paint(juce::Graphics &g) override;
 	void resized() override;

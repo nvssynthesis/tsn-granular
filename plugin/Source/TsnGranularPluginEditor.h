@@ -15,6 +15,8 @@
 class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
 ,											public GranularEditorCommon
 ,											private juce::ActionListener
+,                                           private juce::Timer
+
 {
 public:
 	TsnGranularAudioProcessorEditor (TSNGranularAudioProcessor&);
@@ -25,6 +27,8 @@ public:
 	//===============================================================================
 	void mouseDown(const juce::MouseEvent &event) override;
 	void mouseDrag(const juce::MouseEvent &event) override;
+	//===============================================================================
+    void timerCallback() override;
 	//===============================================================================
 	ProgressIndicator &getProgressIndicator() {
 		return timbreSpaceComponent.getProgressIndicator();

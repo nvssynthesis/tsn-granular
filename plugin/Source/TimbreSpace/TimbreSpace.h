@@ -34,6 +34,7 @@ public:
 	void add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D);
 	void clear();
 	juce::Array<Timbre5DPoint> const &getTimbreSpace() const { return timbres5D; }
+    Timbre5DPoint getTargetPoint() const;
 	std::vector<util::WeightedIdx> getCurrentPointIndices() const { return currentPointIndices; }
 	std::optional<std::vector<float>> getOnsets() const;
 	//=============================================================================================================================
@@ -41,8 +42,8 @@ public:
 		DISTANCE_BASED,
 		TRIANGULATION_BASED
 	};
-	void setProbabilisticPointFromTarget(const Timbre5DPoint& target,
-										 int K_neighbors,
+	void setTargetPoint(const Timbre5DPoint& target);
+    void computeExistingPointsFromTarget(int K_neighbors,
 										 double sharpness,
 										 float higher3Dweight,
 										 PointSelectionMethod method = PointSelectionMethod::TRIANGULATION_BASED);
@@ -80,6 +81,7 @@ private:
 	juce::String _audioFileAbsPath, _audioFileRelPath;
 	//=============================================================================================================================
 	juce::Array<Timbre5DPoint> timbres5D;
+    Timbre5DPoint _target {};
 	std::unique_ptr<delaunator::Delaunator> _delaunator;
 	std::vector<util::WeightedIdx> currentPointIndices {{},{},{}};
 	//=============================================================================================================================
