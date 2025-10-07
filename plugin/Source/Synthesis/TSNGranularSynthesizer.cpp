@@ -80,7 +80,7 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 
 void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
     // needs to get called upon each new navigation
-    auto const pIndices = _timbreSpace.getCurrentPointIndices();
+    auto const &pIndices = _timbreSpace.getCurrentPointIndices();
     auto const onsetOpt = _timbreSpace.getOnsets();
 
     if (!onsetOpt.has_value() || (onsetOpt.value().size() == 0)){
@@ -100,7 +100,6 @@ void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
             }
         }
     }
-    currentIndices = pIndices;
 }
 void TSNGranularSynthesizer::setCurrentPlaybackSampleRate(const double newSampleRate) {
     _navigator.setSampleRate(newSampleRate);
