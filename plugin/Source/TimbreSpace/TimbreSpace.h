@@ -35,7 +35,7 @@ public:
 	void clear();
 	juce::Array<Timbre5DPoint> const &getTimbreSpace() const { return timbres5D; }
     Timbre5DPoint getTargetPoint() const;
-	std::vector<util::WeightedIdx> getCurrentPointIndices() const { return currentPointIndices; }
+	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const { return currentPointIndices; }
 	std::optional<std::vector<float>> getOnsets() const;
 	//=============================================================================================================================
 	enum class PointSelectionMethod {

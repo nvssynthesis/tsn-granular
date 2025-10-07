@@ -78,8 +78,9 @@ void TimbreSpace::computeExistingPointsFromTarget(int K_neighbors,
 }
 
 std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
-	juce::var onsetsVar = treeManager.getOnsetsVar();
-	if (onsetsVar.isArray()) {
+    if (const juce::var onsetsVar = treeManager.getOnsetsVar();
+        onsetsVar.isArray())
+    {
 		juce::Array<juce::var>* arr = onsetsVar.getArray();
 		std::vector<float> out;
 		out.reserve(arr->size());
