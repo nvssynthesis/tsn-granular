@@ -141,8 +141,8 @@ void TSNGranularAudioProcessor::writeEvents(){
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	// any reason to use getPropertyAsValue instead?
-	juce::String sampleFilePath = apvts.state.getProperty("sampleFilePath");
-	float sr = 	apvts.state.getProperty("sampleRate");
+    const juce::String sampleFilePath = apvts.state.getProperty("sampleFilePath");
+    const float sr = 	apvts.state.getProperty("sampleRate");
 
 	std::vector<float> onsetsTmp = onsetsOpt.value();
 
@@ -177,13 +177,15 @@ void TSNGranularAudioProcessor::ensureSettingsStructure() {
 bool TSNGranularAudioProcessor::loadAnalysisFileFromState()
     // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in designated directory, manual find, and give up (just perform fresh analysis)
     {
-    auto fileInfo = apvts.state.getChildWithName("FileInfo");
-    if (!fileInfo.isValid()) return false;
+    const auto fileInfo = apvts.state.getChildWithName("FileInfo");
+    if (!fileInfo.isValid())
+        return false;
 
     juce::String analysisFilePath = fileInfo.getProperty("analysisFile", {});
-    if (analysisFilePath.isEmpty()) return false;
+    if (analysisFilePath.isEmpty())
+        return false;
 
-    juce::File file(analysisFilePath);
+    const juce::File file(analysisFilePath);
     auto fstream = juce::FileInputStream(file);
 
     if (fstream.failedToOpen()) {
@@ -192,10 +194,11 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState()
         return false;
     }
 
-    auto analysisFileStream = juce::ValueTree::readFromStream(fstream);
-    auto analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
+    const auto analysisFileStream = juce::ValueTree::readFromStream(fstream);
 
-    if (analysisFileTree.isValid()) {
+    if (const auto analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
+        analysisFileTree.isValid())
+    {
         fmt::print("setting via setStateInformation\n");
         _tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
     }
