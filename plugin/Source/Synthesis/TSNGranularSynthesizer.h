@@ -27,9 +27,6 @@ public:
     ~TSNGranularSynthesizer() override;
 
     void loadOnsets(const std::span<float> onsets);
-    std::vector<WeightedIdx> getCurrentIndices() const {
-        return currentIndices;
-    }
 
     TimbreSpace &getTimbreSpace() {
         return _timbreSpace;
@@ -46,7 +43,6 @@ private:
     //==============================================================================
     void parameterChanged(const String &parameterID, float newValue) override;  // AudioProcessorValueTreeState::Listener
     //==============================================================================
-    std::vector<WeightedIdx> currentIndices; // easy way out for the time being (to solve issue of carrying this data to WaveformComponent, which is a listener of this)
 
     void setReadBoundsFromChosenPoint();
 };

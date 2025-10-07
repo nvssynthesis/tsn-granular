@@ -127,7 +127,7 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 
 void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 {
-	auto onsetsOpt = audioProcessor.getTimbreSpace().getOnsets();
+    const auto onsetsOpt = audioProcessor.getTimbreSpace().getOnsets();
 	if (!onsetsOpt.has_value()){
 		audioProcessor.writeToLog("TsnGranularAudioProcessorEditor::paintOnsetMarkers : Onsets had no value; returning\n");
 		return;
@@ -149,6 +149,7 @@ void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::timerCallback() {
     timbreSpaceComponent.repaint();
+    waveformAndPositionComponent.wc.highlightOnsets(audioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
 }
 
 //==============================================================================
