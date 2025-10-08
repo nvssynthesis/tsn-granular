@@ -9,8 +9,6 @@
 */
 
 #include "SettingsWindow.h"
-#include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
-
 
 SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
 					juce::Colour backgroundColour)
@@ -47,8 +45,7 @@ void SettingsWindow::closeButtonPressed()
 
 juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsVT,
 									  const juce::String& branchName,
-									  const std::map<juce::String,nvs::analysis::AnySpec>& specMap)
-{
+									  const std::map<juce::String,nvs::analysis::AnySpec>& specMap) const {
 	struct Page  : public juce::Component
 	{
 		juce::ValueTree tree;
@@ -104,7 +101,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							double v = sliders[propName].getValue();
 							// decide type by variant:
 							auto& anySpec = specs.at (propName);
-							std::visit ([&](auto&& sp){
+							std::visit ([&]([[maybe_unused]] auto && sp){
 								using ST = std::decay_t<decltype(sp)>;
 								if constexpr (std::is_same_v<ST, RangeWithDefaultInt>)
 									tree.setProperty (propName, int (std::round (v)), nullptr);
@@ -125,8 +122,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 
 						// Build the ComboBox items and a helper map
 						std::map<juce::String, int> textToId;
-						int id = 1;
-						for (auto& opt : spec.options)
+						for (int id = 1; auto& opt : spec.options)
 						{
 							cb.addItem (opt, id);
 							textToId[opt] = id;
@@ -136,14 +132,14 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						// Look up the default value’s ID (or fallback)
 						int val = [this, textToId, spec, propName](bool use_default){
 							int id = 1;
-							if (use_default){
+						    if (use_default){
 								auto it = textToId.find (spec.defaultValue);
 								if (it != textToId.end())
 									id = it->second;
 							}
 							else {
-								auto const val = tree.getPropertyAsValue(propName, nullptr).getValue();
-								auto it = textToId.find(val);
+								auto const propVal = tree.getPropertyAsValue(propName, nullptr).getValue();
+								auto it = textToId.find(propVal);
 								if (it != textToId.end()){
 									id = it->second;
 								}
@@ -211,6 +207,6 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 	};
 
 	// get or create the branch VT
-	auto branchVT = settingsVT.getOrCreateChildWithName (branchName, nullptr);
+    const auto branchVT = settingsVT.getOrCreateChildWithName (branchName, nullptr);
 	return new Page (branchVT, specMap);
 }
