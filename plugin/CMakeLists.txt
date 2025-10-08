@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_compile_options(-w)
-
 project(tsn-granular VERSION 0.4.1)
 
 message(STATUS "Slicer-granular links: ${SLICER_LINK_LIBS}")
@@ -307,15 +305,16 @@ endif()
 
 # Include directories
 target_include_directories(tsn-granular
+        SYSTEM PRIVATE  # Suppresses warnings from these includes
+        slicer_granular/nvs_libraries/nvs_libraries/external/sprout
+        ${XOSHIRO_INCLUDE_DIR}
+        ${ESSENTIA_INCLUDE_DIRS}
+        delaunator-cpp/include
         PRIVATE
         Source
         slicer_granular/Source
         slicer_granular/nvs_libraries
-        slicer_granular/nvs_libraries/nvs_libraries/external/sprout
-        ${XOSHIRO_INCLUDE_DIR}  # Now manually added
-        ${ESSENTIA_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
-        delaunator-cpp/include
         PUBLIC
         ${ESSENTIA_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
