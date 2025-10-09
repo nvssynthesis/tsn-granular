@@ -12,5 +12,6 @@ mason_packages/
 
 # CMake-managed dependency (gets cloned and built by CMakeLists.txt)
 plugin/essentia/
+essentia/
 
 .clang-format

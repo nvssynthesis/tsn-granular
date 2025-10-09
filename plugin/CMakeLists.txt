@@ -40,21 +40,20 @@ else()
 endif()
 
 # Check if Essentia directory exists and has content, if not clone it
-set(ESSENTIA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/essentia")
-set(ESSENTIA_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/essentia_install")
+set(ESSENTIA_DIR "${CMAKE_SOURCE_DIR}/essentia")
+set(ESSENTIA_INSTALL_DIR "${CMAKE_BINARY_DIR}/essentia_install")
 
 if(NOT EXISTS "${ESSENTIA_DIR}/wscript")
     message(STATUS "Essentia not found or incomplete, cloning from GitHub...")
 
-    # Remove existing directory if it exists but is incomplete
     if(EXISTS "${ESSENTIA_DIR}")
         message(STATUS "Removing incomplete Essentia directory...")
         file(REMOVE_RECURSE "${ESSENTIA_DIR}")
     endif()
 
     execute_process(
-            COMMAND git clone --depth 1 https://github.com/MTG/essentia.git essentia
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND git clone --depth 1 https://github.com/MTG/essentia.git "${ESSENTIA_DIR}"
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             RESULT_VARIABLE GIT_CLONE_RESULT
             OUTPUT_VARIABLE GIT_CLONE_OUTPUT
             ERROR_VARIABLE GIT_CLONE_ERROR
@@ -152,18 +151,10 @@ ExternalProject_Add(essentia_external
         LOG_INSTALL ON
 )
 
-# Set up Essentia variables for linking
 set(ESSENTIA_INCLUDE_DIRS
-        ${ESSENTIA_INSTALL_DIR}/include/essentia
-        ${ESSENTIA_INSTALL_DIR}/include
-        ${ESSENTIA_DIR}/src
+        "${ESSENTIA_DIR}/src"
+        "${EIGEN_INCLUDE_DIR}"
 )
-set(ESSENTIA_LIBRARY_DIRS ${ESSENTIA_INSTALL_DIR}/lib)
-
-message(STATUS "Essentia will be installed to: ${ESSENTIA_INSTALL_DIR}")
-
-# Find the built Essentia library
-set(ESSENTIA_LIBRARY ${ESSENTIA_INSTALL_DIR}/lib/libessentia.a)
 
 if(APPLE)
     # Only essential system frameworks for basic functionality
@@ -217,15 +208,23 @@ elseif(UNIX)
     endif()
 endif()
 
-# NOW create the imported target for Essentia with all properties set at once
+
+if(EXISTS "${ESSENTIA_INSTALL_DIR}/include")
+    list(APPEND ESSENTIA_INCLUDE_DIRS "${ESSENTIA_INSTALL_DIR}/include")
+    if(EXISTS "${ESSENTIA_INSTALL_DIR}/include/essentia")
+        list(APPEND ESSENTIA_INCLUDE_DIRS "${ESSENTIA_INSTALL_DIR}/include/essentia")
+    endif()
+endif()
+
+set(ESSENTIA_LIBRARY_DIRS "${ESSENTIA_INSTALL_DIR}/lib")
+set(ESSENTIA_LIBRARY "${ESSENTIA_INSTALL_DIR}/lib/libessentia.a")
+
 add_library(essentia_built STATIC IMPORTED)
 set_target_properties(essentia_built PROPERTIES
-        IMPORTED_LOCATION ${ESSENTIA_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES "${ESSENTIA_INCLUDE_DIRS};${EIGEN_INCLUDE_DIR}"
+        IMPORTED_LOCATION "${ESSENTIA_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${ESSENTIA_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${ESSENTIA_SYSTEM_LIBRARIES}"
 )
-
-# Make sure essentia_built depends on essentia_external
 add_dependencies(essentia_built essentia_external)
 
 # Handle JUCE setup with fallback logic
