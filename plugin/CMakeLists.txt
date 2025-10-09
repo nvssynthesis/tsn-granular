@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 
 project(tsn-granular VERSION 0.4.1)
 
-message(STATUS "Slicer-granular links: ${SLICER_LINK_LIBS}")
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -12,6 +10,11 @@ include(ExternalProject)
 
 # Options for external dependencies
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
+
+# JUCE setup options - these will be passed to slicer_granular
+set(JUCE_DIR "" CACHE PATH "Path to JUCE framework (leave empty to use bundled JUCE in slicer_granular/JUCE subdirectory)")
+option(JUCE_FETCH_IF_MISSING "Automatically fetch JUCE if JUCE_DIR is not set and JUCE/ subdirectory doesn't exist" ON)
+set(JUCE_VERSION "8.0.10" CACHE STRING "JUCE version to fetch if JUCE_FETCH_IF_MISSING is ON")
 
 find_package(Eigen3 REQUIRED NO_MODULE)
 
@@ -35,6 +38,7 @@ else()
         message(FATAL_ERROR "Could not find Eigen3 headers")
     endif()
 endif()
+
 # Check if Essentia directory exists and has content, if not clone it
 set(ESSENTIA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/essentia")
 set(ESSENTIA_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/essentia_install")
@@ -224,7 +228,35 @@ set_target_properties(essentia_built PROPERTIES
 # Make sure essentia_built depends on essentia_external
 add_dependencies(essentia_built essentia_external)
 
-add_subdirectory(slicer_granular/JUCE)
+# Handle JUCE setup with fallback logic
+if(JUCE_DIR)
+    # User specified their own JUCE path
+    message(STATUS "Using user-specified JUCE from: ${JUCE_DIR}")
+    add_subdirectory(${JUCE_DIR} juce_build)
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/slicer_granular/JUCE/CMakeLists.txt")
+    # Use bundled JUCE in slicer_granular subdirectory (existing setup)
+    message(STATUS "Using bundled JUCE from slicer_granular/JUCE/ subdirectory")
+    add_subdirectory(slicer_granular/JUCE)
+elseif(JUCE_FETCH_IF_MISSING)
+    # Auto-fetch JUCE if allowed
+    message(STATUS "JUCE not found. Fetching JUCE ${JUCE_VERSION}...")
+    FetchContent_Declare(
+            JUCE
+            GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+            GIT_TAG ${JUCE_VERSION}
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(JUCE)
+else()
+    message(FATAL_ERROR
+            "JUCE not found!\n"
+            "Please either:\n"
+            "  1. Set JUCE_DIR to your JUCE installation path, or\n"
+            "  2. Place JUCE in the slicer_granular/JUCE/ subdirectory, or\n"
+            "  3. Enable JUCE_FETCH_IF_MISSING to auto-download JUCE"
+    )
+endif()
 
 # Create the plugin target
 juce_add_plugin(tsn-granular
@@ -314,20 +346,18 @@ target_include_directories(tsn-granular
         Source
         slicer_granular/Source
         slicer_granular/nvs_libraries
-        ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
+        ${EIGEN_INCLUDE_DIR}
         PUBLIC
         ${ESSENTIA_INCLUDE_DIRS}
-        ${EIGEN_INCLUDE_DIR}  # Changed from ${eigen_SOURCE_DIR}
+        ${EIGEN_INCLUDE_DIR}
 )
 
 # Link libraries
 target_link_libraries(tsn-granular
         PRIVATE
-#        slicer-granular
         fmt::fmt
         essentia_built
-        Eigen3::Eigen  # Add this line
-        # Add any other libraries that slicer-granular was providing
+        Eigen3::Eigen
         juce::juce_audio_basics
         juce::juce_audio_devices
         juce::juce_audio_formats
@@ -372,13 +402,8 @@ if(APPLE)
     target_compile_options(tsn-granular PRIVATE
             -Wall -Wextra -Wshadow -Wuninitialized
             -ftemplate-backtrace-limit=0
-#            -g3  # Maximum debug info
-#            -fno-omit-frame-pointer  # Better stack traces
     )
 endif()
-
-#add_compile_options(-fsanitize=thread)
-#add_link_options(-fsanitize=thread)
 
 # Build type specific definitions
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
