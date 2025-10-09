@@ -219,7 +219,7 @@ endif()
 set(ESSENTIA_LIBRARY_DIRS "${ESSENTIA_INSTALL_DIR}/lib")
 set(ESSENTIA_LIBRARY "${ESSENTIA_INSTALL_DIR}/lib/libessentia.a")
 
-add_library(essentia_built STATIC IMPORTED)
+add_library(essentia_built STATIC IMPORTED GLOBAL)
 set_target_properties(essentia_built PROPERTIES
         IMPORTED_LOCATION "${ESSENTIA_LIBRARY}"
         INTERFACE_INCLUDE_DIRECTORIES "${ESSENTIA_INCLUDE_DIRS}"
@@ -275,6 +275,8 @@ juce_add_plugin(tsn-granular
         VST3_CATEGORIES Instrument Synth
         AU_SANDBOX_SAFE TRUE
 )
+
+add_dependencies(tsn-granular essentia_external)
 
 # Collect TSN-specific source files
 file(GLOB_RECURSE TSN_SOURCE_FILES
