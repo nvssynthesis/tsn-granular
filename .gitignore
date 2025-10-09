@@ -8,6 +8,7 @@ JuceLibraryCode/
 .vscode/
 .idea/
 cmake-build-debug/
+cmake-build-release/
 mason_packages/
 
 # CMake-managed dependency (gets cloned and built by CMakeLists.txt)
