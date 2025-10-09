@@ -51,7 +51,7 @@ cd build
 cmake ..
 cmake --build . --config Release
 ```
-### The plugin will be automatically copied to your system's plugin directory
+The plugin will be automatically copied to your system's plugin directory
 
 Note: Essentia is automatically cloned and built by CMake during the first build. This may take several minutes.
 ## Build Options
