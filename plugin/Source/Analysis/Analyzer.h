@@ -10,7 +10,7 @@
 
 #pragma once
 #include <optional>
-#include <type_traits>
+#include <algorithm>
 #include <JuceHeader.h>
 #include "RunLoopStatus.h"
 #include "OnsetAnalysis/OnsetAnalysis.h"
@@ -154,21 +154,22 @@ inline void filterOnsets(std::vector<float> &onsetsInSeconds, double lengthInSec
 	}
 }
 
-inline void normalizeOnsets(std::vector<float> &onsetsInSeconds, float lengthInSeconds) {
-	std::transform(onsetsInSeconds.begin(), onsetsInSeconds.end(),	// formerly terminated via begin() + numProperOnsets
-				   onsetsInSeconds.begin(), [=](float f)
-				{
-					double res = f / lengthInSeconds;
-					assert(res <= 1.f);
-					return res;
-				});
+inline void normalizeOnsets(std::vector<float> &onsetsInSeconds, const double lengthInSeconds) {
+	std::ranges::transform(onsetsInSeconds,	// formerly terminated via begin() + numProperOnsets
+	                       onsetsInSeconds.begin(),
+	                       [lengthInSeconds](const double f)
+	                       {
+		                       const double res = f / lengthInSeconds;
+		                       assert(res <= 1.0);
+		                       return res;
+	                       });
 }
-inline void denormalizeOnsets(std::vector<float> &normalizedOnsets, float lengthInSeconds) {
-	std::transform(normalizedOnsets.begin(), normalizedOnsets.end(),
-				   normalizedOnsets.begin(), [=](float f)
-				{
-					return f * lengthInSeconds;
-				});
+
+inline void denormalizeOnsets(std::vector<float> &normalizedOnsets, const double lengthInSeconds) {
+	std::ranges::transform(normalizedOnsets, normalizedOnsets.begin(),
+						  [lengthInSeconds](const double f) {
+							  return f * lengthInSeconds;
+						  });
 }
 
 vecVecReal truncate(vecVecReal const &V, size_t trunc);

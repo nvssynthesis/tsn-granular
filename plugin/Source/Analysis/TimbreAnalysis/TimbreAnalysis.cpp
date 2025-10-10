@@ -86,10 +86,10 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 	int const hopSize = settings.analysis.hopSize;
 	
 	int const zeroPadding = frameSize;
+
+	constexpr double validFrameThresholdRatio = 0.f;
 	
-	double const validFrameThresholdRatio = 0.f;
-	
-	Algorithm* frameCutter = factory.create ("FrameCutter",
+	Algorithm* frameCutter = nvs::analysis::streamingFactory::create ("FrameCutter",
 		"frameSize",            frameSize,
 		"hopSize",              hopSize,
 		"lastFrameToEndOfFile", true,
@@ -99,7 +99,7 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 	);
 	
 
-	Algorithm* windowing = factory.create ("Windowing",
+	Algorithm* windowing = nvs::analysis::streamingFactory::create ("Windowing",
 		"normalized", false,
 		"size",        frameSize,
 		"zeroPadding", zeroPadding,
@@ -119,7 +119,7 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 		{"yin", "PitchYin"}
 	};	// for now we only handle this
 	
-	Algorithm* pitchDet = factory.create (pitchAlgoNicknameMap[pitchAlgoStr],
+	Algorithm* pitchDet = nvs::analysis::streamingFactory::create (pitchAlgoNicknameMap[pitchAlgoStr],
 		"frameSize",   frameSize,
 		"interpolate",  settings.pitch.interpolate,
 		"maxFrequency", maxFrequency,
@@ -128,12 +128,12 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 		"tolerance",    tolerance
 	);
 	
-	Algorithm* pitchFrameAccumulator = factory.create("RealAccumulator");
-	Algorithm* pitchConfidenceFrameAccumulator = factory.create("RealAccumulator");
+	Algorithm* pitchFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
+	Algorithm* pitchConfidenceFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
 	
 	std::vector<vecReal> pitches, pitchConfidences;
-	VectorOutput<vecReal> *pitchAccumOutput = new VectorOutput<vecReal>(&pitches);
-	VectorOutput<vecReal> *pitchConfidenceAccumOutput = new VectorOutput<vecReal>(&pitchConfidences);
+	auto *pitchAccumOutput = new VectorOutput<vecReal>(&pitches);
+	auto *pitchConfidenceAccumOutput = new VectorOutput<vecReal>(&pitchConfidences);
 	
 	*inVec												>>		frameCutter->input("signal");
 	frameCutter->output("frame")						>>		windowing->input("frame");
@@ -196,7 +196,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 //		"EqualLoudness",
 //		"sampleRate", sampleRate
 //	);	// not using yet 
-	Algorithm* frameCutter = factory.create (
+	Algorithm* frameCutter = nvs::analysis::streamingFactory::create (
 		"FrameCutter",
 		"frameSize",               frameSize,
 		"hopSize",                 hopSize,
@@ -206,7 +206,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 		"validFrameThresholdRatio", 0.0
 	);
 	
-	Algorithm* windowing = factory.create (
+	Algorithm* windowing = nvs::analysis::streamingFactory::create (
 		"Windowing",
 		  "normalized",  false,
 		  "size",        frameSize,
@@ -214,12 +214,12 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory con
 		  "type",        settings.analysis.windowingType.toStdString(),
 		  "zeroPhase",   false
 	);
-	Algorithm* loudness = factory.create("Loudness");
+	Algorithm* loudness = nvs::analysis::streamingFactory::create("Loudness");
 	
-	Algorithm* loudnessFrameAccumulator = factory.create("RealAccumulator");
+	Algorithm* loudnessFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
 	
 	std::vector<vecReal> loudnesses;
-	VectorOutput<vecReal> *pitchAccumOutput = new VectorOutput<vecReal>(&loudnesses);
+	auto *pitchAccumOutput = new VectorOutput<vecReal>(&loudnesses);
 	
 	*inVec												>>		frameCutter->input("signal");
 	frameCutter->output("frame")						>>		windowing->input("frame");
@@ -259,7 +259,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 	
 	vectorInput *inVec = new vectorInput(&wave);
 	
-	Algorithm* frameCutter = factory.create (
+	Algorithm* frameCutter = nvs::analysis::streamingFactory::create (
 		"FrameCutter",
 		  "frameSize",               frameSize,
 		  "hopSize",                 hopSize,
@@ -269,7 +269,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		  "validFrameThresholdRatio", 0.0
 	);
 	
-	Algorithm* windowing = factory.create (
+	Algorithm* windowing = nvs::analysis::streamingFactory::create (
 		"Windowing",
 		  "normalized",  false,
 		  "size",        frameSize,
@@ -278,7 +278,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		  "zeroPhase",   false
 	);
 	
-	Algorithm* spectrum = factory.create (
+	Algorithm* spectrum = nvs::analysis::streamingFactory::create (
 		specAlgoStr,
 		  "size", frameSize * 2
 	);
@@ -293,7 +293,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		{"Spectrum", "dbamp"}
 	};
 	
-	Algorithm* bfcc = factory.create (
+	Algorithm* bfcc = nvs::analysis::streamingFactory::create (
 		"BFCC",
 		  "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
 		  "highFrequencyBound",  settings.bfcc.highFrequencyBound,
@@ -310,14 +310,14 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 		  "weighting",           settings.bfcc.weightingType.toStdString()
 	);
 	
-	Algorithm* barkFrameAccumulator = factory.create("VectorRealAccumulator");
-	Algorithm* bfccFrameAccumulator = factory.create("VectorRealAccumulator");
+	Algorithm* barkFrameAccumulator = nvs::analysis::streamingFactory::create("VectorRealAccumulator");
+	Algorithm* bfccFrameAccumulator = nvs::analysis::streamingFactory::create("VectorRealAccumulator");
 	
 	// for some reason, to get this working in as a connection to FrameAccumulator,
 	// these must be vector<vector<vector<Real>>>, and the 1st dimension only has size of 1...
 	std::vector<std::vector<vecReal>> barkBands, BFCCs;
-	VectorOutput<std::vector<vecReal>> *barkAccumOutput = new VectorOutput<std::vector<vecReal>>(&barkBands);
-	VectorOutput<std::vector<vecReal>> *bfccAccumOutput = new VectorOutput<std::vector<vecReal>>(&BFCCs);
+	auto *barkAccumOutput = new VectorOutput<std::vector<vecReal>>(&barkBands);
+	auto *bfccAccumOutput = new VectorOutput<std::vector<vecReal>>(&BFCCs);
 	
 	*inVec									>>		frameCutter->input("signal");
 	frameCutter->output("frame")			>>		windowing->input("frame");
@@ -334,8 +334,8 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const
 	n.clear();
 	
 	assert(BFCCs.size() == 1);
-	assert(BFCCs[0].size());
-	assert(BFCCs[0][0].size());
+	assert(!BFCCs[0].empty());
+	assert(!BFCCs[0][0].empty());
 
 	// truncate by removing 1st BFCC (which just encodes overall energy)
 #if 0
@@ -362,7 +362,7 @@ vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_feat
 	const std::string namespaceIn {"data"};
 	const std::string namespaceOut {"pca"};
 
-	ess_std::Algorithm* PCA = factory.create("PCA",
+	ess_std::Algorithm* PCA = nvs::analysis::standardFactory::create("PCA",
 											 "dimensions", num_features_out,
 											 "namespaceIn", namespaceIn,
 											 "namespaceOut", namespaceOut);

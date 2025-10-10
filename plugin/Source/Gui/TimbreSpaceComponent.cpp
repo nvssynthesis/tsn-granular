@@ -434,7 +434,7 @@ void TimbreSpaceComponent::saveAnalysis(){
 TimbreSpaceComponent::Callback::Callback(TimbreSpaceComponent &comp)
 : _ts_comp(comp)
 {}
-void TimbreSpaceComponent::Callback::modalStateFinished(int choice) {
+void TimbreSpaceComponent::Callback::modalStateFinished(const int choice) {
 	switch (choice) {
 		case 1:
 		{

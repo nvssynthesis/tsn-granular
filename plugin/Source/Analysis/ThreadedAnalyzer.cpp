@@ -61,7 +61,7 @@ void ThreadedAnalyzer::run() {
 		auto onsetOpt = _analyzer.calculateOnsetsInSeconds(_inputWave, _rls, shouldExit);
 		jassert (onsetOpt.has_value());
 
-		if (!onsetOpt.value().size()){
+		if (onsetOpt.value().empty()){
 			DBG("Threaded Analyzer: zero onsets... returning");
 			sendChangeMessage();
 			return;
