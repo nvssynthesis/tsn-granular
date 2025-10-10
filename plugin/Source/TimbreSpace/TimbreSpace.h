@@ -54,7 +54,6 @@ public:
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(juce::String const &audioHash) const;
 	//=============================================================================================================================
-	void setAudioPaths(juce::String absPath = "", juce::String relPath = "");
 	juce::String getAudioAbsolutePath() const { return _audioFileAbsPath; }
 	//=============================================================================================================================
 	void setTimbreSpaceTree(ValueTree const &tree);

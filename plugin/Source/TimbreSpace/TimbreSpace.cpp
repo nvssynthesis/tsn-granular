@@ -134,11 +134,6 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &tree) {
 
 	fullSelfUpdate(true);
 }
-void TimbreSpace::setAudioPaths(juce::String absPath, juce::String relPath){
-	_audioFileAbsPath = absPath;
-	_audioFileRelPath = relPath;
-}
-
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
 									juce::String audioFileHash,

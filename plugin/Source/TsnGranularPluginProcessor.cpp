@@ -68,7 +68,7 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 	auto mdTree = tsTree.getChildWithName("Metadata");
 	mdTree.setProperty("sampleFilePath", apvts.state.getProperty("sampleFilePath"), nullptr);
 	mdTree.setProperty("sampleRate", apvts.state.getProperty("sampleRate"), nullptr);
-	mdTree.setProperty("waveformHash", sampleManagementGuts.getHash(), nullptr);
+	mdTree.setProperty("waveformHash", sampleManagementGuts.getAudioHash(), nullptr);
 	mdTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
 	analysisVT.addChild(tsTree, 1, nullptr);
 	
@@ -86,22 +86,20 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 	});
 }
 //==============================================================================
-void TSNGranularAudioProcessor::loadAudioFile(juce::File const f, bool notifyEditor){
-	writeToLog("TSN: loadAudioFile\n");
+void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor){
+	writeToLog("TSN: loadAudioFileAndUpdateState\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
-	SlicerGranularAudioProcessor::loadAudioFile(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
-	
-	_tsnGranularSynth->getTimbreSpace().setAudioPaths(f.getFullPathName());
+	SlicerGranularAudioProcessor::loadAudioFileAndUpdateState(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
 
-	if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getHash())) {
+	if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getAudioHash())) {
 		/* do nothing */
-		fmt::print("TSNGranularAudioProcessor::loadAudioFile: already had valid analysis for {}\n", f.getFullPathName().toStdString());
+		writeToLog(fmt::format("TSNGranularAudioProcessor already had valid analysis for {}\n", f.getFullPathName().toStdString()));
 	}
 	else if (!loadAnalysisFileFromState())	// try to load analysis from state; if it fails then do fresh analysis
 	{
 		askForAnalysis();
 	}
-	writeToLog("TSN: loadAudioFile exiting");
+	writeToLog("TSN: loadAudioFileAndUpdateState exiting");
 }
 
 void TSNGranularAudioProcessor::askForAnalysis(){
@@ -154,7 +152,7 @@ void TSNGranularAudioProcessor::writeEvents(){
 }
 
 void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getHash())) {
+	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getAudioHash())) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());
@@ -174,36 +172,45 @@ void TSNGranularAudioProcessor::ensureSettingsStructure() {
         nvs::analysis::initializeSettingsBranches(settingsVT);
     }
 }
-bool TSNGranularAudioProcessor::loadAnalysisFileFromState()
-    // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in designated directory, manual find, and give up (just perform fresh analysis)
-    {
+bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
+    // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
+    /// designated directory, manual find, and give up (just perform fresh analysis)
     const auto fileInfo = apvts.state.getChildWithName("FileInfo");
-    if (!fileInfo.isValid())
-        return false;
+    if (!fileInfo.isValid()) {
+		writeToLog("file info value tree invalid\n");
+    	return false;
+    }
+    const juce::String analysisFilePath = fileInfo.getProperty("analysisFile", {});
+	writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
 
-    juce::String analysisFilePath = fileInfo.getProperty("analysisFile", {});
-    if (analysisFilePath.isEmpty())
-        return false;
+    if (analysisFilePath.isEmpty()) {
+    	writeToLog("analysisFilePath is empty");
+	    return false;
+    }
+    const juce::File analysisFile(analysisFilePath);
+    auto analysisFileInputStream = juce::FileInputStream(analysisFile);
 
-    const juce::File file(analysisFilePath);
-    auto fstream = juce::FileInputStream(file);
-
-    if (fstream.failedToOpen()) {
-        writeToLog(fstream.getStatus().getErrorMessage());
+    if (analysisFileInputStream.failedToOpen()) {
+        writeToLog(analysisFileInputStream.getStatus().getErrorMessage());
         // TODO: Give popup opportunity for user to find the file
         return false;
     }
+	const auto sfp = getSampleFilePath();
+	std::cout << "sample file path: " << sfp << '\n';
 
-    const auto analysisFileStream = juce::ValueTree::readFromStream(fstream);
+    const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
+	writeToLog(nvs::util::valueTreeToXmlStringSafe(analysisFileValueTree));
 
-    if (const auto analysisFileTree = analysisFileStream.getChildWithName("TimbreAnalysis");
+    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName("TimbreAnalysis");
         analysisFileTree.isValid())
     {
-        fmt::print("setting via setStateInformation\n");
+        writeToLog("setting via setStateInformation");
         _tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
+		return true;
     }
-    return true;
-    }
+    writeToLog("analysis file tree invalid");
+    return false;
+}
 
 //==============================================================================
 // This creates new instances of the plugin..

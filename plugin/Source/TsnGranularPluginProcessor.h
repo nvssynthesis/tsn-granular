@@ -26,7 +26,7 @@ public:
 	void setStateInformation (const void* data, int sizeInBytes) override;
 	void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     //==============================================================================
-	void loadAudioFile(juce::File const f, bool notifyEditor) override;	// also affects analyzer
+	void loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	void askForAnalysis();
 	//==============================================================================
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
