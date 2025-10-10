@@ -80,10 +80,8 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 
 void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
     // needs to get called upon each new navigation
-    auto const &pIndices = _timbreSpace.getCurrentPointIndices();
-    auto const onsetOpt = _timbreSpace.getOnsets();
-
-    if (!onsetOpt.has_value() || (onsetOpt.value().size() == 0)){
+    if (auto const onsetOpt = _timbreSpace.getOnsets();
+        !onsetOpt.has_value() || (onsetOpt.value().size() == 0)){
         return;
     }
 
@@ -91,11 +89,12 @@ void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
      this needs to happen AFTER proper onsets are loaded; otherwise the indices could be out of bounds
      However, since setWaveEvents happens based on a separate timer, the processing currently just exits early if the weighted indices exceed the numOnsets
     */
+    auto const &pIndices = _timbreSpace.getCurrentPointIndices();
     constexpr auto numVoices = getNumVoices();
     for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
         if (const auto granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 
-            if (nvs::gran::TSNPolyGrain* tsnGuts = dynamic_cast<nvs::gran::TSNPolyGrain*>( granularVoice->getGranularSynthGuts() )){
+            if (const auto tsnGuts = dynamic_cast<nvs::gran::TSNPolyGrain*>( granularVoice->getGranularSynthGuts() )){
                 tsnGuts->setWaveEvents(pIndices);
             }
         }
