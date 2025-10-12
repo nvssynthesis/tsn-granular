@@ -11,22 +11,26 @@
 #include "Analysis/ThreadedAnalyzer.h"
 #include "fmt/core.h"
 
-namespace nvs {
-namespace analysis {
+namespace nvs::analysis {
 
 ThreadedAnalyzer::ThreadedAnalyzer()
-:	juce::Thread("Analyzer")
+	:	juce::Thread("Analyzer")
 {}
 ThreadedAnalyzer::~ThreadedAnalyzer(){
 	stopThread(100);
 }
 
-void ThreadedAnalyzer::updateWave(std::span<float const> wave){
+void ThreadedAnalyzer::updateStoredAudio(std::span<float const> wave, juce::String audioFileAbsPath){
 	_inputWave.assign(wave.begin(), wave.end());
+	_audioFileAbsPath = audioFileAbsPath;
 	_analysisResult.reset();
 }
 
-void ThreadedAnalyzer::updateSettings(juce::ValueTree settingsTree){
+std::optional<ThreadedAnalyzer::AnalysisResult> ThreadedAnalyzer::stealTimbreSpaceRepresentation() {
+	return std::exchange(_analysisResult, std::nullopt);
+}
+
+void ThreadedAnalyzer::updateSettings(const juce::ValueTree &settingsTree){
 	jassert( settingsTree.hasType("Settings") );
 
 	if (_analyzer.updateSettings(settingsTree)){
@@ -83,7 +87,8 @@ void ThreadedAnalyzer::run() {
 		_analysisResult.emplace(AnalysisResult{
 			.onsets = onsetOpt.value(),
 			.timbreMeasurements = timbreMeasurementsOpt.value(),
-			.audioHash = nvs::util::hashAudioData(_inputWave)
+			.audioHash = nvs::util::hashAudioData(_inputWave),
+			.audioFileAbsPath = _audioFileAbsPath
 		});
 		// only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 		sendChangeMessage();
@@ -93,10 +98,10 @@ void ThreadedAnalyzer::run() {
 		sendChangeMessage(); // Let GUI know something changed
 		return;
 	}
-	 catch (const std::exception& e) {
+	catch (const std::exception& e) {
 		DBG("Standard exception in analysis thread: " << e.what());
 		analysisError.store(true);
-	 	sendChangeMessage(); // Let GUI know something changed
+		sendChangeMessage(); // Let GUI know something changed
 		return;
 	} catch (...) {
 		DBG("Unknown exception in analysis thread");
@@ -106,5 +111,4 @@ void ThreadedAnalyzer::run() {
 	}
 }
 
-}	// namespace analysis
-}	// namespace nvs
+}

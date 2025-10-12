@@ -25,22 +25,19 @@ public:
 		std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements;
 		
 		juce::String audioHash {};
-//		juce::String audioFileAbsPath {};
-//		juce::String audioFileRelPath {};
+		juce::String audioFileAbsPath {};
 	};
 	//===============================================================================
 	ThreadedAnalyzer();
-	~ThreadedAnalyzer();
+	~ThreadedAnalyzer() override;
 	//===============================================================================
-	void updateWave(std::span<float const> wave);
-	void updateSettings(juce::ValueTree settingsTree);
+	void updateStoredAudio(std::span<float const> wave, juce::String audioFileAbsPath);
+	void updateSettings(const juce::ValueTree &settingsTree);
 	//===============================================================================
 	void run() override;
 	void stopAnalysis() { signalThreadShouldExit(); }
 	//===============================================================================
-	inline std::optional<AnalysisResult> stealTimbreSpaceRepresentation() {
-		return std::exchange(_analysisResult, std::nullopt);
-	}
+	std::optional<AnalysisResult> stealTimbreSpaceRepresentation();
 	//===============================================================================
 	Analyzer &getAnalyzer() { return _analyzer; }
 	RunLoopStatus &getStatus() noexcept { return _rls; }
@@ -53,6 +50,7 @@ private:
 	
 	std::optional<AnalysisResult> _analysisResult;
 	juce::String _settingsHash {};
+	juce::String _audioFileAbsPath {};
 
 	std::atomic<bool> analysisError{false};
 

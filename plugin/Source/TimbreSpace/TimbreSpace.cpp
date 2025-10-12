@@ -130,22 +130,19 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &tree) {
 	auto const mdTree = tree.getChildWithName("Metadata");
 	_audioFileHash = mdTree.getProperty("AudioFileHash", _audioFileHash).toString();
 	_audioFileAbsPath = mdTree.getProperty("AudioFilePath (absolute)", _audioFileAbsPath).toString();
-	_audioFileRelPath = mdTree.getProperty("AudioFilePath (relative)", _audioFileRelPath).toString();
 
 	fullSelfUpdate(true);
 }
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
 									juce::String audioFileHash,
-									juce::String audioAbsPath,
-									juce::String audioRelPath){
+									juce::String audioAbsPath){
 	ValueTree vt("TimbreAnalysis");
 	{
 		ValueTree md("Metadata");
 		md.setProperty("Version", ProjectInfo::versionString, nullptr);
 		md.setProperty("AudioFileHash", audioFileHash, nullptr);
 		md.setProperty("AudioFilePath (absolute)", audioAbsPath, nullptr);
-		md.setProperty("AudioFilePath (relative)", audioRelPath, nullptr);
 		md.setProperty("CreationTime", {}, nullptr);
 		md.setProperty("AnalysisSettings", {}, nullptr);
 		vt.addChild(md, 0, nullptr);
@@ -297,7 +294,7 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but what if the rest of this func fails? do we want a cleared tree at that point?
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		auto analysisResult = a->stealTimbreSpaceRepresentation();
+		const auto analysisResult = a->stealTimbreSpaceRepresentation();
 		if (!analysisResult.has_value()){
 			fmt::print("No analysis available");
 			return;
@@ -305,11 +302,12 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 		auto const &onsets = analysisResult.value().onsets;
 		auto const &tspace = analysisResult.value().timbreMeasurements;
 		auto const audioHash = analysisResult.value().audioHash;
+		_audioFileAbsPath = analysisResult.value().audioFileAbsPath;
 		if (!onsets.size()) {
 			fmt::print("Onsets have 0 length");
 			return;
 		}
-		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath, _audioFileRelPath));
+		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath));
 		signalSaveAnalysisOption();
 		signalTimbreSpaceUpdated();
 	}
@@ -327,8 +325,8 @@ void TimbreSpace::fullSelfUpdate(bool verbose){
 [[nodiscard]]
 inline std::vector<analysis::Real>
 extractFeatures(const juce::ValueTree& frameTree,
-				std::vector<analysis::Features> featuresToUse,
-				analysis::Statistic statisticToUse)
+				const std::vector<analysis::Features> &featuresToUse,
+				const analysis::Statistic statisticToUse)
 {
 	using namespace analysis;
 	std::vector<Real> out;

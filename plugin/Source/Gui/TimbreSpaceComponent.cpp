@@ -408,8 +408,7 @@ void TimbreSpaceComponent::saveAnalysis(){
 	(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
 	 [this](const juce::FileChooser& fc)
 	 {
-		auto file = fc.getResult();
-		if (file != juce::File{}) {
+		 if (auto file = fc.getResult(); file != juce::File{}) {
 			// Ensure proper extension
 			if (!file.hasFileExtension(".tsb")) {
 				file = file.withFileExtension(".tsb");

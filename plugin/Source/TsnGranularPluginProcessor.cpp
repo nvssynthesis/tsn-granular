@@ -18,7 +18,9 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
 	nvs::analysis::initializeSettingsBranches(settingsVT, false);
 
-	_analyzer.addChangeListener(&_tsnGranularSynth->getTimbreSpace());
+	// initSynth only gets called AFTER construction for reasons,
+	// so do not call anything here that requires _tsnGranularSynth to be valid (or likewise,
+	// anything that uses _granularSynth in any way).
 }
 TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	_analyzer.removeChangeListener(&_tsnGranularSynth->getTimbreSpace());
@@ -27,6 +29,7 @@ TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 void TSNGranularAudioProcessor::initSynth() {
     _granularSynth = std::make_unique<TSNGranularSynth>(apvts);
     _tsnGranularSynth = static_cast<TSNGranularSynth*>(_granularSynth.get());
+	_analyzer.addChangeListener(&_tsnGranularSynth->getTimbreSpace());
 }
 juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
     const auto ed = new TsnGranularAudioProcessorEditor (*this);
@@ -35,21 +38,20 @@ juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 
 void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+	const std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 	if (xmlState == nullptr || !xmlState->hasTagName("PLUGIN_STATE")) {
 		return;
 	}
 
 	const juce::ValueTree root = juce::ValueTree::fromXml(*xmlState);
+	apvts.replaceState(root);	// also causes _presetManager, a ValueTreeListener, to call loadAnalysisFileFromState via valueTreeRedirected
 
-	apvts.replaceState(root);
-	
 	ensureSettingsStructure();
-	loadAnalysisFileFromState();
-	
+
 	writeToLog("setStateInformation fully successful\n");
 }
 void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) const {
+	// inform plugin state of what the associated analysis file will be
 	auto fileInfo = apvts.state.getChildWithName("FileInfo");
 	if (!fileInfo.isValid()) return;
 	fileInfo.setProperty("analysisFile", filePath, nullptr);
@@ -65,11 +67,11 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
      themselves, which would allow to load analysis file and populate the settings of the plugin instance?
     */
     const auto tsTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree();
-	auto mdTree = tsTree.getChildWithName("Metadata");
-	mdTree.setProperty("sampleFilePath", apvts.state.getProperty("sampleFilePath"), nullptr);
-	mdTree.setProperty("sampleRate", apvts.state.getProperty("sampleRate"), nullptr);
-	mdTree.setProperty("waveformHash", sampleManagementGuts.getAudioHash(), nullptr);
-	mdTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
+	auto timbreSpaceMetaDataTree = tsTree.getChildWithName("Metadata");
+	timbreSpaceMetaDataTree.setProperty("sampleFilePath", apvts.state.getProperty("sampleFilePath"), nullptr);
+	timbreSpaceMetaDataTree.setProperty("sampleRate", apvts.state.getProperty("sampleRate"), nullptr);
+	timbreSpaceMetaDataTree.setProperty("waveformHash", sampleManagementGuts.getAudioHash(), nullptr);
+	timbreSpaceMetaDataTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
 	analysisVT.addChild(tsTree, 1, nullptr);
 	
 	bool success = [vt=analysisVT, filePath](bool useBinary){
@@ -115,7 +117,8 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 		writeToLog("TSN: askForAnalysis: buffer had no samples. Early exit.");
 		return;
 	}
-	_analyzer.updateWave(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()));
+	_analyzer.updateStoredAudio(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
+		getSampleFilePath());
 	
 	auto const settingsVT = apvts.state.getChildWithName("Settings");
 	auto const par = settingsVT.getParent();
@@ -176,6 +179,7 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
     /// designated directory, manual find, and give up (just perform fresh analysis)
     const auto fileInfo = apvts.state.getChildWithName("FileInfo");
+	writeToLog(nvs::util::valueTreeToXmlStringSafe(fileInfo));
     if (!fileInfo.isValid()) {
 		writeToLog("file info value tree invalid\n");
     	return false;
@@ -195,18 +199,23 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
         // TODO: Give popup opportunity for user to find the file
         return false;
     }
-	const auto sfp = getSampleFilePath();
-	std::cout << "sample file path: " << sfp << '\n';
 
     const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
 	writeToLog(nvs::util::valueTreeToXmlStringSafe(analysisFileValueTree));
 
+
     if (const auto analysisFileTree = analysisFileValueTree.getChildWithName("TimbreAnalysis");
         analysisFileTree.isValid())
     {
-        writeToLog("setting via setStateInformation");
-        _tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
-		return true;
+    	// we need to know if we even SHOULD load the analysisFile pointed to by the state
+    	if (const auto metadataTree = analysisFileTree.getChildWithName("Metadata");
+			metadataTree.isValid() &&
+			metadataTree.getProperty("waveformHash").toString() == getAudioHash())
+    	{
+    		writeToLog("setting via setStateInformation");
+    		_tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
+    		return true;
+    	}
     }
     writeToLog("analysis file tree invalid");
     return false;

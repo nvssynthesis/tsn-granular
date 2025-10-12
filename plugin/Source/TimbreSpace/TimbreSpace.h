@@ -77,7 +77,7 @@ private:
 	} settings;
 	//=============================================================================================================================
 	juce::String _audioFileHash;
-	juce::String _audioFileAbsPath, _audioFileRelPath;
+	juce::String _audioFileAbsPath;
 	//=============================================================================================================================
 	juce::Array<Timbre5DPoint> timbres5D;
     Timbre5DPoint _target {};
