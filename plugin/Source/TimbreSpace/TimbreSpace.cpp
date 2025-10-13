@@ -28,7 +28,7 @@ TimbreSpace::~TimbreSpace() {
 	treeManager.tree.removeListener(this);
 }
 
-void TimbreSpace::add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D){
+void TimbreSpace::add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D){
 	using namespace nvs::util;
 	assert(inRangeM1_1(p2D) && inRangeM1_1(p3D));
 	timbres5D.add( to5D(p2D, p3D ));
@@ -98,7 +98,7 @@ bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &) {
 	if (alteredTree.hasType("TimbreSpace")){
 		std::cout << "tree changed! redrawing points...\n";
-		settings.histogramEqualization = static_cast<double>(alteredTree.getProperty("HistogramEqualization"));
+		settings.histogramEqualization = static_cast<float>(alteredTree.getProperty("HistogramEqualization"));
 		auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
 		auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
 		std::cout << "x: " << xs << " y: " << ys << '\n';
@@ -135,8 +135,8 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &tree) {
 }
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
-									juce::String audioFileHash,
-									juce::String audioAbsPath){
+									const juce::String& audioFileHash,
+									const juce::String& audioAbsPath){
 	ValueTree vt("TimbreAnalysis");
 	{
 		ValueTree md("Metadata");
@@ -253,9 +253,9 @@ std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 	
 	normalizedOnsets.reserve(array->size());
 	
-	for (int i = 0; i < array->size(); ++i)
+	for (auto && e : *array)
 	{
-		normalizedOnsets.push_back(static_cast<float>((*array)[i]));
+		normalizedOnsets.push_back(static_cast<float>(e));
 	}
 	
 	return normalizedOnsets;
@@ -303,7 +303,7 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 		auto const &tspace = analysisResult.value().timbreMeasurements;
 		auto const audioHash = analysisResult.value().audioHash;
 		_audioFileAbsPath = analysisResult.value().audioFileAbsPath;
-		if (!onsets.size()) {
+		if (onsets.empty()) {
 			fmt::print("Onsets have 0 length");
 			return;
 		}
@@ -422,7 +422,7 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 
 void TimbreSpace::updateTimbreSpacePoints()
 {	/** to be called when the actual analyzed timbre space changes  */
-	if (eventwiseExtractedTimbrePoints.size() == 0){
+	if (eventwiseExtractedTimbrePoints.empty()){
 		std::cout << "updateAndDrawTimbreSpacePoints: timbreSpace empty, returning...\n";
 		return;
 	}
@@ -450,7 +450,7 @@ void TimbreSpace::updateTimbreSpacePoints()
 void TimbreSpace::reshape(bool verbose)
 {   /** to be called when we only want to change the VIEW of the timbre points (which will also need to happen when the timbre space itself changes) */
     
-    if (eventwiseExtractedTimbrePoints.size() == 0){     
+    if (eventwiseExtractedTimbrePoints.empty()){
         // writeToLog("drawTimbreSpacePoints: eventwiseExtractedTimbrePoints empty, returning...");
         return;
     }
@@ -472,8 +472,8 @@ void TimbreSpace::reshape(bool verbose)
         return juce::jmap(y01, -1.f, 1.f);
     };
     
-    auto squash = [](float xNorm) -> float { return std::asinh(10.0*xNorm) / (float)(M_PI); };
-    auto foo = [&](float x, std::pair<float, float> range) -> float { return squash(normalizer(x, range)); };
+    auto squash = [](const float xNorm) -> float { return std::asinh(10.0f*xNorm) / static_cast<float>((M_PI)); };
+    auto foo = [&](const float x, const std::pair<float, float> &range) -> float { return squash(normalizer(x, range)); };
     
     constexpr size_t nDim {5};
     
@@ -619,7 +619,7 @@ std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> 
 	
 	if (dmax <= 0.0) {
 		// All distances are zero - uniform weights
-		double uniformWeight = 1.0 / dv.size();
+		const double uniformWeight = 1.0 / static_cast<double>(dv.size());
 		weights.assign(dv.size(), uniformWeight);
 	} else {
 		// Apply softmax: exp(-sharpness * (distance/dmax))
@@ -698,9 +698,9 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
     jassert (idx2 < database.size());
 
 	// Get the 2D points for barycentric calculation
-	Timbre2DPoint p0 = get2D(database.getReference(idx0));
-	Timbre2DPoint p1 = get2D(database.getReference(idx1));
-	Timbre2DPoint p2 = get2D(database.getReference(idx2));
+	Timbre2DPoint p0 = get2D(database.getReference(static_cast<int>(idx0)));
+	Timbre2DPoint p1 = get2D(database.getReference(static_cast<int>(idx1)));
+	Timbre2DPoint p2 = get2D(database.getReference(static_cast<int>(idx2)));
 	
 	// Compute barycentric weights
 	auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
@@ -725,17 +725,17 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
 	
 	Timbre2DPoint targetPoint = get2D(target);
 	double minDistance = std::numeric_limits<double>::max();
-	std::array<size_t, 3> bestTriangle;
+	std::array<size_t, 3> bestTriangle {0, 1, 2};
 	
 	// Check all triangles and find the one with minimum distance to target
 	for (size_t i = 0; i < d.triangles.size(); i += 3) {
-		size_t idx0 = d.triangles[i];
-		size_t idx1 = d.triangles[i + 1];
-		size_t idx2 = d.triangles[i + 2];
+		const size_t idx0 = d.triangles[i];
+		const size_t idx1 = d.triangles[i + 1];
+		const size_t idx2 = d.triangles[i + 2];
 		
-		Timbre2DPoint p0 = get2D(database.getReference(idx0));
-		Timbre2DPoint p1 = get2D(database.getReference(idx1));
-		Timbre2DPoint p2 = get2D(database.getReference(idx2));
+		Timbre2DPoint p0 = get2D(database.getReference(static_cast<int>(idx0)));
+		Timbre2DPoint p1 = get2D(database.getReference(static_cast<int>(idx1)));
+		Timbre2DPoint p2 = get2D(database.getReference(static_cast<int>(idx2)));
 		
 		// Calculate centroid of triangle
 		Timbre2DPoint centroid = (p0 + p1 + p2) / 3.0;

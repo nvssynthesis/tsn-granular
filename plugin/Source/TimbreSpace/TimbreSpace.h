@@ -31,7 +31,7 @@ public:
 	TimbreSpace(TimbreSpace&&) noexcept = delete;
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
-	void add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D);
+	void add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D);
 	void clear();
 	juce::Array<Timbre5DPoint> const &getTimbreSpace() const { return timbres5D; }
     Timbre5DPoint getTargetPoint() const;
