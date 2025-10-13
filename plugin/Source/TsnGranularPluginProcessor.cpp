@@ -2,6 +2,7 @@
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
 #include "Analysis/Settings.h"
+#include "Analysis/OnsetAnalysis/OnsetProcessing.h"
 
 //==============================================================================
 

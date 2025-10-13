@@ -60,14 +60,14 @@ void TimbreSpace::computeExistingPointsFromTarget(int K_neighbors,
 	{
 		switch (method) {
 			case PointSelectionMethod::TRIANGULATION_BASED:
-				return findPointsTriangulationBased(_target, timbres5D, *_delaunator.get());
+				return findPointsTriangulationBased(_target, timbres5D, *_delaunator);
 				break;
 			case PointSelectionMethod::DISTANCE_BASED:
 				return findPointsDistanceBased(_target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
 				break;
 		}
 	}();
-	jassert(weightedIndices.size() > 0);
+	jassert(weightedIndices.size() == 3);
 	
 	for (auto const &widx : weightedIndices) {
 		jassert(0 <= widx.idx);
@@ -678,8 +678,8 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	}
 	
 	// Find triangle containing the target point
-	Timbre2DPoint targetPoint = get2D(target);
-	auto triangleOpt = findContainingTriangle(d, targetPoint);
+	const Timbre2DPoint targetPoint = get2D(target);
+	const auto triangleOpt = findContainingTriangle(d, targetPoint);
 	
 	if (!triangleOpt.has_value()) {
 		// Target point is outside the convex hull
@@ -688,11 +688,15 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	}
 	
 	// Get the triangle vertices
-	auto triangle = triangleOpt.value();
-	size_t idx0 = triangle[0];
-	size_t idx1 = triangle[1];
-	size_t idx2 = triangle[2];
-	
+	const auto triangle = triangleOpt.value();
+	const size_t idx0 = triangle[0];
+	const size_t idx1 = triangle[1];
+	const size_t idx2 = triangle[2];
+
+    jassert (idx0 < database.size());
+    jassert (idx1 < database.size());
+    jassert (idx2 < database.size());
+
 	// Get the 2D points for barycentric calculation
 	Timbre2DPoint p0 = get2D(database.getReference(idx0));
 	Timbre2DPoint p1 = get2D(database.getReference(idx1));
@@ -707,7 +711,7 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	result.emplace_back(idx0, weights[0]);
 	result.emplace_back(idx1, weights[1]);
 	result.emplace_back(idx2, weights[2]);
-	
+
 	return result;
 }
 

@@ -22,12 +22,11 @@
 
 namespace nvs::analysis {
 
-namespace {
 template<typename T>
 using FeatureContainerMemberPtr = T FeatureContainer<T>::*;
-}
+
 template<typename T>
-inline auto makeScalarLookup() {
+auto makeScalarLookup() {
 	// index this array by (enumValue - NumBFCC)
 	// so scalarIndex = enumValue - NumBFCC must be 0..ScalarCount-1
 	static_assert(static_cast<int>(Features::Periodicity) == NumBFCC + 0);
@@ -45,7 +44,7 @@ inline auto makeScalarLookup() {
 
 template<typename T>
 [[nodiscard]]
-inline std::vector<T>
+std::vector<T>
 extractFeatures(FeatureContainer<T> const & allFeatures,
 				std::vector<Features> featuresToUse)
 {
@@ -67,7 +66,6 @@ extractFeatures(FeatureContainer<T> const & allFeatures,
 			v.push_back(allFeatures.*(scalarTable[scalarIndex]));
 		}
 	}
-
 	return v;
 }
 
@@ -101,21 +99,23 @@ private:
 	nvs::ess::EssentiaInitializer ess_init;	  // this MUST be initialized before EssentiaHolder.
 public:
 	Analyzer();
-	
-	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit);
-	
-	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent);
-	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent);
-	EventwiseStatistics<float> calculateEventwiseLoudness(vecReal const &v);
+	using EventwiseStats = EventwiseStatistics<Real>;
 
-	std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
-																										  RunLoopStatus& rls, ShouldExitFn shouldExit);
+	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit) const;
 	
-	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStatistics<Real>>> const &allFeatures, std::vector<Features> featuresToUse, Statistic statToUse);
+	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent) const;
+	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent) const;
+	EventwiseStats calculateEventwiseLoudness(vecReal const &v) const;
+
+	std::optional<std::vector<FeatureContainer<EventwiseStats>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
+																										  RunLoopStatus& rls, const ShouldExitFn &shouldExit) const;
+	
+	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStats>> const &allFeatures,
+	    const std::vector<Features> &featuresToUse, Statistic statToUse) const;
 	
 	float getAnalyzedFileSampleRate() const;
 
-	bool updateSettings(juce::ValueTree newSettings);
+	bool updateSettings(const juce::ValueTree &newSettings);
 	AnalyzerSettings const &getSettings() const;
 	
 	nvs::ess::EssentiaHolder ess_hold;
@@ -123,53 +123,8 @@ private:
 	AnalyzerSettings settings;
 };
 
-inline double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
+double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
 	return static_cast<double>(lengthInSamples / sampleRate);
-}
-
-inline void filterOnsets(std::vector<float> &onsetsInSeconds, double lengthInSeconds, float minimumOnsetDeltaSeconds = 0.02f)
-{
-	assert( std::is_sorted(onsetsInSeconds.begin(), onsetsInSeconds.end()) );
-	{	// filter out onsets that exceed the file length (taking into account minimum onset delta)
-		
-		// starting at end, count onsets exceeding lengthInSeconds
-		size_t numProperOnsets = onsetsInSeconds.size();
-		for (auto it = onsetsInSeconds.rbegin(); it != onsetsInSeconds.rend(); ++it){
-			if (*it > (lengthInSeconds - minimumOnsetDeltaSeconds)){
-				--numProperOnsets;
-			}
-			else {	// since the vector is sorted, we know that there are no more exceeding the proper length
-				break;
-			}
-		}
-		onsetsInSeconds.resize(numProperOnsets);
-		
-	}
-	// filter out redundant onsets (can be defined by onsets which are too close together)
-	{
-		auto new_end = std::unique(onsetsInSeconds.begin(), onsetsInSeconds.end(), [minimumOnsetDeltaSeconds](float a, float b){
-			return (b - a) < minimumOnsetDeltaSeconds;
-		});
-		onsetsInSeconds.erase(new_end, onsetsInSeconds.end());	// erase from new end to original end
-	}
-}
-
-inline void normalizeOnsets(std::vector<float> &onsetsInSeconds, const double lengthInSeconds) {
-	std::ranges::transform(onsetsInSeconds,	// formerly terminated via begin() + numProperOnsets
-	                       onsetsInSeconds.begin(),
-	                       [lengthInSeconds](const double f)
-	                       {
-		                       const double res = f / lengthInSeconds;
-		                       assert(res <= 1.0);
-		                       return res;
-	                       });
-}
-
-inline void denormalizeOnsets(std::vector<float> &normalizedOnsets, const double lengthInSeconds) {
-	std::ranges::transform(normalizedOnsets, normalizedOnsets.begin(),
-						  [lengthInSeconds](const double f) {
-							  return f * lengthInSeconds;
-						  });
 }
 
 vecVecReal truncate(vecVecReal const &V, size_t trunc);

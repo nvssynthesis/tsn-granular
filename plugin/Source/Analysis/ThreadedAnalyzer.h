@@ -31,7 +31,7 @@ public:
 	ThreadedAnalyzer();
 	~ThreadedAnalyzer() override;
 	//===============================================================================
-	void updateStoredAudio(std::span<float const> wave, juce::String audioFileAbsPath);
+	void updateStoredAudio(std::span<float const> wave, const juce::String &audioFileAbsPath);
 	void updateSettings(const juce::ValueTree &settingsTree);
 	//===============================================================================
 	void run() override;
@@ -51,8 +51,6 @@ private:
 	std::optional<AnalysisResult> _analysisResult;
 	juce::String _settingsHash {};
 	juce::String _audioFileAbsPath {};
-
-	std::atomic<bool> analysisError{false};
 
 	RunLoopStatus _rls;
 };
