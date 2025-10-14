@@ -18,11 +18,11 @@ namespace nvs::analysis {
 class RunLoopStatus 	:	public juce::ChangeBroadcaster
 {
 public:
-	void set(juce::String newMessage){
+	void set(const juce::String &newMessage){
 		message = newMessage;
 		sendChangeMessage();
 	}
-	void set(double newProgress){
+	void set(const double newProgress){
 		progress = newProgress;
 		sendChangeMessage();
 	}

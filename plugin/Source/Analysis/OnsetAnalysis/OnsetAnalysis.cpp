@@ -32,7 +32,8 @@ vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real co
 array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  streamingFactory const &factory,
 						  AnalyzerSettings const &settings,
-						  RunLoopStatus& rls, ShouldExitFn shouldExit)
+						  RunLoopStatus& rls,
+						  const ShouldExitFn &shouldExit)
 {
 	auto const input_sr     = settings.analysis.sampleRate;
 	assert(0.0 < input_sr);
@@ -183,9 +184,9 @@ std::vector<juce::String> getOnsetWeightKeys()
 }
 
 #pragma message("make this work with StreamingFactory")
-vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix,
-								 standardFactory const &factory,
-								 AnalyzerSettings const &settings)
+vecReal calculateOnsetsInSeconds(const array2dReal &onsetAnalysisMatrix,
+								 const standardFactory &factory,
+								 const AnalyzerSettings &settings)
 {
 	/* assuming that the onsetAnalysisMatrix was derived from the above onsetAnalysis,
 	 (which is beyond likely in this codebase because it's not so trivial to construct that array2dReal),
@@ -225,10 +226,11 @@ vecReal calculateOnsetsInSeconds(array2dReal onsetAnalysisMatrix,
 	return onsets;
 }
 
-vecVecReal featuresForSbic(vecReal const &waveform,
-						   AlgorithmFactory const &factory,
-						   AnalyzerSettings const &settings,
-						   RunLoopStatus& rls, ShouldExitFn shouldExit)
+vecVecReal featuresForSbic(const vecReal &waveform,
+						   const AlgorithmFactory &factory,
+						   const AnalyzerSettings &settings,
+						   RunLoopStatus& rls,
+						   const ShouldExitFn &shouldExit)
 {
 	vectorInput *inVec = new vectorInput(&waveform);
 
@@ -236,8 +238,8 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 	assert (0.0 < sr);
 	int const frameSize = settings.analysis.frameSize;
 	int const hopSize = settings.analysis.hopSize;
-	
-	float const validFrameThresholdRatio = 0.f;
+
+    constexpr float validFrameThresholdRatio = 0.f;
 	
 	int const zeroPadding = frameSize;
 	
@@ -311,8 +313,8 @@ vecVecReal featuresForSbic(vecReal const &waveform,
 	return BFCCs[0];	// the only dimension that was used
 }
 
-vecReal sBic(array2dReal featureMatrix, standardFactory const &factory,
-			 AnalyzerSettings const &settings){
+vecReal sBic(const array2dReal &featureMatrix, const standardFactory &factory,
+			 const AnalyzerSettings &settings){
 
 	standard::Algorithm* sbic = factory.create (
 		"SBic",
@@ -331,10 +333,10 @@ vecReal sBic(array2dReal featureMatrix, standardFactory const &factory,
 	return segmentationVec;
 }
 
-vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSeconds,
-							   streamingFactory const &factory,
-							   AnalyzerSettings const &settings,
-							   RunLoopStatus& rls, ShouldExitFn shouldExit){
+vecVecReal splitWaveIntoEvents(const vecReal&wave, const vecReal&onsetsInSeconds,
+							   const streamingFactory &factory,
+							   const AnalyzerSettings &settings,
+							   RunLoopStatus& rls, const ShouldExitFn &shouldExit){
 	size_t const numOnsets {onsetsInSeconds.size()};
 	assert(numOnsets);
 	if (numOnsets == 1){	// only 1 event
@@ -394,9 +396,10 @@ vecVecReal splitWaveIntoEvents(vecReal const &wave, vecReal const &onsetsInSecon
 	return waveEvents;
 }
 
-void writeWav(vecReal const &wave, std::string_view name, streamingFactory const &factory,
-			  AnalyzerSettings const &settings,
-			  RunLoopStatus& rls, ShouldExitFn shouldExit)
+void writeWav(const vecReal&wave, const std::string_view name, const streamingFactory &factory,
+			  const AnalyzerSettings &settings,
+			  RunLoopStatus& rls,
+			  const ShouldExitFn &shouldExit)
 {
 	float const sr = settings.analysis.sampleRate;
 	jassert (sr > 20000.f);
@@ -416,14 +419,15 @@ void writeWav(vecReal const &wave, std::string_view name, streamingFactory const
 	}
 	n.clear();
 }
-void writeWavs(vecVecReal const &waves, std::string_view defName, streamingFactory const &factory,
-			   AnalyzerSettings const &settings, RunLoopStatus& rls, ShouldExitFn shouldExit)
+void writeWavs(const vecVecReal &waves, const std::string_view defName, const streamingFactory &factory,
+			   const AnalyzerSettings &settings,
+			   RunLoopStatus& rls,
+			   const ShouldExitFn &shouldExit)
 {
 	int idx = 0;
 	std::string name(defName);
-	std::string strIdx;
-	for (auto const &wave : waves){
-		strIdx = std::to_string(idx);
+    for (auto const &wave : waves){
+		std::string strIdx = std::to_string(idx++);
 		name += strIdx;					// add index to name
 		
 		writeWav(wave, name, factory, settings, rls, shouldExit);

@@ -382,7 +382,7 @@ vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_feat
 	return PCAmat;
 }
 
-std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim){
+std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, const size_t dim){
 	Real min {std::numeric_limits<Real>::max()};
 	Real max {std::numeric_limits<Real>::lowest()};
 	
@@ -399,7 +399,7 @@ std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim)
 	return std::make_pair(min, max);
 }
 
-Real calculateNormalizationMultiplier(std::pair<Real, Real> range){
+Real calculateNormalizationMultiplier(const std::pair<Real, Real> &range){
 	return 1.f / std::max(std::abs(range.first), std::abs(range.second));
 }
 

@@ -9,7 +9,7 @@
 */
 
 #include "Analysis/Analyzer.h"
-#include <numeric>
+#include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 #include <concepts>
 
 namespace nvs::analysis {
@@ -41,14 +41,14 @@ float Analyzer::getAnalyzedFileSampleRate() const {
     return settings.analysis.sampleRate;
 }
 
-std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, RunLoopStatus& rls, ShouldExitFn shouldExit) const {
+std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, RunLoopStatus& rls, const ShouldExitFn &shouldExit) const {
     if (!wave.size()){
         return std::nullopt;
     }
 
     analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settings, rls, shouldExit);
     std::cout << "analyzed onsets\n";
-    essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
+    const essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 
 #pragma message("it is a problem that we have not the ability to inject a runLoopCallback here, since onsetsInSeconds uses StandardFactory instead of StreamingFactory")
 
@@ -162,7 +162,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
 
 std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
                                                  const std::vector<Features> &featuresToUse,
-                                                 Statistic statToUse) const
+                                                 const Statistic statToUse) const
 {
     if (allFeatures.size() < 2){	// can't perform PCA with 1 sample
         return std::nullopt;
@@ -172,7 +172,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContai
     V.reserve(allFeatures.size());
 
     for (const auto &f : allFeatures){
-        V.push_back(extractFeatures(f, featuresToUse, Statistic::Median));
+        V.push_back(extractFeatures(f, featuresToUse, statToUse));
     }
 
     vecVecReal pca = PCA(V, ess_hold.standardFactory, 6);
@@ -180,7 +180,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContai
     return pca;
 }
 
-vecVecReal truncate(const vecVecReal &V, size_t trunc){
+vecVecReal truncate(const vecVecReal &V, const size_t trunc){
     if (V.size() < trunc){
         return V;
     }
@@ -211,7 +211,7 @@ vecVecReal transpose(const vecVecReal &V){
 void writeEventsToWav(const vecReal &wave,
                       const std::vector<float> &onsetsInSeconds,
                       std::string_view ogPath,
-                      Analyzer &analyzer,
+                      const Analyzer &analyzer,
                       RunLoopStatus& rls,
                       ShouldExitFn shouldExit)
 {

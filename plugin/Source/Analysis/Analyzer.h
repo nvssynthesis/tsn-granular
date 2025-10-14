@@ -13,7 +13,6 @@
 #include <algorithm>
 #include <JuceHeader.h>
 #include "RunLoopStatus.h"
-#include "OnsetAnalysis/OnsetAnalysis.h"
 #include "TimbreAnalysis/TimbreAnalysis.h"
 #include "Features.h"
 #include "Statistics.h"
@@ -45,8 +44,8 @@ auto makeScalarLookup() {
 template<typename T>
 [[nodiscard]]
 std::vector<T>
-extractFeatures(FeatureContainer<T> const & allFeatures,
-				std::vector<Features> featuresToUse)
+extractFeatures(const FeatureContainer<T> & allFeatures,
+				const std::vector<Features> featuresToUse)
 {
 	std::vector<T> v;
 	v.reserve(featuresToUse.size());
@@ -72,10 +71,10 @@ extractFeatures(FeatureContainer<T> const & allFeatures,
 [[nodiscard]]
 inline std::vector<Real>
 extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
-				std::vector<Features> featuresToUse,
-				Statistic statisticToUse)
+				const std::vector<Features> &featuresToUse,
+				const Statistic statisticToUse)
 {
-	auto descs = extractFeatures(allFeatures, featuresToUse);
+	const auto descriptions = extractFeatures(allFeatures, featuresToUse);
 	Real EventwiseStatistics<Real>::* ptr = nullptr;
 	switch (statisticToUse) {
 		case Statistic::Mean:     ptr = &EventwiseStatistics<Real>::mean;    	break;
@@ -88,8 +87,8 @@ extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
 	}
 	
 	std::vector<Real> out;
-	out.reserve(descs.size());
-	for (auto const & d : descs) {
+	out.reserve(descriptions.size());
+	for (auto const & d : descriptions) {
 		out.push_back(d.*ptr);
 	}
 	return out;
@@ -102,11 +101,11 @@ public:
 	Analyzer();
 	using EventwiseStats = EventwiseStatistics<Real>;
 
-	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, ShouldExitFn shouldExit) const;
+	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, const ShouldExitFn &shouldExit) const;
 	
 	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent) const;
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent) const;
-	EventwiseStats calculateEventwiseLoudness(vecReal const &v) const;
+	EventwiseStats calculateEventwiseLoudness(vecReal const &waveEvent) const;
 
 	std::optional<std::vector<FeatureContainer<EventwiseStats>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
 																										  RunLoopStatus& rls, const ShouldExitFn &shouldExit) const;
@@ -147,6 +146,6 @@ vecReal binwiseStatistic(vecVecReal const &V, Func statisticFunc) {
 	return results;
 }
 
-void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, Analyzer &analyzer, RunLoopStatus& rls, ShouldExitFn shouldExit);
+void writeEventsToWav(vecReal const &wave, std::vector<float> const &onsetsInSeconds, std::string_view ogPath, const Analyzer &analyzer, RunLoopStatus& rls, ShouldExitFn shouldExit);
 
 }	// namespace nvs::analysis
