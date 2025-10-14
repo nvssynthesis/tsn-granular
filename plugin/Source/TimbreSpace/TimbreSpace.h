@@ -38,15 +38,8 @@ public:
 	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const { return currentPointIndices; }
 	std::optional<std::vector<float>> getOnsets() const;
 	//=============================================================================================================================
-	enum class PointSelectionMethod {
-		DISTANCE_BASED,
-		TRIANGULATION_BASED
-	};
 	void setTargetPoint(const Timbre5DPoint& target);
-    void computeExistingPointsFromTarget(int K_neighbors,
-										 double sharpness,
-										 float higher3Dweight,
-										 PointSelectionMethod method = PointSelectionMethod::TRIANGULATION_BASED);
+    void computeExistingPointsFromTarget();
 	//=============================================================================================================================
 	using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
 	using ValueTree = juce::ValueTree;

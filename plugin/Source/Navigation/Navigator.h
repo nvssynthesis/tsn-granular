@@ -65,18 +65,26 @@ enum class NavigationType_e {
     Lorenz
 };
 
-const inline std::map<NavigationType_e, juce::String> navigationTypeToStringMap
-{
-    {NavigationType_e::LFO, "LFO"},
-    {NavigationType_e::RandomWalk, "RandomWalk"},
-    {NavigationType_e::Lorenz, "Lorenz"}
-};
-const inline std::map<juce::String, NavigationType_e> stringToNavigationTypeMap
-{
-    {"LFO", NavigationType_e::LFO},
-    {"RandomWalk", NavigationType_e::RandomWalk},
-    {"Lorenz", NavigationType_e::Lorenz}
-};
+inline const juce::StringArray &getNavigationTypeNames() {
+    static const auto names = []() -> juce::StringArray {
+        return {"LFO", "RandomWalk", "Lorenz"};
+    }();
+    return names;
+}
+
+
+// const inline std::map<NavigationType_e, juce::String> navigationTypeToStringMap
+// {
+//     {NavigationType_e::LFO, "LFO"},
+//     {NavigationType_e::RandomWalk, "RandomWalk"},
+//     {NavigationType_e::Lorenz, "Lorenz"}
+// };
+// const inline std::map<juce::String, NavigationType_e> stringToNavigationTypeMap
+// {
+//     {"LFO", NavigationType_e::LFO},
+//     {"RandomWalk", NavigationType_e::RandomWalk},
+//     {"Lorenz", NavigationType_e::Lorenz}
+// };
 
 
 template<typename Point_t>

@@ -48,8 +48,8 @@ private:
 class RandomWalk1D
 {
 public:
-	RandomWalk1D(double initial = 0.0, double stepSize = 1e-3)
-		: current(initial), stepSize(stepSize), rng(std::random_device{}())
+	RandomWalk1D(const double initial = 0.0, const double stepSize = 1e-3)
+		: _current(initial), _stepSize(stepSize), _rng(std::random_device{}())
 	{}
 
 	/**
@@ -63,47 +63,47 @@ public:
 	double step()
 	{
 		// 1) direction bias back toward 0
-		double pUp = (tendency - current) * 0.5 + 0.5;
+		const double pUp = (_tendency - _current) * 0.5 + 0.5;
 
 		// 2) magnitude biased to extremes via sqrt transform
-		double u = uni(rng);
-		double magnitude = std::sqrt(u) * stepSize;
+		const double u = _uni(_rng);
+		const double magnitude = std::sqrt(u) * _stepSize;
 
 		// 3) direction
-		bool up = (uni(rng) < pUp);
-		double accumVal = (up ? magnitude : -magnitude);
+		const bool up = (_uni(_rng) < pUp);
+		const double accumVal = (up ? magnitude : -magnitude);
 
 		// 4) apply and clamp
-		current += accumVal;
-		if (current >  1.0) current =  1.0;
-		if (current < -1.0) current = -1.0;
-		return current;
+		_current += accumVal;
+		if (_current >  1.0) _current =  1.0;
+		if (_current < -1.0) _current = -1.0;
+		return _current;
 	}
 
-	void reset(double newValue = 0.0)
+	void reset(const double newValue = 0.0)
 	{
-		current = newValue;
+		_current = newValue;
 	}
 
-	double getCurrent() const noexcept { return current; }
+	double getCurrent() const noexcept { return _current; }
 
-	void setTendency(double newTendency)
+	void setTendency(const double newTendency)
 	{
-		tendency = std::clamp(newTendency, -1.0, 1.0);
+		_tendency = std::clamp(newTendency, -1.0, 1.0);
 	}
 	
-	void setStepSize(double newStepSize)
+	void setStepSize(const double newStepSize)
 	{
 		jassert ((newStepSize >= 0.0) and (newStepSize <= 1.0));
-		stepSize = newStepSize;
+		_stepSize = newStepSize;
 	}
 
 private:
-	double current;
-	double stepSize;
-	double tendency;            // bias target in [-1,1]
-	std::mt19937 rng;
-	std::uniform_real_distribution<double> uni;
+	double _current;
+	double _stepSize;
+	double _tendency;            // bias target in [-1,1]
+	std::mt19937 _rng;
+	std::uniform_real_distribution<double> _uni;
 };
 
 template<typename T>

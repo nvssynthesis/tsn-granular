@@ -112,12 +112,8 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
 
     const auto &apvts = _synth_shared_state._apvts;
 
-    const float K_neighbors = *apvts.getRawParameterValue("nav_selection_neighborhood");
-    const float sharpness = *apvts.getRawParameterValue("nav_selection_sharpness");
-    const float higher3Dweight = 0.05f;
-
     _timbreSpace.setTargetPoint(p5D);
-    _timbreSpace.computeExistingPointsFromTarget(K_neighbors, sharpness, higher3Dweight, TimbreSpace::PointSelectionMethod::TRIANGULATION_BASED);
+    _timbreSpace.computeExistingPointsFromTarget();
 
     setReadBoundsFromChosenPoint();
 

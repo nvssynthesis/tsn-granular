@@ -12,27 +12,53 @@
 
 #include "Navigation/Navigator.h"
 
-NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::String paramsSubGroup)
+NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts,
+                               const juce::String &paramsSubGroup,
+                               const bool isHorizontal)
+    : horizontal(isHorizontal)
 {
-	for (auto &p : nvs::param::ParameterRegistry::getParametersForSubGroup(paramsSubGroup)){
-		auto slider = std::make_unique<AttachedSlider>(apvts, p, juce::Slider::SliderStyle::LinearVertical);
-		addAndMakeVisible(slider.get());
-		sliders.push_back(std::move(slider));
-	}
+    for (auto &p : nvs::param::ParameterRegistry::getParametersForSubGroup(paramsSubGroup)){
+        if (p.getParameterType() == nvs::param::ParameterType::Float) {
+            auto slider = std::make_unique<AttachedSlider>(apvts, p, isHorizontal ? Slider::SliderStyle::LinearVertical : Slider::SliderStyle::LinearHorizontal);
+            addAndMakeVisible(slider.get());
+            components.push_back(std::move(slider));
+        }
+        else if (p.getParameterType() == nvs::param::ParameterType::Choice) {
+            auto cb = std::make_unique<AttachedComboBox>(apvts, p);
+            addAndMakeVisible(cb.get());
+            components.push_back(std::move(cb));
+        }
+    }
 }
+
 void NavigatorPanel::resized()
 {
-	auto localBounds = getLocalBounds();
-	int const alottedCompHeight = localBounds.getHeight();
-	auto const sliderHeight = alottedCompHeight * 0.8;
-	auto const labelHeight = alottedCompHeight - sliderHeight;
-	int const alottedCompWidth = localBounds.getWidth() / sliders.size();
-	
-	for (size_t i = 0; i < sliders.size(); ++i){
-		int left = (int)i * alottedCompWidth + localBounds.getX();
-		auto const s = sliders[i].get();
-		s->setBounds(left, 0, alottedCompWidth, alottedCompHeight);
-	}
+    const auto localBounds = getLocalBounds();
+
+    if (horizontal) {
+        // Left to right layout
+        int const allottedCompHeight = localBounds.getHeight();
+        auto const sliderHeight = allottedCompHeight * 0.8;
+        auto const labelHeight = allottedCompHeight - sliderHeight;
+        int const allottedCompWidth = localBounds.getWidth() / components.size();
+
+        for (size_t i = 0; i < components.size(); ++i){
+            const int left = static_cast<int>(i) * allottedCompWidth + localBounds.getX();
+            auto const comp = components[i].get();
+            comp->setBounds(left, 0, allottedCompWidth, allottedCompHeight);
+        }
+    }
+    else {
+        // Top to bottom layout
+        int const allottedCompWidth = localBounds.getWidth();
+        int const allottedCompHeight = localBounds.getHeight() / static_cast<int>(components.size());
+
+        for (size_t i = 0; i < components.size(); ++i){
+            const int top = static_cast<int>(i) * allottedCompHeight + localBounds.getY();
+            auto const comp = components[i].get();
+            comp->setBounds(0, top, allottedCompWidth, allottedCompHeight);
+        }
+    }
 }
 void NavigatorPanel::paint(juce::Graphics &g) {
 	g.setColour(juce::Colours::whitesmoke.withAlpha(0.33f));
@@ -47,14 +73,8 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
 
 	addAndMakeVisible(navigatorTypeMenu);
 
-	for (const auto& [navType, str] : nvs::timbrespace::navigationTypeToStringMap)
-	{
-	    const auto id = static_cast<int>(navType) + 1;
-	    std::cout << "str: " << str << " id: " << id << std::endl;
-		navigatorTypeMenu._comboBox.addItem(str, id);
-	}
-	selPanel = std::make_unique<NavigatorPanel>(_apvts, "selection");
-	addAndMakeVisible(selPanel.get());
+	timbreSpacePanel = std::make_unique<NavigatorPanel>(_apvts, "timbre_space", false);
+	addAndMakeVisible(timbreSpacePanel.get());
     navigatorTypeMenu._comboBox.addListener(this);
 }
 NavigatorPage::~NavigatorPage() = default;
@@ -75,7 +95,7 @@ void NavigatorPage::comboBoxChanged(ComboBox *comboBoxThatHasChanged) {
         repaint();
     }
 }
-void NavigatorPage::paint(juce::Graphics &g) {
+void NavigatorPage::paint(juce::Graphics &) {
     if (navPanel != nullptr) {
         navPanel->setBounds(navPanelBounds);
     }
@@ -105,8 +125,8 @@ void NavigatorPage::resized() {
 			bounds.getHeight()
 		};
 		
-		if (selPanel != nullptr){
-			selPanel->setBounds(left);
+		if (timbreSpacePanel != nullptr){
+			timbreSpacePanel->setBounds(left);
 		}
 		navPanelBounds = right;
 	}

@@ -49,24 +49,12 @@ void TimbreSpace::setTargetPoint(const Timbre5DPoint& target) {
     _target = target;
 }
 // Modified main function with method parameter
-void TimbreSpace::computeExistingPointsFromTarget(int K_neighbors,
-												  double sharpness,
-												  float higher3Dweight,
-												  PointSelectionMethod method)
+void TimbreSpace::computeExistingPointsFromTarget()
 {
 	if (timbres5D.size() == 0) { return; }
-	
-	std::vector<util::WeightedIdx> const weightedIndices = [this, K_neighbors, sharpness, higher3Dweight, method]()
-	{
-		switch (method) {
-			case PointSelectionMethod::TRIANGULATION_BASED:
-				return findPointsTriangulationBased(_target, timbres5D, *_delaunator);
-				break;
-			case PointSelectionMethod::DISTANCE_BASED:
-				return findPointsDistanceBased(_target, timbres5D, K_neighbors, 3, sharpness, higher3Dweight);
-				break;
-		}
-	}();
+    if (_delaunator == nullptr) { return; }
+
+	std::vector<util::WeightedIdx> const weightedIndices = findPointsTriangulationBased(_target, timbres5D, *_delaunator);
 	jassert(weightedIndices.size() == 3);
 	
 	for (auto const &widx : weightedIndices) {
@@ -99,8 +87,8 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
 	if (alteredTree.hasType("TimbreSpace")){
 		std::cout << "tree changed! redrawing points...\n";
 		settings.histogramEqualization = static_cast<float>(alteredTree.getProperty("HistogramEqualization"));
-		auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
-		auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
+		const auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
+		const auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
 		std::cout << "x: " << xs << " y: " << ys << '\n';
 		settings.dimensionWisefeatures[0] = nvs::analysis::toFeature(xs);
 		settings.dimensionWisefeatures[1] = nvs::analysis::toFeature(ys);
@@ -344,7 +332,7 @@ extractFeatures(const juce::ValueTree& frameTree,
 	}
 	
 	for (auto f : featuresToUse) {
-		int idx = static_cast<int>(f);
+		const int idx = static_cast<int>(f);
 		Real value = 0.0f;
 		
 		if (0 <= idx && idx < NumBFCC) {

@@ -83,6 +83,7 @@ extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
 		case Statistic::Variance: ptr = &EventwiseStatistics<Real>::variance;	break;
 		case Statistic::Skewness: ptr = &EventwiseStatistics<Real>::skewness;	break;
 		case Statistic::Kurtosis: ptr = &EventwiseStatistics<Real>::kurtosis;	break;
+	    case Statistic::NumStatistics: jassertfalse; break;
 		default: jassertfalse;
 	}
 	

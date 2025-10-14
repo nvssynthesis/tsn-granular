@@ -47,7 +47,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 		popupSettings(false);
 	};
 	
-	tabbedPages.addTab("Navigator", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS()), true);
+	tabbedPages.addTab("TSN", juce::Colours::transparentWhite, new NavigatorPage(audioProcessor.getAPVTS()), true);
 	tabbedPages.moveTab(3, -1);	// fx, which is added in basic TabbedPages constructor (used already in slicer version), should still be last tab
 	
 	addAndMakeVisible(tabbedPages);

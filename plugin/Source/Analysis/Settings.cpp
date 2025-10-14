@@ -13,22 +13,16 @@
 
 namespace nvs::analysis {
 
-
-juce::NormalisableRange<double> makePowerOfTwoRange (double minValue, double maxValue)
+static juce::NormalisableRange<double> makePowerOfTwoRange (double minValue, double maxValue)
 {
-	auto minLog = std::log2 (minValue), maxLog = std::log2 (maxValue);
-	return {
-		minValue, maxValue,
-		[=] (double s, double e, double n) { return std::pow (2.0, juce::jmap (n, 0.0, 1.0, minLog, maxLog)); },
-		[=] (double s, double e, double v) { return juce::jmap (std::log2(v), minLog, maxLog, 0.0, 1.0); },
-		[] (double s, double e, double v) { auto c=juce::jlimit(s, e, v); return std::pow(2.0,std::round(std::log2(double(c)))); }
-	};
+    auto minLog = std::log2 (minValue), maxLog = std::log2 (maxValue);
+    return {
+        minValue, maxValue,
+        [=] (double, double, double n) { return std::pow (2.0, juce::jmap (n, 0.0, 1.0, minLog, maxLog)); },
+        [=] (double, double, double v) { return juce::jmap (std::log2(v), minLog, maxLog, 0.0, 1.0); },
+        [] (double s, double e, double v) { auto c=juce::jlimit(s, e, v); return std::pow(2.0,std::round(std::log2(double(c)))); }
+    };
 }
-using AnyRangeWithDefault = std::variant<
-	RangeWithDefault<int>,
-	RangeWithDefault<double>
->;
-
 
 const std::map<juce::String, AnySpec> analysisSpecs
 {
@@ -90,12 +84,6 @@ const std::map<juce::String, AnySpec> splitSpecs
 	{ "fadeOutSamps", RangeWithDefault<int>{ {0,10000,1,1}, 5 } }
 };
 
-const std::map<juce::String, AnySpec> timbreSpaceSpecs {
-	{ "xAxis", 					ChoiceWithDefault{ buildFeatureChoiceVec(), 	"bfcc1" } },
-	{ "yAxis", 					ChoiceWithDefault{ buildFeatureChoiceVec(), 	"bfcc2" } },
-	{ "HistogramEqualization", 	RangeWithDefault<double>{{0.0, 1.0, 0.001, 1.0}, 	0.0}}
-};
-
 const std::map<juce::String, const std::map<juce::String,AnySpec>*>
 	specsByBranch
 {
@@ -105,7 +93,6 @@ const std::map<juce::String, const std::map<juce::String,AnySpec>*>
 	{ "sBic",     &sBicSpecs     },
 	{ "Pitch",    &pitchSpecs    },
 	{ "Split",    &splitSpecs    },
-	{ "TimbreSpace", &timbreSpaceSpecs}
 };
 
 void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
@@ -310,10 +297,7 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 		jassertfalse;
 		return false;
 	}
-	settings.timbreSpace.histogramEqualization = timbreSpaceNode.getProperty("HistogramEqualization");
-	settings.timbreSpace.xAxis = timbreSpaceNode.getProperty("xAxis").toString();
-	settings.timbreSpace.yAxis = timbreSpaceNode.getProperty("yAxis").toString();
-	
+
 	// sBic settings
 	auto sBicNode = settingsTree.getChildWithName("sBic");
 	if (!sBicNode.isValid()) {
@@ -337,6 +321,5 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	
 	return true;
 }
-
 
 }	// namespace nvs::analysis

@@ -40,9 +40,9 @@ constexpr int NumBFCC = 13;
 typedef nvs::util::Iterator<Features, Features::bfcc0, Features::f0> featuresIterator;
 
 inline juce::String toString(Features f){
-	if (int(f) < NumBFCC){
+	if (static_cast<int>(f) < NumBFCC){
 		juce::String s = "bfcc";
-		s += int(f);
+		s += static_cast<int>(f);
 		return s;
 	}
 	switch (f) {
@@ -76,13 +76,15 @@ inline Features toFeature(juce::String s){
 	return Features::bfcc0;
 }
 
-inline std::vector<juce::String> buildFeatureChoiceVec() {
-	std::vector<juce::String> features;
-	features.reserve(static_cast<size_t>(Features::NumFeatures));
-	for (auto f : featuresIterator()){
-		features.push_back(toString(f));
-	}
-	return features;
+inline const juce::StringArray& getFeatureChoiceVec() {
+    static const auto features = [] -> juce::StringArray {
+        StringArray result;
+        for (const auto f : featuresIterator()) {
+            result.add(toString(f));
+        }
+        return result;
+    }();
+    return features;
 }
 
 const std::set<Features> bfccSet {

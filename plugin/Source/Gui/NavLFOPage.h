@@ -17,11 +17,12 @@
 class NavigatorPanel	:	public juce::Component
 {
 public:
-	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, juce::String paramsSubGroup);
+	NavigatorPanel(juce::AudioProcessorValueTreeState &apvts, const juce::String &paramsSubGroup, bool isHorizontal=true);
 	void paint(juce::Graphics &g) override;
 	void resized() override;
 private:
-	std::vector<std::unique_ptr<AttachedSlider>> sliders;
+	std::vector<std::unique_ptr<juce::Component>> components;
+    bool horizontal;
 };
 
 class NavigatorPage :	public juce::Component
@@ -38,7 +39,7 @@ private:
 	AttachedComboBox navigatorTypeMenu;
     void comboBoxChanged(ComboBox *comboBoxThatHasChanged) override;
 
-	std::unique_ptr<NavigatorPanel> selPanel;
+	std::unique_ptr<NavigatorPanel> timbreSpacePanel;
 	std::unique_ptr<NavigatorPanel> navPanel;
     juce::Rectangle<int> navPanelBounds;
 };

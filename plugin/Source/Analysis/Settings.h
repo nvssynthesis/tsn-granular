@@ -97,13 +97,7 @@ struct AnalyzerSettings {
 		int fadeInSamps = 5;
 		int fadeOutSamps = 5;
 	} split;
-	
-	struct TimbreSpace {
-		double histogramEqualization = 0.0;
-		juce::String xAxis = "bfcc1";
-		juce::String yAxis = "bfcc2";
-	} timbreSpace;
-	
+
 	struct SBic {
 		double complexityPenaltyWeight = 1.5;
 		int incrementFirstPass = 60;
