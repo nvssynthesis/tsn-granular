@@ -151,6 +151,9 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
     {
         auto &timbreSpace = _proc->getTimbreSpace();
         auto const &timbres5D = timbreSpace.getTimbreSpace();
+	    if (timbres5D.empty()) {
+	        return;
+	    }
         std::vector<Timbre5DPoint> current_points;
 		current_points.reserve(timbreSpace.getCurrentPointIndices().size());
 		for (auto & p : timbreSpace.getCurrentPointIndices()){

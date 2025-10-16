@@ -31,8 +31,6 @@ public:
 	TimbreSpace(TimbreSpace&&) noexcept = delete;
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
-	void add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D);
-	void clearPoints();
 	std::vector<Timbre5DPoint> const &getTimbreSpace() const;
     Timbre5DPoint getTargetPoint() const;
 	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const;
@@ -73,10 +71,45 @@ private:
 	juce::String _audioFileHash;
 	juce::String _audioFileAbsPath;
 	//=============================================================================================================================
-	std::vector<Timbre5DPoint> _timbres5D;
+    class TimbreDataManager {
+    public:
+        void updateData(bool verbose=false);
+        void swapIfPending(bool verbose=false);
+
+        // Audio thread: read current stable data
+        const std::vector<Timbre5DPoint>& getTimbres() const;
+        void add5DPoint(const Timbre5DPoint& newPoint);
+        void clear();
+        bool isReadyForTriangulation() const;
+
+        const delaunator::Delaunator* getDelaunator() const {
+            return _delaunator.get();
+        }
+
+        bool isEmpty() const {
+            return _timbres5D.empty();
+        }
+
+        size_t size() const {
+            return _timbres5D.size();
+        }
+
+    private:
+        // Current stable data (audio thread reads)
+        std::vector<Timbre5DPoint> _timbres5D;
+        std::unique_ptr<delaunator::Delaunator> _delaunator;
+
+        // Pending data (message thread writes)
+        std::vector<Timbre5DPoint> _timbres5D_pending;
+        std::unique_ptr<delaunator::Delaunator> _delaunator_pending;
+
+        std::atomic<bool> _pendingUpdate { false };
+    } _timbreDataManager;
     Timbre5DPoint _target {};
-	std::unique_ptr<delaunator::Delaunator> _delaunator;
 	std::vector<util::WeightedIdx> _currentPointIndices {{},{},{}};
+    //=============================================================================================================================
+    void add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D);
+    void clearPoints();
 	//=============================================================================================================================
 	typedef std::pair<float, float> Range;
 	std::vector<Range> _ranges {}; // min, max per dimension
@@ -101,8 +134,8 @@ private:
 	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 	
 	void fullSelfUpdate(bool verbose);	// simply calls the following 3 functions:	
-	void extract();
-	void updateTimbreSpacePoints();
+	void extract(bool verbose=false);
+	void updateTimbreSpacePoints(bool verbose=false);
 	void reshape(bool verbose=false);
 	//=============================================================================================================================
 };
