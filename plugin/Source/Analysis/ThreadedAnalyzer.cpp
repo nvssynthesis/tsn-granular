@@ -76,7 +76,7 @@ void ThreadedAnalyzer::run() {
 		auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), sr);
 
 		filterOnsets(onsets, lengthInSeconds);
-	    forceMinimumOnsets(onsets, 3, lengthInSeconds);
+	    forceMinimumOnsets(onsets, 4, lengthInSeconds);
 
 		// perform onsetwise BFCC analysis
 		_rls.set("Calculating Onsetwise TimbreSpace...");
