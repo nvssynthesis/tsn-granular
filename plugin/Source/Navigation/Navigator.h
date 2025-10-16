@@ -15,7 +15,6 @@
 #include <random>
 
 namespace nvs::timbrespace {
-using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
 template<typename Point_t>
 class NavigationStrategy {
@@ -71,21 +70,6 @@ inline const juce::StringArray &getNavigationTypeNames() {
     }();
     return names;
 }
-
-
-// const inline std::map<NavigationType_e, juce::String> navigationTypeToStringMap
-// {
-//     {NavigationType_e::LFO, "LFO"},
-//     {NavigationType_e::RandomWalk, "RandomWalk"},
-//     {NavigationType_e::Lorenz, "Lorenz"}
-// };
-// const inline std::map<juce::String, NavigationType_e> stringToNavigationTypeMap
-// {
-//     {"LFO", NavigationType_e::LFO},
-//     {"RandomWalk", NavigationType_e::RandomWalk},
-//     {"Lorenz", NavigationType_e::Lorenz}
-// };
-
 
 template<typename Point_t>
 class Navigator final
