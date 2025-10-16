@@ -1,7 +1,7 @@
 /*
   ==============================================================================
 
-    JuceTsaraGranularSynthesizer.cpp
+    TSNGranularSynthesizer.cpp
     Created: 7 May 2024 11:55:11am
     Author:  Nicholas Solem
 
@@ -13,8 +13,8 @@
 #include "../../slicer_granular/Source/Synthesis/GranularSound.h"
 
 
-// TODO:
-// make generic function that can apply incoming arguments to generic function of tsnGuts of all voices, regardless of number of args
+/// TODO:
+/// -get rid of dynamic_cast by caching subclass pointers
 
 // definition for TSN specialization needed here because GranularVoice.h does not need to know about TSNPolyGrain
 namespace nvs::gran {
@@ -26,6 +26,7 @@ void GranularVoice::initSynthGuts<nvs::gran::TSNPolyGrain>() {
 TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts) :
     GranularSynthesizer(apvts)  // this is bad: we are expensively constructing the stripped down granular synth voices and then redundantly creating the actually needed TSN synth voices
 ,   _navigator(apvts)
+,   _timbreSpace(apvts)
 {
     clearVoices();
     {
@@ -81,19 +82,19 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
     // needs to get called upon each new navigation
     if (auto const onsetOpt = _timbreSpace.getOnsets();
-        !onsetOpt.has_value() || (onsetOpt.value().size() == 0)){
+        !onsetOpt.has_value() || (onsetOpt.value().empty())){
         return;
     }
 
     /*
      this needs to happen AFTER proper onsets are loaded; otherwise the indices could be out of bounds
-     However, since setWaveEvents happens based on a separate timer, the processing currently just exits early if the weighted indices exceed the numOnsets
+     However, since setWaveEvents happens based on a separate timer, the processing currently just exits
+     early if the weighted indices exceed the numOnsets
     */
     auto const &pIndices = _timbreSpace.getCurrentPointIndices();
     constexpr auto numVoices = getNumVoices();
     for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
         if (const auto granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
-
             if (const auto tsnGuts = dynamic_cast<nvs::gran::TSNPolyGrain*>( granularVoice->getGranularSynthGuts() )){
                 tsnGuts->setWaveEvents(pIndices);
             }

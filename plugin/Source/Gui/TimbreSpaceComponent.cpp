@@ -100,18 +100,20 @@ bool containsValue(const std::vector<T>& vec, T value) {
 TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 {
 	_proc = dynamic_cast<TSNGranularAudioProcessor *>(&proc);
-	if (_proc == nullptr){
+	if (_proc == nullptr) {
 		fmt::print("TSComp: dynamic cast failure\n");
+	    jassertfalse;
+	    return;
 	}
-	
-	auto &ts = _proc->getTimbreSpace();
-	ts.addActionListener(this);
-	if (ts.isSavePending()){
-		showAnalysisSaveDialog();
-	}
+    auto &ts = _proc->getTimbreSpace();
+    ts.addActionListener(this);
+    if (ts.isSavePending()){
+        showAnalysisSaveDialog();
+    }
 }
 
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
+    _proc->getTimbreSpace().setSavePending(false);
 	callback = new Callback(*this);
 	
 	auto const result = juce::AlertWindow::showYesNoCancelBox(
@@ -126,52 +128,43 @@ void TimbreSpaceComponent::showAnalysisSaveDialog() {
 }
 
 void TimbreSpaceComponent::paint(juce::Graphics &g) {
-	using juce::Colour;
-	using Point = juce::Point<float>;
-	
 	// keep these out of the following scope as long as i want to reuse them for the navigator
-	juce::Rectangle<float> r_bounds = g.getClipBounds().toFloat();
+	Rectangle<float> r_bounds = g.getClipBounds().toFloat();
 	auto centre = r_bounds.getCentre();
 	float radius = juce::jmax (r_bounds.getWidth(), r_bounds.getHeight()) * 0.5f;
 	
-	juce::ColourGradient radialGrad (
-		juce::Colours::white.withAlpha(0.5f),    // centre colour
+	ColourGradient radialGrad (
+		Colours::white.withAlpha(0.5f),    // centre colour
 		centre,                        			 // centre point
-		juce::Colours::darkgrey.withAlpha(0.5f), // edge colour
+		Colours::darkgrey.withAlpha(0.5f), // edge colour
 		centre.translated (radius, 0),  		 // a point on the circumference
 		true                           			 // isRadial = true
 	);
 	g.setGradientFill (radialGrad);
 	g.fillRect (r_bounds);
 
-	
-	g.setColour(juce::Colours::snow.withAlpha(0.2f));
+	g.setColour(Colours::snow.withAlpha(0.2f));
 	g.drawRect(getLocalBounds(), 1);
 	
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
-	
-	auto &timbreSpace = _proc->getTimbreSpace();
-	auto const &timbres5D = timbreSpace.getTimbreSpace();
-	{
-		std::vector<Timbre5DPoint> current_points;
+    {
+        auto &timbreSpace = _proc->getTimbreSpace();
+        auto const &timbres5D = timbreSpace.getTimbreSpace();
+        std::vector<Timbre5DPoint> current_points;
 		current_points.reserve(timbreSpace.getCurrentPointIndices().size());
 		for (auto & p : timbreSpace.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[p.idx]);
 		}
 
-
-
 	    setNavigatorPoint(get2D(timbreSpace.getTargetPoint()));
-
-
 		
-		for (auto p5 : timbres5D){
+		for (const auto& p5 : timbres5D){
 			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
 			auto const p3 = get3D(p5);
 			
 			auto const uni_p3 = biuni(p3);
-			juce::Colour fillColour = p3ToColour(uni_p3);
+			Colour fillColour = p3ToColour(uni_p3);
 			
 			float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
 			auto const rect = pointToRect(p2, softclip(z_closeness));
@@ -201,11 +194,11 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		for (auto const &p : current_points){
 			auto const center = p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h));
 			auto const dest = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p), w, h));
-			auto const l = juce::Line<float>(center, dest);
+			auto const l = Line(center, dest);
 			auto const norm = [l, w, h](){
 				auto const a = l.getLength() / std::sqrt( (w * w) + (h * h) );
 				auto const b = 2.f * (0.5f - a);
-				return juce::jlimit(0.1f, 1.f, b * b * b + 0.1f);
+				return jlimit(0.1f, 1.f, b * b * b + 0.1f);
 			}();
 			g.setColour(juce::Colours::whitesmoke.withAlpha(norm));
 			g.drawLine(l, 1.f);
@@ -215,22 +208,22 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		if (tsn_mouse._dragging){
 			// draw orb around mouse
 			auto const uvz = tsn_mouse._uvz;
-			juce::Colour c = p3ToColour(biuni(uvz));
-			juce::Point<int> const xy = getMouseXYRelative();
+			Colour c = p3ToColour(biuni(uvz));
+			Point<int> const xy = getMouseXYRelative();
 			auto const r = pointToRect(xy.toFloat(), 1.f);
 			float const orbRadius = r.getWidth() * 4.5f;
-			juce::ColourGradient gradient(c,
-										  xy.x, xy.y,
-										  c.withAlpha(0.f),
-										  xy.x, xy.y + orbRadius,
-										  true);
+			ColourGradient gradient(c,
+								  xy.x, xy.y,
+								  c.withAlpha(0.f),
+								  xy.x, xy.y + orbRadius,
+								  true);
 			g.setGradientFill(gradient);
 			g.fillEllipse(xy.x - orbRadius, xy.y - orbRadius, orbRadius * 2, orbRadius * 2);
 		}
 	}
 	// draw navigator
 	{
-		g.setColour(juce::Colours::black);
+		g.setColour(Colours::black);
 		g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(nav._p2D, w, h), 2.f));
 	}
 }
@@ -382,11 +375,21 @@ ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 }
 
 void TimbreSpaceComponent::saveAnalysis(){
-	juce::File analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+	auto analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
 		.getChildFile("tsn_granular")
 		.getChildFile("Analyses");
 
-	analysesDir.createDirectory();	// create directory if it doesn't exist yet
+    if (const auto result = analysesDir.createDirectory();
+        result.failed())
+    {
+        juce::AlertWindow::showMessageBoxAsync(
+            juce::MessageBoxIconType::WarningIcon,
+            "Cannot Save Analysis",
+            "Failed to create directory: " + result.getErrorMessage(),
+            "OK",
+            this);
+        return;
+    }
 	auto absPath = _proc->getTimbreSpace().getAudioAbsolutePath();
 	absPath = juce::File(absPath).getFileNameWithoutExtension();
 	analysesDir = analysesDir.getChildFile(absPath);

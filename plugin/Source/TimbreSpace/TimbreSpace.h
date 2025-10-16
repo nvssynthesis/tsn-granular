@@ -18,12 +18,12 @@
 
 namespace nvs::timbrespace {
 
-class TimbreSpace	:	public juce::ChangeListener
-,						public juce::ValueTree::Listener
-,						public juce::ActionBroadcaster
+class TimbreSpace final :	public juce::ChangeListener
+,						    public juce::ValueTree::Listener
+,						    public juce::ActionBroadcaster
 {
 public:
-	TimbreSpace();
+	TimbreSpace(juce::AudioProcessorValueTreeState &apvts);
 	~TimbreSpace() override;
 	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
 	TimbreSpace(const TimbreSpace&) = delete;
@@ -32,10 +32,10 @@ public:
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
 	void add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D);
-	void clear();
-	juce::Array<Timbre5DPoint> const &getTimbreSpace() const { return timbres5D; }
+	void clearPoints();
+	std::vector<Timbre5DPoint> const &getTimbreSpace() const;
     Timbre5DPoint getTargetPoint() const;
-	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const { return currentPointIndices; }
+	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const;
 	std::optional<std::vector<float>> getOnsets() const;
 	//=============================================================================================================================
 	void setTargetPoint(const Timbre5DPoint& target);
@@ -49,10 +49,11 @@ public:
 	//=============================================================================================================================
 	juce::String getAudioAbsolutePath() const { return _audioFileAbsPath; }
 	//=============================================================================================================================
-	void setTimbreSpaceTree(ValueTree const &tree);
-	ValueTree getTimbreSpaceTree() const { return treeManager.tree; }
+	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
+	ValueTree getTimbreSpaceTree() const { return _treeManager._timbreSpaceTree; }
 	//=============================================================================================================================
-	bool isSavePending() const { return _analysisSavePending; }
+    void setSavePending(const bool saveIsPending) { _analysisSavePending = saveIsPending; }
+    bool isSavePending() const { return _analysisSavePending; }
 private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
@@ -72,28 +73,32 @@ private:
 	juce::String _audioFileHash;
 	juce::String _audioFileAbsPath;
 	//=============================================================================================================================
-	juce::Array<Timbre5DPoint> timbres5D;
+	std::vector<Timbre5DPoint> _timbres5D;
     Timbre5DPoint _target {};
 	std::unique_ptr<delaunator::Delaunator> _delaunator;
-	std::vector<util::WeightedIdx> currentPointIndices {{},{},{}};
+	std::vector<util::WeightedIdx> _currentPointIndices {{},{},{}};
 	//=============================================================================================================================
 	typedef std::pair<float, float> Range;
 	std::vector<Range> _ranges {}; // min, max per dimension
-	std::vector<float> histoEqualizedD0, histoEqualizedD1 {};
+	std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
 
 	struct TreeManager {
-		ValueTree tree;
-		juce::var getOnsetsVar() const;
+	    explicit TreeManager(AudioProcessorValueTreeState &apvts)
+	    : _apvts(apvts)
+	    {}
+		ValueTree _timbreSpaceTree;
+	    AudioProcessorValueTreeState &_apvts;
+		var getOnsetsVar() const;
 		ValueTree getTimbralFramesTree() const;
 		int getNumFrames() const;
-	} treeManager;
+	} _treeManager;
 	
 	bool _analysisSavePending {false};
 	
 	void signalSaveAnalysisOption() const;
 	void signalTimbreSpaceUpdated() const;
 	
-	std::vector<std::vector<float>> eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
+	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
 	
 	void fullSelfUpdate(bool verbose);	// simply calls the following 3 functions:	
 	void extract();
@@ -110,11 +115,11 @@ std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& tar
 												    float higher3Dweight);
 
 std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
-															const juce::Array<Timbre5DPoint>& database,
+															const std::vector<Timbre5DPoint>& database,
 															const delaunator::Delaunator &d);
 
 std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
-														 const juce::Array<Timbre5DPoint>& database,
+														 const std::vector<Timbre5DPoint>& database,
 														 const delaunator::Delaunator& d);
 
 }	// namespace nvs::timbrespace

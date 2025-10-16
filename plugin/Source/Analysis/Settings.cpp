@@ -13,6 +13,8 @@
 
 namespace nvs::analysis {
 
+static constexpr bool TIMBRE_SPACE_SETTINGS_EXIST {false};  // these 'settings' were meant to be automatable, so they are now parameters
+
 static juce::NormalisableRange<double> makePowerOfTwoRange (double minValue, double maxValue)
 {
     auto minLog = std::log2 (minValue), maxLog = std::log2 (maxValue);
@@ -123,10 +125,17 @@ void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
 	}
 }
 
-void initializeSettingsBranches(juce::ValueTree& settingsVT, bool dbg){
+void initializeSettingsBranches(juce::ValueTree& settingsVT, const bool dbg){
 	for (auto& [branchName, _] : specsByBranch) {
 		ensureBranchAndInitializeDefaults (settingsVT, branchName);
 	}
+    if constexpr (!TIMBRE_SPACE_SETTINGS_EXIST) {
+        if (auto timbreSpaceSettingsTree = settingsVT.getChildWithName("TimbreSpace"); timbreSpaceSettingsTree.isValid())
+        {
+            settingsVT.removeChild(timbreSpaceSettingsTree, nullptr);
+            std::cout << "removed previously existing TimbreSpace settings subtree\n";
+        }
+    }
 	if (dbg){
 		std::cout << "initializeSettingsBranches tree: " << settingsVT.toXmlString();
 	}
@@ -285,18 +294,20 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	settings.split.fadeOutSamps = splitNode.getProperty("fadeOutSamps");
 	
 	// TimbreSpace settings
-	auto timbreSpaceNode = settingsTree.getChildWithName("TimbreSpace");
-	if (!timbreSpaceNode.isValid()) {
-		std::cerr << "TimbreSpace node missing\n";
-		jassertfalse;
-		return false;
-	}
-	if (!timbreSpaceNode.hasProperty("HistogramEqualization") || !timbreSpaceNode.hasProperty("xAxis") ||
-		!timbreSpaceNode.hasProperty("yAxis")) {
-		std::cerr << "TimbreSpace node missing required properties\n";
-		jassertfalse;
-		return false;
-	}
+    if constexpr (TIMBRE_SPACE_SETTINGS_EXIST) {
+        ValueTree timbreSpaceNode = settingsTree.getChildWithName("TimbreSpace");
+        if (!timbreSpaceNode.isValid()) {
+            std::cerr << "TimbreSpace node missing\n";
+            jassertfalse;
+            return false;
+        }
+        if (!timbreSpaceNode.hasProperty("HistogramEqualization") || !timbreSpaceNode.hasProperty("xAxis") ||
+            !timbreSpaceNode.hasProperty("yAxis")) {
+            std::cerr << "TimbreSpace node missing required properties\n";
+            jassertfalse;
+            return false;
+            }
+    }
 
 	// sBic settings
 	auto sBicNode = settingsTree.getChildWithName("sBic");

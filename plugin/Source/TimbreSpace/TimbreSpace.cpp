@@ -21,23 +21,33 @@ namespace nvs::timbrespace {
 
 //===============================================TimbreSpace=================================================
 
-TimbreSpace::TimbreSpace() {
-	treeManager.tree.addListener(this);
+TimbreSpace::TimbreSpace(juce::AudioProcessorValueTreeState &apvts)
+    :   _treeManager(apvts)
+{
+	_treeManager._timbreSpaceTree.addListener(this);
+    _treeManager._apvts.state.addListener(this);
 }
 TimbreSpace::~TimbreSpace() {
-	treeManager.tree.removeListener(this);
+	_treeManager._timbreSpaceTree.removeListener(this);
+    _treeManager._apvts.state.removeListener(this);
 }
 
 void TimbreSpace::add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D){
 	using namespace nvs::util;
 	assert(inRangeM1_1(p2D) && inRangeM1_1(p3D));
-	timbres5D.add( to5D(p2D, p3D ));
+	_timbres5D.push_back( to5D(p2D, p3D ));
 }
 
-void TimbreSpace::clear() {
-	timbres5D.clear();
+void TimbreSpace::clearPoints() {
+	_timbres5D.clear();
 }
 
+std::vector<Timbre5DPoint> const &TimbreSpace::getTimbreSpace() const {
+    return _timbres5D;
+}
+std::vector<util::WeightedIdx> const &TimbreSpace::getCurrentPointIndices() const {
+    return _currentPointIndices;
+}
 
 std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
 
@@ -51,22 +61,22 @@ void TimbreSpace::setTargetPoint(const Timbre5DPoint& target) {
 // Modified main function with method parameter
 void TimbreSpace::computeExistingPointsFromTarget()
 {
-	if (timbres5D.size() == 0) { return; }
+	if (_timbres5D.size() == 0) { return; }
     if (_delaunator == nullptr) { return; }
 
-	std::vector<util::WeightedIdx> const weightedIndices = findPointsTriangulationBased(_target, timbres5D, *_delaunator);
+	std::vector<util::WeightedIdx> const weightedIndices = findPointsTriangulationBased(_target, _timbres5D, *_delaunator);
 	jassert(weightedIndices.size() == 3);
 	
 	for (auto const &widx : weightedIndices) {
 		jassert(0 <= widx.idx);
-		jassert((widx.idx < timbres5D.size()) || ((timbres5D.size() == 0) && (widx.idx == 0)));
+		jassert((widx.idx < _timbres5D.size()) || ((_timbres5D.size() == 0) && (widx.idx == 0)));
 	}
 	
-	currentPointIndices = weightedIndices;
+	_currentPointIndices = weightedIndices;
 }
 
 std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
-    if (const juce::var onsetsVar = treeManager.getOnsetsVar();
+    if (const juce::var onsetsVar = _treeManager.getOnsetsVar();
         onsetsVar.isArray())
     {
 		juce::Array<juce::var>* arr = onsetsVar.getArray();
@@ -82,19 +92,33 @@ std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
 bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
 	return _audioFileHash.compare(audioHash) == 0;
 }
+void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
+    if (alteredTree.hasType("PARAM") && property == juce::Identifier("value")) {
+        const auto paramID = alteredTree["id"].toString();
+        const float newValue = alteredTree["value"];
 
-void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &) {
-	if (alteredTree.hasType("TimbreSpace")){
-		std::cout << "tree changed! redrawing points...\n";
-		settings.histogramEqualization = static_cast<float>(alteredTree.getProperty("HistogramEqualization"));
-		const auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
-		const auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
-		std::cout << "x: " << xs << " y: " << ys << '\n';
-		settings.dimensionWisefeatures[0] = nvs::analysis::toFeature(xs);
-		settings.dimensionWisefeatures[1] = nvs::analysis::toFeature(ys);
-		fullSelfUpdate(true);
-	}
-	else {}
+        if (paramID == "histogram_equalization") {
+            DBG("Histogram equalization changed to: " + juce::String(newValue));
+            settings.histogramEqualization = *_treeManager._apvts.getRawParameterValue("histogram_equalization");
+            std::cout << "tree changed! redrawing points...\n";
+
+            fullSelfUpdate(true);
+        }
+        else if (paramID == "xAxis") {
+            const auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
+            settings.dimensionWisefeatures[0] = nvs::analysis::toFeature(xs);
+
+            std::cout << "tree changed! redrawing points...\n";
+            fullSelfUpdate(true);
+        }
+        else if (paramID == "yAxis") {
+            const auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
+            settings.dimensionWisefeatures[1] = nvs::analysis::toFeature(ys);
+
+            std::cout << "tree changed! redrawing points...\n";
+            fullSelfUpdate(true);
+        }
+    }
 }
 
 void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
@@ -113,9 +137,9 @@ analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueT
 		.kurtosis = vt.getProperty("kurtosis")
 	};
 }
-void TimbreSpace::setTimbreSpaceTree(ValueTree const &tree) {
-	treeManager.tree = tree;
-	auto const mdTree = tree.getChildWithName("Metadata");
+void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
+	_treeManager._timbreSpaceTree = timbreSpaceTree;
+	auto const mdTree = _treeManager._timbreSpaceTree.getChildWithName("Metadata");
 	_audioFileHash = mdTree.getProperty("AudioFileHash", _audioFileHash).toString();
 	_audioFileAbsPath = mdTree.getProperty("AudioFilePath (absolute)", _audioFileAbsPath).toString();
 
@@ -250,13 +274,13 @@ std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 }
 
 juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
-	return tree.getProperty("NormalizedOnsets");
+	return _timbreSpaceTree.getProperty("NormalizedOnsets");
 }
 juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
-	return tree.getChildWithName("TimbreMeasurements");
+	return _timbreSpaceTree.getChildWithName("TimbreMeasurements");
 }
 int TimbreSpace::TreeManager::getNumFrames() const {
-	const auto& onsets = tree.getProperty("NormalizedOnsets");
+	const auto& onsets = _timbreSpaceTree.getProperty("NormalizedOnsets");
 	jassert(onsets.isArray());
 	int const numFrames = onsets.size();
 #ifdef DBG
@@ -274,13 +298,14 @@ void TimbreSpace::signalTimbreSpaceUpdated() const {
 	sendActionMessage("reportAvailability");	// who needs it? TsnGranularPluginEditor and TsnGranularAudioProcessor
 }
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
-	if (&treeWhichHasBeenChanged == &treeManager.tree){
+	if (&treeWhichHasBeenChanged == &_treeManager._timbreSpaceTree){
 		signalTimbreSpaceUpdated();
 	}
 }
 
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but what if the rest of this func fails? do we want a cleared tree at that point?
+	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but
+	// what if the rest of this func fails? do we want a cleared tree at that point?
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
 		const auto analysisResult = a->stealTimbreSpaceRepresentation();
 		if (!analysisResult.has_value()){
@@ -296,11 +321,13 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 			return;
 		}
 		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath));
-		signalSaveAnalysisOption();
+
+	    setSavePending(true);
+        signalSaveAnalysisOption();
 		signalTimbreSpaceUpdated();
 	}
 }
-void TimbreSpace::fullSelfUpdate(bool verbose){
+void TimbreSpace::fullSelfUpdate(const bool verbose){
 	if (verbose) {fmt::print("Extracting\n");}
 	extract();
 	if(verbose) {fmt::print("updating timbre points\n");}
@@ -308,13 +335,14 @@ void TimbreSpace::fullSelfUpdate(bool verbose){
 	if(verbose) {fmt::print("reshaping timbre space\n");}
 	reshape(verbose);
 	if(verbose) {fmt::print("computing delaunay triangulation\n");}
-	_delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(timbres5D));
+	_delaunator = std::make_unique<delaunator::Delaunator>(make2dCoordinates(_timbres5D));
 }
+
 [[nodiscard]]
 inline std::vector<analysis::Real>
-extractFeatures(const juce::ValueTree& frameTree,
-				const std::vector<analysis::Features> &featuresToUse,
-				const analysis::Statistic statisticToUse)
+extractFeatures(const juce::ValueTree &frameTree,
+                const std::vector<analysis::Features> &featuresToUse,
+                const analysis::Statistic statisticToUse)
 {
 	using namespace analysis;
 	std::vector<Real> out;
@@ -367,18 +395,18 @@ extractFeatures(const juce::ValueTree& frameTree,
 
 void TimbreSpace::extract() {
 	auto const &featuresToExtract = settings.dimensionWisefeatures;
-	if (nvs::util::isEmpty(treeManager.tree)){
+	if (nvs::util::isEmpty(_treeManager._timbreSpaceTree)){
 		std::cerr << "TimbreSpace::extract: timbre space empty, early exit\n";
 		return;
 	}
-	eventwiseExtractedTimbrePoints.clear();
-	eventwiseExtractedTimbrePoints.reserve(treeManager.getNumFrames());
+	_eventwiseExtractedTimbrePoints.clear();
+	_eventwiseExtractedTimbrePoints.reserve(_treeManager.getNumFrames());
 	
-	auto const &timbreTree = treeManager.getTimbralFramesTree();
+	auto const &timbreTree = _treeManager.getTimbralFramesTree();
 	for (int i = 0; i < timbreTree.getNumChildren(); ++i) {
 		ValueTree const &frame = timbreTree.getChild(i);
 		std::vector<float> v = extractFeatures(frame, featuresToExtract, nvs::analysis::Statistic::Median);
-		eventwiseExtractedTimbrePoints.push_back(v);
+		_eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }
 
@@ -389,20 +417,19 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	for (auto& p : points){
 		allX.push_back (p);
 	}
-	std::sort (allX.begin(), allX.end());
+	std::ranges::sort (allX);
 	
 	for (auto const& p : points)
 	{
 		// find first index ≥ p.x
-		auto idx = (int)(std::lower_bound (allX.begin(),
-										   allX.end(),
-										   p)
+		const auto idx = (int)(std::ranges::lower_bound (allX,
+                                                   p)
 						 - allX.begin());
-		float quantile = (float) idx / (float)(allX.size() - 1);
+		const float quantile = static_cast<float>(idx) / static_cast<float>(allX.size() - 1);
 		
 		// optional: you can still gamma‑tweak the quantile
-		float gamma    = 0.8f;             // <1 stretches mid‑values
-		float t        = std::pow (quantile, gamma);
+        constexpr float gamma    = 0.8f;  // <1 stretches mid‑values
+		const float t        = std::pow (quantile, gamma);
 		vecOut.push_back(t);
 	}
 	return vecOut;
@@ -410,40 +437,40 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 
 void TimbreSpace::updateTimbreSpacePoints()
 {	/** to be called when the actual analyzed timbre space changes  */
-	if (eventwiseExtractedTimbrePoints.empty()){
+	if (_eventwiseExtractedTimbrePoints.empty()){
 		std::cout << "updateAndDrawTimbreSpacePoints: timbreSpace empty, returning...\n";
 		return;
 	}
 	{
-		auto const n_dim = eventwiseExtractedTimbrePoints[0].size();
+		auto const n_dim = _eventwiseExtractedTimbrePoints[0].size();
 		_ranges.clear();
 		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(eventwiseExtractedTimbrePoints, i));
+			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_eventwiseExtractedTimbrePoints, i));
 		}
 	}
 	{
 		std::vector<float> allDim0, allDim1;
-		allDim0.reserve(eventwiseExtractedTimbrePoints.size());
-		allDim1.reserve(eventwiseExtractedTimbrePoints.size());
-		for (auto const& frame : eventwiseExtractedTimbrePoints){
+		allDim0.reserve(_eventwiseExtractedTimbrePoints.size());
+		allDim1.reserve(_eventwiseExtractedTimbrePoints.size());
+		for (auto const& frame : _eventwiseExtractedTimbrePoints){
 			allDim0.push_back(frame[0]);	// e.g. bfcc1
 			allDim1.push_back(frame[1]);	// e.g. bfcc2
 		}
-		histoEqualizedD0 = getHistoEqualizationVec(allDim0);
-		histoEqualizedD1 = getHistoEqualizationVec(allDim1);
+		_histoEqualizedD0 = getHistoEqualizationVec(allDim0);
+		_histoEqualizedD1 = getHistoEqualizationVec(allDim1);
 	}
 }
 void TimbreSpace::reshape(bool verbose)
 {   /** to be called when we only want to change the VIEW of the timbre points (which will also need to happen when the timbre space itself changes) */
     
-    if (eventwiseExtractedTimbrePoints.empty()){
-        // writeToLog("drawTimbreSpacePoints: eventwiseExtractedTimbrePoints empty, returning...");
+    if (_eventwiseExtractedTimbrePoints.empty()){
+        // writeToLog("drawTimbreSpacePoints: _eventwiseExtractedTimbrePoints empty, returning...");
         return;
     }
     
-    std::vector<std::vector<float>> const &timbreSpaceRepr = eventwiseExtractedTimbrePoints;
+    std::vector<std::vector<float>> const &timbreSpaceRepr = _eventwiseExtractedTimbrePoints;
     if (!(timbreSpaceRepr[0].size() == _ranges.size())){
         // writeToLog("drawTimbreSpacePoints: point size mismatch, exiting early");
         jassertfalse;
@@ -460,13 +487,13 @@ void TimbreSpace::reshape(bool verbose)
         return juce::jmap(y01, -1.f, 1.f);
     };
     
-    auto squash = [](const float xNorm) -> float { return std::asinh(10.0f*xNorm) / static_cast<float>((M_PI)); };
+    auto squash = [](const float xNorm) -> float { return std::asinh(10.0f*xNorm) / static_cast<float>(M_PI); };
     auto foo = [&](const float x, const std::pair<float, float> &range) -> float { return squash(normalizer(x, range)); };
     
     constexpr size_t nDim {5};
     
     // clear points of timbreSpaceHolds
-    clear(); // clearing to make way for points we're about to be adding
+    clearPoints(); // clearing to make way for points we're about to be adding
     
     for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
         std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
@@ -479,8 +506,8 @@ void TimbreSpace::reshape(bool verbose)
                           foo(timbreFrame[1], _ranges[1]));
         
         // histogram equalization
-        float const &equalizedX = histoEqualizedD0[i];
-        float const &equalizedY = histoEqualizedD1[i];
+        float const &equalizedX = _histoEqualizedD0[i];
+        float const &equalizedY = _histoEqualizedD1[i];
         
         Timbre2DPoint pHE(juce::jmap(equalizedX, -1.f, 1.f),
                           juce::jmap(equalizedY, -1.f, 1.f));
@@ -495,13 +522,13 @@ void TimbreSpace::reshape(bool verbose)
                            normalizer(timbreFrame[4], _ranges[4]));
         
         // with this method, there is the guarantee that
-        // the Nth member of timbreSpaceComponent.timbres5D corresponds to
+        // the Nth member of timbreSpaceComponent._timbres5D corresponds to
         // the Nth member of onsets.
-        float const padding_scalar = 0.95f;
+        constexpr float padding_scalar = 0.95f;
         add5DPoint(p * padding_scalar, color);
         
         if (verbose){
-            fmt::print("adding the point {:.3f}, {:.3f}\n", p(0), p(1));
+            fmt::print("adding the point  {:.3f}, {:.3f}\n", p(0), p(1));
         }
     }
 }
@@ -511,6 +538,7 @@ void TimbreSpace::reshape(bool verbose)
  * builds softmax-style weights over those K,
  * then either returns them all, or samples `numToPick` **without replacement**.
  *
+ * @param  target          the target point from which to find nearest points
  * @param  database        your full set of Timbre5DPoints
  * @param  K               how many nearest neighbors to consider (caps at database.size())
  * @param  numToPick       if <=0, we return all K weighted indices;
@@ -522,7 +550,7 @@ std::vector<util::WeightedIdx> findPointsDistanceBased(
     const Timbre5DPoint&               target,
     const juce::Array<Timbre5DPoint>&  database,
     int                                K,
-    int                                numToPick,
+    const int                          numToPick,
     double                             sharpness,
     float                              higher3Dweight)
 {
@@ -550,13 +578,11 @@ std::vector<util::WeightedIdx> findPointsDistanceBased(
        // keep only the K nearest
        {
           K = std::min<int> (K, (int) distIdx.size());
-          std::nth_element (
-             distIdx.begin(),
-             distIdx.begin() + K,
-             distIdx.end(),
-             [](auto& a, auto& b){ return a.distance < b.distance; });
+          std::ranges::nth_element (distIdx, distIdx.begin() + K
+                                    ,
+                                    [](auto& a, auto& b){ return a.distance < b.distance; });
           distIdx.resize (K);
-          assert(distIdx.size() == (size_t)K);
+          assert(distIdx.size() == static_cast<size_t>(K));
        }
        return toWeightedIndices(distIdx, sharpness);
     }();
@@ -649,21 +675,14 @@ std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> 
 	return result;
 }
 
-// New triangulation-based point selection function
-std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target, const juce::Array<Timbre5DPoint>& database, const delaunator::Delaunator &d)
+// triangulation-based point selection function
+std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target, const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d)
 {
-	if (database.isEmpty()) { return {}; }
-	
+	if (database.empty()) { return {}; }
+    const auto dbSizeAtStart = database.size();
+
 	// Need at least 3 points for triangulation
-	if (database.size() < 3) {
-		// Fall back to distance-based method or return all points with equal weights
-		std::vector<util::WeightedIdx> result;
-		double weight = 1.0 / database.size();
-		for (int i = 0; i < database.size(); ++i) {
-			result.emplace_back(i, weight);
-		}
-		return result;
-	}
+	jassert (database.size() >= 3);
 	
 	// Find triangle containing the target point
 	const Timbre2DPoint targetPoint = get2D(target);
@@ -672,7 +691,9 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	if (!triangleOpt.has_value()) {
 		// Target point is outside the convex hull
 		// Fall back to distance-based method or handle as edge case
-		return findNearestTrianglePoints(target, database, d);
+		const auto result = findNearestTrianglePoints(target, database, d);
+	    jassert (result.size() == 3);
+	    return result;
 	}
 	
 	// Get the triangle vertices
@@ -680,18 +701,24 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	const size_t idx0 = triangle[0];
 	const size_t idx1 = triangle[1];
 	const size_t idx2 = triangle[2];
-
-    jassert (idx0 < database.size());
-    jassert (idx1 < database.size());
-    jassert (idx2 < database.size());
+	{
+	    const auto dbSize = database.size();
+	    jassert (dbSize == dbSizeAtStart);
+	    jassert (idx0 < dbSize);
+	    jassert (idx1 < dbSize);
+	    jassert (idx2 < dbSize);
+	}
 
 	// Get the 2D points for barycentric calculation
-	Timbre2DPoint p0 = get2D(database.getReference(static_cast<int>(idx0)));
-	Timbre2DPoint p1 = get2D(database.getReference(static_cast<int>(idx1)));
-	Timbre2DPoint p2 = get2D(database.getReference(static_cast<int>(idx2)));
+	const Timbre2DPoint p0 = get2D(database[idx0]);
+	const Timbre2DPoint p1 = get2D(database[idx1]);
+	const Timbre2DPoint p2 = get2D(database[idx2]);
 	
 	// Compute barycentric weights
-	auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
+	const auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
+    for (auto & w : weights) {
+        jassert (w > 0.0);
+    }
 	
 	// Create result vector
 	std::vector<util::WeightedIdx> result;
@@ -700,12 +727,13 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	result.emplace_back(idx1, weights[1]);
 	result.emplace_back(idx2, weights[2]);
 
+    jassert (result.size() == 3);
 	return result;
 }
 
 // Helper function for when target is outside convex hull
 std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
-														 const juce::Array<Timbre5DPoint>& database,
+														 const std::vector<Timbre5DPoint>& database,
 														 const delaunator::Delaunator& d)
 {
 	// Find the nearest edge or vertex of the convex hull
@@ -721,9 +749,9 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
 		const size_t idx1 = d.triangles[i + 1];
 		const size_t idx2 = d.triangles[i + 2];
 		
-		Timbre2DPoint p0 = get2D(database.getReference(static_cast<int>(idx0)));
-		Timbre2DPoint p1 = get2D(database.getReference(static_cast<int>(idx1)));
-		Timbre2DPoint p2 = get2D(database.getReference(static_cast<int>(idx2)));
+		Timbre2DPoint p0 = get2D(database[idx0]);
+		Timbre2DPoint p1 = get2D(database[idx1]);
+		Timbre2DPoint p2 = get2D(database[idx2]);
 		
 		// Calculate centroid of triangle
 		Timbre2DPoint centroid = (p0 + p1 + p2) / 3.0;

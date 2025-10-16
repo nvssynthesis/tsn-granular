@@ -15,7 +15,7 @@
 
 namespace nvs::timbrespace {
 
-std::vector<double> make2dCoordinates(juce::Array<Timbre5DPoint> points);
+std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points);
 
 void getUniqueEdges(const delaunator::Delaunator& d);
 

@@ -13,7 +13,7 @@
 
 namespace nvs::timbrespace {
 
-std::vector<double> make2dCoordinates(juce::Array<Timbre5DPoint> points){
+std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points){
 	std::vector<double> coords;
 	coords.reserve(points.size() * 2);
 	for (auto const & p : points){

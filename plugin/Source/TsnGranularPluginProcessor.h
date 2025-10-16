@@ -15,17 +15,18 @@
 
 //==============================================================================
 
-class TSNGranularAudioProcessor  :	public SlicerGranularAudioProcessor
+class TSNGranularAudioProcessor final :	public SlicerGranularAudioProcessor
 {
 	friend class SlicerGranularAudioProcessor;	// allow base class to access private ctor
 public:
 	//==============================================================================
-	~TSNGranularAudioProcessor();
-	//==============================================================================
+    // AudioProcessor
+	~TSNGranularAudioProcessor() override;
 	juce::AudioProcessorEditor* createEditor() override;
 	void setStateInformation (const void* data, int sizeInBytes) override;
 	void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     //==============================================================================
+    // SlicerGranularAudioProcessor
 	void loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	void askForAnalysis();
 	//==============================================================================
@@ -36,7 +37,7 @@ public:
 	ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
 	}
-	TimbreSpace &getTimbreSpace() { return _tsnGranularSynth->getTimbreSpace(); }
+	TimbreSpace &getTimbreSpace() const { return _tsnGranularSynth->getTimbreSpace(); }
     TSNGranularSynth *getTsnGranularSynthesizer() const {
 	    jassert(_tsnGranularSynth);
 		return _tsnGranularSynth;
@@ -46,6 +47,7 @@ public:
 	void writeEvents();
 	//==============================================================================
 protected:
+    // SlicerGranularAudioProcessor
 	void initSynth() override;
 private:
 	TSNGranularAudioProcessor();
