@@ -57,11 +57,11 @@ inline juce::String toString(Features f){
 			return "";
 	}
 }
-inline Features toFeature(juce::String s){
+inline Features toFeature(const juce::String &s){
 	if (s.contains("bfcc")){
-		juce::String intPart = s.removeCharacters("bfcc");
+		const juce::String intPart = s.removeCharacters("bfcc");
 		int i = intPart.getIntValue();
-		return Features(i);
+		return static_cast<Features>(i);
 	}
 	if (s == "Periodicity"){
 		return Features::Periodicity;
