@@ -74,7 +74,8 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 	timbreSpaceMetaDataTree.setProperty("waveformHash", sampleManagementGuts.getAudioHash(), nullptr);
 	timbreSpaceMetaDataTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
 	analysisVT.addChild(tsTree, 1, nullptr);
-	
+
+    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisVT).toStdString()));
 	bool success = [vt=analysisVT, filePath](bool useBinary){
 		juce::File const file(filePath);
 		if (useBinary){
@@ -180,7 +181,7 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
     /// designated directory, manual find, and give up (just perform fresh analysis)
     const auto fileInfo = apvts.state.getChildWithName("FileInfo");
-	writeToLog(nvs::util::valueTreeToXmlStringSafe(fileInfo));
+	writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
     if (!fileInfo.isValid()) {
 		writeToLog("file info value tree invalid\n");
     	return false;
@@ -196,18 +197,19 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     auto analysisFileInputStream = juce::FileInputStream(analysisFile);
 
     if (analysisFileInputStream.failedToOpen()) {
-        writeToLog(analysisFileInputStream.getStatus().getErrorMessage());
+        writeToLog(fmt::format("failed to open {}; error message: {}",
+            analysisFilePath.toStdString(),
+            analysisFileInputStream.getStatus().getErrorMessage().toStdString()));
         // TODO: Give popup opportunity for user to find the file
         return false;
     }
 
     const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
-	writeToLog(nvs::util::valueTreeToXmlStringSafe(analysisFileValueTree));
-
 
     if (const auto analysisFileTree = analysisFileValueTree.getChildWithName("TimbreAnalysis");
         analysisFileTree.isValid())
     {
+        DBG(fmt::format("tree being set: {}", nvs::util::valueTreeToXmlStringSafe(analysisFileTree).toStdString()));
     	// we need to know if we even SHOULD load the analysisFile pointed to by the state
     	if (const auto metadataTree = analysisFileTree.getChildWithName("Metadata");
 			metadataTree.isValid() &&

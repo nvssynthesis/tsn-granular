@@ -131,7 +131,7 @@ private:
 	void signalSaveAnalysisOption() const;
 	void signalTimbreSpaceUpdated() const;
 	
-	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted FROM this->fulltimbreSpace any time new view (e.g. different feature set) is requested
+	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
 	
 	void fullSelfUpdate(bool verbose);	// simply calls the following 3 functions:	
 	void extract(bool verbose=false);

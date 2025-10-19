@@ -130,17 +130,13 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
 
             fullSelfUpdate(true);
         }
-        else if (paramID == "xAxis") {
-            const auto xs = static_cast<juce::String>(alteredTree.getProperty("xAxis"));
-            settings.dimensionWisefeatures[0] = nvs::analysis::toFeature(xs);
-
+        else if (paramID == "x_axis") {
+            settings.dimensionWisefeatures[0] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue("x_axis")->load());
             std::cout << "tree changed! redrawing points...\n";
             fullSelfUpdate(true);
         }
-        else if (paramID == "yAxis") {
-            const auto ys = static_cast<juce::String>(alteredTree.getProperty("yAxis"));
-            settings.dimensionWisefeatures[1] = nvs::analysis::toFeature(ys);
-
+        else if (paramID == "y_axis") {
+            settings.dimensionWisefeatures[1] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue("y_axis")->load());
             std::cout << "tree changed! redrawing points...\n";
             fullSelfUpdate(true);
         }
@@ -360,9 +356,9 @@ void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
     _pendingUpdate.store(true, std::memory_order_release);
 }
 void TimbreSpace::TimbreDataManager::swapIfPending(const bool verbose) {
-    if (verbose)
-        DBG("TimbreDataManager::swapIfPending exchanging state\n");
     if (_pendingUpdate.exchange(false, std::memory_order_acq_rel)) {
+        if (verbose)
+            DBG("TimbreDataManager::swapIfPending exchanging state\n");
         _timbres5D = std::move(_timbres5D_pending);
         _delaunator = std::move(_delaunator_pending);
     }
