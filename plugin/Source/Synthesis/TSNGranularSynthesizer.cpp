@@ -46,7 +46,7 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
 
-    _navigator.setNavigationPeriod(50);
+    _navigator.setNavigationPeriod(5.0);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {
     _synth_shared_state._apvts.state.removeListener(&_timbreSpace);
