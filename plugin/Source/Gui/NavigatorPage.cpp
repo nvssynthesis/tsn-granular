@@ -84,7 +84,8 @@ static std::map<nvs::timbrespace::NavigationType_e, juce::String> navTypeParamSu
 {
 {nvs::timbrespace::NavigationType_e::LFO, "nav_lfo"},
 {nvs::timbrespace::NavigationType_e::RandomWalk, "nav_rwalk"},
-{nvs::timbrespace::NavigationType_e::Lorenz, "nav_lorenz"}
+{nvs::timbrespace::NavigationType_e::Lorenz, "nav_lorenz"},
+{nvs::timbrespace::NavigationType_e::Hyperchaos, "nav_hyperchaos"},
 };
 
 void NavigatorPage::updateDisplayedParameters() {
@@ -115,7 +116,7 @@ void NavigatorPage::resized() {
 	
 	{
 		int totalW = bounds.getWidth();
-		int splitW = int (totalW * 0.26f);
+		int splitW = static_cast<int>(totalW * 0.26f);
 		
 		juce::Rectangle<int> left {
 			bounds.getX(),

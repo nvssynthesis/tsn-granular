@@ -19,9 +19,10 @@ namespace nvs::timbrespace {
 enum class NavigationType_e {
     LFO = 0,
     RandomWalk,
-    Lorenz
+    Lorenz,
+    Hyperchaos
 };
-typedef nvs::util::Iterator<NavigationType_e, NavigationType_e::LFO, NavigationType_e::Lorenz> navigatorTypeIterator;
+typedef nvs::util::Iterator<NavigationType_e, NavigationType_e::LFO, NavigationType_e::Hyperchaos> navigatorTypeIterator;
 
 inline String toString(const NavigationType_e type) {
     switch (type) {
@@ -31,9 +32,12 @@ inline String toString(const NavigationType_e type) {
             return "RandomWalk";
         case NavigationType_e::Lorenz:
             return "Lorenz";
+        case NavigationType_e::Hyperchaos:
+            return "Hyperchaos";
     }
     return "";
 }
+
 inline StringArray getNavigatorTypeArray() {
     static const auto types = [] -> juce::StringArray {
         StringArray result;
@@ -97,12 +101,14 @@ private:
     double _x{0.1}, _y{0.1}, _z{0.1};
 };
 
-inline const juce::StringArray &getNavigationTypeNames() {
-    static const auto names = []() -> juce::StringArray {
-        return {"LFO", "RandomWalk", "Lorenz"};
-    }();
-    return names;
-}
+template<typename Point_t>
+class HyperchaosNavigator : public NavigationStrategy<Point_t> {
+public:
+    HyperchaosNavigator();
+    Point_t navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) override;
+private:
+    double _x{0.1}, _y{0.1}, _z{0.1}, _u{0.1};
+};
 
 template<typename Point_t>
 class Navigator final

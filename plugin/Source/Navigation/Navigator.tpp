@@ -169,6 +169,51 @@ Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &p
 
 
 template<typename Point_t>
+HyperchaosNavigator<Point_t>::HyperchaosNavigator()
+    :   NavigationStrategy<Point_t>(NavigationType_e::Hyperchaos)
+{}
+
+static const double sgn(const double d) {
+    return std::tanh(200.0 * d);
+};
+
+template<typename Point_t>
+Point_t HyperchaosNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
+    {
+        const double alpha = *paramTree.getRawParameterValue("nav_hyperchaos_alpha");
+        const double a = *paramTree.getRawParameterValue("nav_hyperchaos_a");
+        const double b = *paramTree.getRawParameterValue("nav_hyperchaos_b");
+
+        const double x_inc = _y - _x;
+        const double y_inc = -1.0 * _z * sgn(_x) + _u;
+        const double z_inc = _x * sgn(_y) - a;
+        const double u_inc = -1.0 * b * _y;
+
+        _x += x_inc * alpha;
+        _y += y_inc * alpha;
+        _z += z_inc * alpha;
+        _u += u_inc * alpha;
+    }
+
+    Point_t p = Point_t::Zero();
+
+    if constexpr (1 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[0] = _x * 0.1;
+    }
+    if constexpr (2 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[1] = _y * 0.1;
+    }
+    if constexpr (3 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[2] = _z * 0.1;
+    }
+    if constexpr (4 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[3] = _u * 0.1;
+    }
+
+    return p;
+}
+
+template<typename Point_t>
 Navigator<Point_t>::Navigator(const AudioProcessorValueTreeState &paramTree)
 :   _apvts(paramTree) {}
 template<typename Point_t>
@@ -183,6 +228,8 @@ void Navigator<Point_t>::setNavigationStrategy(const NavigationType_e navType) {
         case NavigationType_e::Lorenz:
             _navigationStrategy = std::make_unique<LorenzNavigator<Point_t>>();
             break;
+        case NavigationType_e::Hyperchaos:
+            _navigationStrategy = std::make_unique<HyperchaosNavigator<Point_t>>();
     }
     updateStrategyRate();
 }

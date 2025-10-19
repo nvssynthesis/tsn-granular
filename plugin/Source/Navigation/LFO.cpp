@@ -8,6 +8,7 @@
   ==============================================================================
 */
 
+#if false
 #include "LFO.h"
 #include "../../slicer_granular/Source/Params/params.h"
 
@@ -47,7 +48,7 @@ void LFO2D::timerCallback() {
 	float const paramRate = *_apvts.getRawParameterValue("nav_lfo_rate");
 	
 	setFrequency(paramRate);
-	
+
 	double const filterCutoff = *_apvts.getRawParameterValue("nav_lfo_response");
 	double const filterReso = *_apvts.getRawParameterValue("nav_lfo_overshoot");
 	xLP.setParams(filterCutoff, filterReso);
@@ -155,3 +156,5 @@ void RandomWalkND::timerCallback() {
 	}
 }
 }	// nvs::nav
+
+#endif

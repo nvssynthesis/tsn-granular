@@ -7,7 +7,7 @@
 
   ==============================================================================
 */
-
+#if false
 #pragma once
 #include <JuceHeader.h>
 #include <cmath>
@@ -181,3 +181,5 @@ struct Navigator//	:	juce::ChangeBroadcaster
 
 
 }
+
+#endif
