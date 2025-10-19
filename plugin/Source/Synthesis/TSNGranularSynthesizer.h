@@ -17,7 +17,6 @@
 namespace nvs::gran {
 class TSNGranularSynthesizer final
 :	public GranularSynthesizer
-,   private juce::AudioProcessorValueTreeState::Listener
 ,   private juce::ActionListener
 {
 public:
@@ -41,8 +40,6 @@ private:
     Navigator _navigator;
     TimbreSpace _timbreSpace;
 
-    //==============================================================================
-    void parameterChanged(const String &parameterID, float newValue) override;  // AudioProcessorValueTreeState::Listener
     //==============================================================================
 
     void setReadBoundsFromChosenPoint();

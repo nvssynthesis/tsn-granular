@@ -1,7 +1,7 @@
 namespace nvs::timbrespace {
 
 template<typename Point_t>
-NavigationStrategy<Point_t>::NavigationStrategy(String name)    :   _name(std::move(name)) {}
+NavigationStrategy<Point_t>::NavigationStrategy(NavigationType_e type)    :   _navType(std::move(type)) {}
 
 template<typename Point_t>
 void NavigationStrategy<Point_t>::setSampleRate(double sampleRate) {
@@ -21,7 +21,7 @@ static constexpr std::array navTendencyLookup {
 
 template<typename Point_t>
 RandomWalkNavigator<Point_t>::RandomWalkNavigator()
-    :   NavigationStrategy<Point_t>("RandomWalkNavigator")
+    :   NavigationStrategy<Point_t>(NavigationType_e::RandomWalk)
 {}
 
 inline float randomStep1D(float previous, float tendency, float stepSize,
@@ -62,7 +62,7 @@ Point_t RandomWalkNavigator<Point_t>::navigate(AudioProcessorValueTreeState cons
 
 template<typename Point_t>
 LFONavigator<Point_t>::LFONavigator()
-:   NavigationStrategy<Point_t>("LFONavigator")
+:   NavigationStrategy<Point_t>(NavigationType_e::LFO)
 {
     for (auto &f : filters) {
         f.setSampleRate(0.0f);
@@ -70,14 +70,69 @@ LFONavigator<Point_t>::LFONavigator()
 }
 
 template<typename Point_t>
-Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
-
-    return Point_t::Zero();
+void LFONavigator<Point_t>::setSampleRate(double sampleRate) {
+    NavigationStrategy<Point_t>::setSampleRate(sampleRate);
+    for (auto &f : filters) {
+        f.setSampleRate(sampleRate);
+    }
 }
 
 template<typename Point_t>
+Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space,
+    Point_t previousPoint)
+{
+    setFrequency(*paramTree.getRawParameterValue("nav_lfo_rate"));
+    const double filterCutoff = *paramTree.getRawParameterValue("nav_lfo_response");
+    const double filterReso = *paramTree.getRawParameterValue("nav_lfo_overshoot");
+    for (auto &f : filters) {
+        f.setParams(filterCutoff, filterReso);
+    }
+
+    const double amplitude = *paramTree.getRawParameterValue("nav_lfo_amount");
+
+    this->_centers[0] = *paramTree.getRawParameterValue("nav_tendency_x");
+    this->_centers[1] = *paramTree.getRawParameterValue("nav_tendency_y");
+
+    // compute phase and waveforms
+    assert(this->_phaseIncrement >= 0.0);	// otherwise wrapping method won't work as expected
+    this->_phase += this->_phaseIncrement;
+    if (this->_phase > 2.0 * juce::MathConstants<double>::pi){
+        this->_phase -= 2.0 * juce::MathConstants<double>::pi;
+    }
+
+    float shapeValue = *paramTree.getRawParameterValue("nav_lfo_shape");
+
+    auto calculateShape = [shapeValue](const double phase){
+        double a = shapeValue;
+
+        auto i = [](double d){return int(d);};
+        auto frac = [i](double d){return d - i(d);};
+        auto tri = [](double d){ return 2.0 * (d < 0.5 ? d : 1 - d); };
+
+        double p = 4.0 * tri(shapeValue);
+        double q = 2.0 * a * a;
+
+        return (1.0 - frac(q)) * std::cos((i(q) + 1.0) * phase) + frac(q) * std::cos((i(q) + 2.0) * phase);
+    };
+    Point_t p {};
+    for (int i = 0; i < this->Dimensions; ++i) {
+        const double interDimensionalPhaseIncrement = 2.5 * (static_cast<double>(i) / this->Dimensions) * -M_PI;
+        const double ø = this->_phase + interDimensionalPhaseIncrement;
+        p[i] = this->filters[i](amplitude * calculateShape(ø) + this->_centers[i]);
+    }
+
+    return p;
+}
+template<typename Point_t>
+void LFONavigator<Point_t>::setFrequency(const double frequency) {
+    jassert (this->_sampleRate != 0.0);
+    _phaseIncrement = 2.0 * juce::MathConstants<double>::pi * frequency / this->_sampleRate;
+}
+
+
+template<typename Point_t>
 LorenzNavigator<Point_t>::LorenzNavigator()
-    :   NavigationStrategy<Point_t>("LorenzNavigator")
+    :   NavigationStrategy<Point_t>(NavigationType_e::Lorenz)
 {}
 
 template<typename Point_t>
@@ -91,18 +146,14 @@ Navigator<Point_t>::Navigator(const AudioProcessorValueTreeState &paramTree)
 :   _apvts(paramTree) {}
 template<typename Point_t>
 void Navigator<Point_t>::setNavigationStrategy(const NavigationType_e navType) {
-    juce::String s;
     switch (navType) {
         case NavigationType_e::LFO:
-            s = "LFO";
             _navigationStrategy = std::make_unique<LFONavigator<Point_t>>();
             break;
         case NavigationType_e::RandomWalk:
-            s = "RandomWalk";
             _navigationStrategy = std::make_unique<RandomWalkNavigator<Point_t>>();
             break;
         case NavigationType_e::Lorenz:
-            s = "Lorenz";
             _navigationStrategy = std::make_unique<LorenzNavigator<Point_t>>();
             break;
     }

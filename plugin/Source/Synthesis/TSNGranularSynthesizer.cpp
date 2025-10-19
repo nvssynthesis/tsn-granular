@@ -42,7 +42,6 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     clearSounds();
     addSound(new GranularSound);
 
-    apvts.addParameterListener("navigator_type", this); // for setting navigation strategy
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
 
@@ -53,12 +52,12 @@ TSNGranularSynthesizer::~TSNGranularSynthesizer() {
     _timbreSpace.removeActionListener(this);
 }
 //==============================================================================
-void TSNGranularSynthesizer::parameterChanged(const String &parameterID, float newValue) {
-    if (parameterID == "navigator_type") {
-        const auto strategy = static_cast<nvs::timbrespace::NavigationType_e>(newValue);
-        _navigator.setNavigationStrategy(strategy);
-    }
-}
+// void TSNGranularSynthesizer::parameterChanged(const String &parameterID, float newValue) {
+//     if (parameterID == "navigator_type") {
+//         const auto strategy = static_cast<nvs::timbrespace::NavigationType_e>(newValue);
+//         _navigator.setNavigationStrategy(strategy);
+//     }
+// }
 void TSNGranularSynthesizer::actionListenerCallback(juce::String const &message) {
     if (message.compare("reportAvailability") == 0){
         auto onsetsOpt = _timbreSpace.getOnsets();
@@ -107,6 +106,11 @@ void TSNGranularSynthesizer::setCurrentPlaybackSampleRate(const double newSample
 }
 void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi)
 {
+    if (const auto navType = static_cast<timbrespace::NavigationType_e>(_synth_shared_state._apvts.getRawParameterValue("navigator_type")->load());
+        _navigator.getNavigationStrategy() != navType)
+    {
+        _navigator.setNavigationStrategy(navType);
+    }
     const auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
 
     jassert(p5D.norm() < 100.f);
