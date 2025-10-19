@@ -38,6 +38,7 @@ private:
 	juce::AudioProcessorValueTreeState &_apvts;
 	AttachedComboBox navigatorTypeMenu;
     void comboBoxChanged(ComboBox *comboBoxThatHasChanged) override;
+    void updateDisplayedParameters();
 
 	std::unique_ptr<NavigatorPanel> timbreSpacePanel;
 	std::unique_ptr<NavigatorPanel> navPanel;

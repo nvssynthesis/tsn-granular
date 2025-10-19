@@ -76,6 +76,7 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
 	timbreSpacePanel = std::make_unique<NavigatorPanel>(_apvts, "timbre_space", false);
 	addAndMakeVisible(timbreSpacePanel.get());
     navigatorTypeMenu._comboBox.addListener(this);
+    updateDisplayedParameters();
 }
 NavigatorPage::~NavigatorPage() = default;
 
@@ -86,15 +87,20 @@ static std::map<nvs::timbrespace::NavigationType_e, juce::String> navTypeParamSu
 {nvs::timbrespace::NavigationType_e::Lorenz, "nav_lorenz"}
 };
 
+void NavigatorPage::updateDisplayedParameters() {
+    auto const navType = static_cast<nvs::timbrespace::NavigationType_e>(navigatorTypeMenu._comboBox.getSelectedId() - 1);
+    navPanel.reset();
+    navPanel = std::make_unique<NavigatorPanel>(_apvts, navTypeParamSubgroupMap.at(navType));
+    addAndMakeVisible(navPanel.get());
+    repaint();
+}
+
 void NavigatorPage::comboBoxChanged(ComboBox *comboBoxThatHasChanged) {
     if (comboBoxThatHasChanged == &navigatorTypeMenu._comboBox) {
-        auto const navType = static_cast<nvs::timbrespace::NavigationType_e>(comboBoxThatHasChanged->getSelectedId() - 1);
-        navPanel.reset();
-        navPanel = std::make_unique<NavigatorPanel>(_apvts, navTypeParamSubgroupMap.at(navType));
-        addAndMakeVisible(navPanel.get());
-        repaint();
+        updateDisplayedParameters();
     }
 }
+
 void NavigatorPage::paint(juce::Graphics &) {
     if (navPanel != nullptr) {
         navPanel->setBounds(navPanelBounds);
