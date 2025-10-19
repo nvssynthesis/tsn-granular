@@ -10,7 +10,7 @@
 #include "TsnGranularPluginEditor.h"
 #include "Gui/SettingsWindow.h"
 #include "../slicer_granular/Source/algo_util.h"
-#include "Gui/NavLFOPage.h"
+#include "Gui/NavigatorPage.h"
 #include "Analysis/RunLoopStatus.h"
 
 //==============================================================================

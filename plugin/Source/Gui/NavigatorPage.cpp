@@ -8,7 +8,7 @@
   =============================================================================
 */
 
-#include "NavLFOPage.h"
+#include "NavigatorPage.h"
 
 #include "Navigation/Navigator.h"
 
