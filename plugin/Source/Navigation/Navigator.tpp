@@ -137,7 +137,34 @@ LorenzNavigator<Point_t>::LorenzNavigator()
 
 template<typename Point_t>
 Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
-    return Point_t::Zero();
+    {
+        const double a = *paramTree.getRawParameterValue("nav_lorenz_a");
+        const double b = *paramTree.getRawParameterValue("nav_lorenz_b");
+        const double c = *paramTree.getRawParameterValue("nav_lorenz_c");
+        const double d_t = *paramTree.getRawParameterValue("nav_lorenz_d_t");
+
+        const double x_inc = a * (_y - _x);
+        const double y_inc = _x * (b - _z) - _y;
+        const double z_inc = (_x * _y) - (c * _z);
+
+        _x += x_inc * d_t;
+        _y += y_inc * d_t;
+        _z += z_inc * d_t;
+    }
+
+    Point_t p = Point_t::Zero();
+
+    if constexpr (1 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[0] = _x * 0.03;
+    }
+    if constexpr (2 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[1] = _y * 0.03;
+    }
+    if constexpr (3 <= NavigationStrategy<Point_t>::Dimensions) {
+        p[2] = _z * 0.03;
+    }
+
+    return p;
 }
 
 

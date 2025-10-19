@@ -93,6 +93,8 @@ class LorenzNavigator : public NavigationStrategy<Point_t> {
 public:
     LorenzNavigator();
     Point_t navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) override;
+private:
+    double _x{0.1}, _y{0.1}, _z{0.1};
 };
 
 inline const juce::StringArray &getNavigationTypeNames() {
