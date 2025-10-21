@@ -23,6 +23,7 @@ public:
 private:
 	std::vector<std::unique_ptr<juce::Component>> components;
     bool horizontal;
+    static constexpr int pad {3};
 };
 
 class NavigatorPage :	public juce::Component
@@ -42,6 +43,7 @@ private:
 
 	std::unique_ptr<NavigatorPanel> timbreSpacePanel;
 	std::unique_ptr<NavigatorPanel> navPanel;
+    std::unique_ptr<NavigatorPanel> navCommonParamsPanel;
     juce::Rectangle<int> navPanelBounds;
 };
 

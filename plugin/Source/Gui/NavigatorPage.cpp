@@ -45,7 +45,7 @@ void NavigatorPanel::resized()
         for (size_t i = 0; i < components.size(); ++i){
             const int left = static_cast<int>(i) * allottedCompWidth + localBounds.getX();
             auto const comp = components[i].get();
-            comp->setBounds(left, 0, allottedCompWidth, allottedCompHeight);
+            comp->setBounds(juce::Rectangle<int>(left, 0, allottedCompWidth, allottedCompHeight).reduced(pad));
         }
     }
     else {
@@ -56,13 +56,13 @@ void NavigatorPanel::resized()
         for (size_t i = 0; i < components.size(); ++i){
             const int top = static_cast<int>(i) * allottedCompHeight + localBounds.getY();
             auto const comp = components[i].get();
-            comp->setBounds(0, top, allottedCompWidth, allottedCompHeight);
+            comp->setBounds(juce::Rectangle<int>(0, top, allottedCompWidth, allottedCompHeight).reduced(pad));
         }
     }
 }
 void NavigatorPanel::paint(juce::Graphics &g) {
 	g.setColour(juce::Colours::whitesmoke.withAlpha(0.33f));
-	g.drawRoundedRectangle(getLocalBounds().reduced(3).toFloat(), 5.f, 1.f);
+	g.drawRoundedRectangle(getLocalBounds().reduced(pad).toFloat(), 5.f, 1.f);
 }
 
 NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
@@ -75,6 +75,10 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
 
 	timbreSpacePanel = std::make_unique<NavigatorPanel>(_apvts, "timbre_space", false);
 	addAndMakeVisible(timbreSpacePanel.get());
+
+    navCommonParamsPanel = std::make_unique<NavigatorPanel>(_apvts, "nav_common", true);
+    addAndMakeVisible(navCommonParamsPanel.get());
+
     navigatorTypeMenu._comboBox.addListener(this);
     updateDisplayedParameters();
 }
@@ -115,27 +119,40 @@ void NavigatorPage::resized() {
 	navigatorTypeMenu.setBounds(menuArea);
 	
 	{
-		int totalW = bounds.getWidth();
-		int splitW = static_cast<int>(totalW * 0.26f);
-		
-		juce::Rectangle<int> left {
+		const int totalW = bounds.getWidth();
+		const int middleW = static_cast<int>(totalW * 0.5f);
+	    const int rightW = static_cast<int>(totalW * 0.25f);
+
+		const juce::Rectangle<int> left {
 			bounds.getX(),
 			bounds.getY(),
-			splitW,
+			totalW - middleW - rightW,
 			bounds.getHeight()
 		};
 		
-		juce::Rectangle<int> right {
-			bounds.getX() + splitW,
+		const juce::Rectangle<int> middle {
+			left.getRight(),
 			bounds.getY(),
-			totalW - splitW,
+			middleW,
 			bounds.getHeight()
 		};
+
+	    const juce::Rectangle<int> right {
+	        middle.getRight(),
+	        bounds.getY(),
+	        rightW,
+	        bounds.getHeight()
+	    };
 		
 		if (timbreSpacePanel != nullptr){
 			timbreSpacePanel->setBounds(left);
 		}
-		navPanelBounds = right;
+
+	    navPanelBounds = middle;
+
+	    if (navCommonParamsPanel != nullptr) {
+	        navCommonParamsPanel->setBounds(right);
+	    }
 	}
 }
 
