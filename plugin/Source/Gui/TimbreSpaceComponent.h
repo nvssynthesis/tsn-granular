@@ -83,8 +83,22 @@ private:
 	
 	TSNMouse tsn_mouse;
 	
-	struct NavigatorPoint {
-		Timbre2DPoint _p2D {0.f, 0.f};
+	class NavigatorPoint {
+	    static constexpr size_t TRAIL_LENGTH {120};
+	    std::deque<Timbre2DPoint> _history;
+	public:
+	    Timbre2DPoint _p2D;
+        void update(const Timbre2DPoint &newPosition) {
+            _history.push_front(_p2D);
+            if (_history.size() > TRAIL_LENGTH) {
+                _history.pop_back();
+            }
+            _p2D = newPosition;
+        }
+
+	    const std::deque<Timbre2DPoint>& getHistory() const {
+            return _history;
+        }
 	} nav;
 	
 	void showAnalysisSaveDialog();

@@ -226,6 +226,14 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	}
 	// draw navigator
 	{
+	    const auto& history = nav.getHistory();
+	    for (size_t i = 0; i < history.size(); ++i) {
+	        const float c = 1.0f - (static_cast<float>(i) / history.size());
+	        const float alpha = std::pow(c, 3.f);
+	        g.setColour(juce::Colours::black.withAlpha(alpha));
+	        const float size = 2.f * std::pow(c, 5.f);
+	        g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(history[i], w, h), size));
+	    }
 		g.setColour(Colours::black);
 		g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(nav._p2D, w, h), 2.f));
 	}
@@ -371,7 +379,7 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 }
 
 void TimbreSpaceComponent::setNavigatorPoint(Timbre2DPoint p){
-	nav._p2D = p;
+    nav.update(p);
 }
 ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 	return progressIndicator;
