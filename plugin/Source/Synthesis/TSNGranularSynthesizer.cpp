@@ -111,11 +111,23 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
     {
         _navigator.setNavigationStrategy(navType);
     }
-    const auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
-
-    jassert(p5D.norm() < 100.f);
+    auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
 
     const auto &apvts = _synth_shared_state._apvts;
+    const double scaling = *apvts.getRawParameterValue("nav_scaling");
+
+    p5D *= scaling;
+
+    Eigen::Vector3f p3D = p5D.head<3>();
+    Eigen::Vector2f p2D = p5D.tail<2>();
+
+    const Eigen::AngleAxisf rot_x((*apvts.getRawParameterValue("nav_rotation_x")) * 2.0 * M_PI, Eigen::Vector3f::UnitX());
+    const Eigen::AngleAxisf rot_y((*apvts.getRawParameterValue("nav_rotation_y")) * 2.0 * M_PI, Eigen::Vector3f::UnitY());
+    const Eigen::AngleAxisf rot_z((*apvts.getRawParameterValue("nav_rotation_z")) * 2.0 * M_PI, Eigen::Vector3f::UnitZ());
+
+    p5D << rot_z * rot_y * rot_x * p3D, p2D;
+
+    jassert(p5D.norm() < 100.f);
 
     _timbreSpace.setTargetPoint(p5D);
     _timbreSpace.computeExistingPointsFromTarget();

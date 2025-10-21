@@ -73,7 +73,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 		child->setLookAndFeel(&laf);
 	}
 
-    startTimerHz(30);
+    startTimerHz(60);
 
 	getConstrainer()->setMinimumSize(240, 360);
 }

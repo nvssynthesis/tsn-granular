@@ -134,6 +134,12 @@ template<typename Point_t>
 LorenzNavigator<Point_t>::LorenzNavigator()
     :   NavigationStrategy<Point_t>(NavigationType_e::Lorenz)
 {}
+enum class IntegrationMethod {
+    Euler = 0,
+    RK4 = 1
+};
+
+static constexpr IntegrationMethod integrationMethod {IntegrationMethod::RK4};
 
 template<typename Point_t>
 Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
@@ -142,26 +148,64 @@ Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &p
         const double b = *paramTree.getRawParameterValue("nav_lorenz_b");
         const double c = *paramTree.getRawParameterValue("nav_lorenz_c");
         const double d_t = *paramTree.getRawParameterValue("nav_lorenz_d_t");
+        auto lorenz = [&](double x, double y, double z) -> std::tuple<double, double, double> {
+            return {
+                a * (y - x),
+                x * (b - z) - y,
+                (x * y) - (c * z)
+            };
+        };
 
-        const double x_inc = a * (_y - _x);
-        const double y_inc = _x * (b - _z) - _y;
-        const double z_inc = (_x * _y) - (c * _z);
+        if constexpr (integrationMethod == IntegrationMethod::Euler) {
+            auto [x_inc, y_inc, z_inc] = lorenz(_x, _y, _z);
 
-        _x += x_inc * d_t;
-        _y += y_inc * d_t;
-        _z += z_inc * d_t;
+            _x += x_inc * d_t;
+            _y += y_inc * d_t;
+            _z += z_inc * d_t;
+        }
+        else if constexpr (integrationMethod == IntegrationMethod::RK4) {
+            const double x = _x;
+            const double y = _y;
+            const double z = _z;
+
+            // RK4 stages
+            auto [k1_x, k1_y, k1_z] = lorenz(x, y, z);
+
+            auto [k2_x, k2_y, k2_z] = lorenz(
+                x + 0.5 * d_t * k1_x,
+                y + 0.5 * d_t * k1_y,
+                z + 0.5 * d_t * k1_z
+            );
+
+            auto [k3_x, k3_y, k3_z] = lorenz(
+                x + 0.5 * d_t * k2_x,
+                y + 0.5 * d_t * k2_y,
+                z + 0.5 * d_t * k2_z
+            );
+
+            auto [k4_x, k4_y, k4_z] = lorenz(
+                x + d_t * k3_x,
+                y + d_t * k3_y,
+                z + d_t * k3_z
+            );
+
+            // Apply RK4 weights
+            _x += (d_t / 6.0) * (k1_x + 2.0*k2_x + 2.0*k3_x + k4_x);
+            _y += (d_t / 6.0) * (k1_y + 2.0*k2_y + 2.0*k3_y + k4_y);
+            _z += (d_t / 6.0) * (k1_z + 2.0*k2_z + 2.0*k3_z + k4_z);
+        }
     }
 
     Point_t p = Point_t::Zero();
 
     if constexpr (1 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[0] = _x * 0.03;
+        p[0] = _x * 0.05;
     }
     if constexpr (2 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[1] = _y * 0.03;
+        p[1] = _y * 0.05;
     }
     if constexpr (3 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[2] = _z * 0.03;
+        p[2] = _z * 0.05;
     }
 
     return p;
@@ -180,37 +224,81 @@ static const double sgn(const double d) {
 template<typename Point_t>
 Point_t HyperchaosNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
     {
-        const double alpha = *paramTree.getRawParameterValue("nav_hyperchaos_alpha");
         const double a = *paramTree.getRawParameterValue("nav_hyperchaos_a");
         const double b = *paramTree.getRawParameterValue("nav_hyperchaos_b");
+        const double d_t = *paramTree.getRawParameterValue("nav_hyperchaos_d_t");
 
-        const double x_inc = _y - _x;
-        const double y_inc = -1.0 * _z * sgn(_x) + _u;
-        const double z_inc = _x * sgn(_y) - a;
-        const double u_inc = -1.0 * b * _y;
+        auto hyperchaos = [&](double x, double y, double z, double u) -> std::tuple<double, double, double, double> {
+            return {
+                y - x,
+                -1.0 * z * sgn(x) + u,
+                x * sgn(y) - a,
+                -1.0 * b * y
+            };
+        };
 
-        _x += x_inc * alpha;
-        _y += y_inc * alpha;
-        _z += z_inc * alpha;
-        _u += u_inc * alpha;
+        if constexpr (integrationMethod == IntegrationMethod::Euler) {
+            auto [x_inc, y_inc, z_inc, u_inc] = hyperchaos(_x, _y, _z, _u);
+
+            _x += x_inc * d_t;
+            _y += y_inc * d_t;
+            _z += z_inc * d_t;
+            _u += u_inc * d_t;
+        }
+        else if constexpr (integrationMethod == IntegrationMethod::RK4) {
+            const double x = _x;
+            const double y = _y;
+            const double z = _z;
+            const double u = _u;
+
+            // RK4 stages
+            auto [k1_x, k1_y, k1_z, k1_u] = hyperchaos(x, y, z, u);
+
+            auto [k2_x, k2_y, k2_z, k2_u] = hyperchaos(
+                x + 0.5 * d_t * k1_x,
+                y + 0.5 * d_t * k1_y,
+                z + 0.5 * d_t * k1_z,
+                u + 0.5 * d_t * k1_u
+            );
+
+            auto [k3_x, k3_y, k3_z, k3_u] = hyperchaos(
+                x + 0.5 * d_t * k2_x,
+                y + 0.5 * d_t * k2_y,
+                z + 0.5 * d_t * k2_z,
+                u + 0.5 * d_t * k2_u
+            );
+
+            auto [k4_x, k4_y, k4_z, k4_u] = hyperchaos(
+                x + d_t * k3_x,
+                y + d_t * k3_y,
+                z + d_t * k3_z,
+                u + d_t * k3_u
+            );
+
+            // Combine with RK4 weights
+            _x += (d_t / 6.0) * (k1_x + 2.0*k2_x + 2.0*k3_x + k4_x);
+            _y += (d_t / 6.0) * (k1_y + 2.0*k2_y + 2.0*k3_y + k4_y);
+            _z += (d_t / 6.0) * (k1_z + 2.0*k2_z + 2.0*k3_z + k4_z);
+            _u += (d_t / 6.0) * (k1_u + 2.0*k2_u + 2.0*k3_u + k4_u);
+        }
     }
 
     Point_t p = Point_t::Zero();
 
     if constexpr (1 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[0] = _x * 0.1;
+        p[0] = _x;
     }
     if constexpr (2 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[1] = _y * 0.1;
+        p[1] = _y;
     }
     if constexpr (3 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[2] = _z * 0.1;
+        p[2] = _z;
     }
     if constexpr (4 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[3] = _u * 0.1;
+        p[3] = _u;
     }
 
-    return p;
+    return p * 0.2f;
 }
 
 template<typename Point_t>
@@ -280,6 +368,7 @@ Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElap
        _previousPoint = _navigationStrategy->navigate(_apvts, space, _previousPoint);
     }
     jassert(_previousPoint.norm() < 100.f);
+
     return _previousPoint;
 }
 
