@@ -225,18 +225,73 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		}
 	}
 	// draw navigator
-	{
-	    const auto& history = nav.getHistory();
-	    for (size_t i = 0; i < history.size(); ++i) {
-	        const float c = 1.0f - (static_cast<float>(i) / history.size());
-	        const float alpha = std::pow(c, 3.f);
-	        g.setColour(juce::Colours::black.withAlpha(alpha));
-	        const float size = 2.f * std::pow(c, 5.f);
-	        g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(history[i], w, h), size));
-	    }
-		g.setColour(Colours::black);
-		g.fillEllipse(pointToRect(bipolar2dPointToComponentSpace(nav._p2D, w, h), 2.f));
-	}
+    {
+        const auto& history = nav.getHistory();
+
+        if (!history.empty()) {
+            // Collect all points
+            std::vector<juce::Point<float>> points;
+            points.push_back(p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h)));
+            for (const auto& p : history) {
+                points.push_back(p2DtoJucePoint(bipolar2dPointToComponentSpace(p, w, h)));
+            }
+
+            if (points.size() >= 2) {
+                // Draw smooth Catmull-Rom curve segments directly
+                int segmentIndex = 0;
+                const int totalSegments = (points.size() - 1) * 10;  // 10 subdivisions per point pair
+
+                for (size_t i = 0; i < points.size() - 1; ++i) {
+                    auto p0 = (i > 0) ? points[i - 1] : points[i];
+                    auto p1 = points[i];
+                    auto p2 = points[i + 1];
+                    auto p3 = (i + 2 < points.size()) ? points[i + 2] : p2;
+
+                    // Subdivide segment for smoothness
+                    const int subdiv = 10;
+                    for (int j = 0; j < subdiv; ++j) {
+                        float t1 = static_cast<float>(j) / subdiv;
+                        float t2 = static_cast<float>(j + 1) / subdiv;
+
+                        // Calculate both points on Catmull-Rom curve
+                        auto calcPoint = [&](float t) -> juce::Point<float> {
+                            float t2 = t * t;
+                            float t3 = t2 * t;
+
+                            float x = 0.5f * ((2.0f * p1.x) +
+                                              (-p0.x + p2.x) * t +
+                                              (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
+                                              (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
+
+                            float y = 0.5f * ((2.0f * p1.y) +
+                                              (-p0.y + p2.y) * t +
+                                              (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 +
+                                              (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) * t3);
+
+                            return {x, y};
+                        };
+
+                        auto point1 = calcPoint(t1);
+                        auto point2 = calcPoint(t2);
+
+                        // Calculate fade based on position along entire trail
+                        const float globalT = static_cast<float>(segmentIndex) / totalSegments;
+                        const float alpha = std::pow(1.0f - globalT, 3.f);
+                        const float thickness = 2.5f * std::pow(1.0f - globalT, 2.f);
+
+                        g.setColour(juce::Colours::black.withAlpha(alpha));
+                        g.drawLine(juce::Line<float>(point1, point2), thickness);
+
+                        segmentIndex++;
+                    }
+                }
+            }
+        }
+
+        // Draw current position
+        g.setColour(Colours::black);
+        g.fillEllipse(pointToRect(p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h)), 3.f));
+    }
 }
 
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
