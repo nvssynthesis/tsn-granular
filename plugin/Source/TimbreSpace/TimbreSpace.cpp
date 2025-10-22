@@ -129,16 +129,23 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             std::cout << "tree changed! redrawing points...\n";
 
             fullSelfUpdate(true);
+            return;
         }
-        else if (paramID == "x_axis") {
-            settings.dimensionWisefeatures[0] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue("x_axis")->load());
-            std::cout << "tree changed! redrawing points...\n";
-            fullSelfUpdate(true);
-        }
-        else if (paramID == "y_axis") {
-            settings.dimensionWisefeatures[1] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue("y_axis")->load());
-            std::cout << "tree changed! redrawing points...\n";
-            fullSelfUpdate(true);
+        static const std::map<juce::String, size_t> pidToDimensionMap {
+            {"x_axis", 0},
+            {"y_axis", 1},
+            {"z_axis", 2},
+            {"u_axis", 3},
+            {"v_axis", 4},
+        };
+        for (auto const &[s, i] : pidToDimensionMap){
+            if (paramID == s) {
+                settings.dimensionWisefeatures[i] = static_cast<nvs::analysis::Features>(_treeManager._apvts.
+                    getRawParameterValue(s)->load());
+                std::cout << "tree changed! redrawing points...\n";
+                fullSelfUpdate(true);
+                return;
+            }
         }
     }
 }
