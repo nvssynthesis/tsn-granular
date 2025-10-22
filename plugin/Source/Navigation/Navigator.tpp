@@ -205,7 +205,7 @@ Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &p
         p[1] = _y * 0.05;
     }
     if constexpr (3 <= NavigationStrategy<Point_t>::Dimensions) {
-        p[2] = _z * 0.05;
+        p[2] = (_z - 28.0) * 0.05;  // hack of approximately removing DC offset, based on guestimate observation
     }
 
     return p;
