@@ -76,7 +76,7 @@ inline Features toFeature(const juce::String &s){
 	return Features::bfcc0;
 }
 
-inline const juce::StringArray& getFeatureChoiceVec() {
+inline const juce::StringArray& getFeaturesStringArray() {
     static const auto features = [] -> juce::StringArray {
         StringArray result;
         for (const auto f : featuresIterator()) {

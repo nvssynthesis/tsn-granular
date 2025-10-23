@@ -14,10 +14,6 @@
 #include "Analysis/Settings.h"
 #include <span>
 
-#ifdef INCLUDE_AUBIO
-#include "../aubio/src/aubio.h"
-#endif
-
 namespace nvs::analysis {
 
 struct PitchesAndConfidences {

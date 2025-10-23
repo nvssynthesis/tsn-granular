@@ -66,6 +66,7 @@ private:
 			nvs::analysis::Features::bfcc4,
 			nvs::analysis::Features::bfcc5
 		};
+	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
 	} settings;
 	//=============================================================================================================================
 	juce::String _audioFileHash;

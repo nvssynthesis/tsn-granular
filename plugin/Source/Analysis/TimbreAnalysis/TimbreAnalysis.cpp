@@ -14,66 +14,6 @@ namespace nvs {
 namespace analysis {
 
 namespace {
-std::vector<float> calculatePitchesAubioYinFast(std::span<Real> waveSpan, AnalyzerSettings const& settings){
-#ifdef INCLUDE_AUBIO
-	size_t const N = waveSpan.size();
-	
-	int const num_wins = (N <= win_sz) ? 1 : ceil(N - win_sz) / hop_sz + 1;
-	
-	auto presetInfoTree = settingsTree.getParent().getChildWithName("PresetInfo");
-	auto analysisTree = settingsTree.getChildWithName("Analysis");
-	
-	aubio_pitch_t *pDetector = new_aubio_pitch("yinfast",
-		/*buf_size*/ analysisTree.getProperty("frameSize").toInt(),
-		/*hop_size*/ analysisTree.getProperty("hopSize").toInt(),
-		/*sample_rate*/ presetInfoTree.getProperty("sampleRate").toFloat());
-
-	if (!pDetector){
-		return {};
-	}
-	
-	if (aubio_pitch_set_silence(pDetector, -50.f)) { // returns 0 on success
-		del_aubio_pitch(pDetector);
-		return {};
-	}
-	
-	if (aubio_pitch_set_unit(pDetector, "cent")) {
-		del_aubio_pitch(pDetector);
-		return {};
-	}
-	
-	std::vector<float> pitches(num_wins, 0.0f);
-	
-	fvec_t* fv_in = new_fvec(win_sz);
-	fvec_t* fv_out = new_fvec(1);
-	
-	if (!fv_in || !fv_out) {
-		del_fvec(fv_in);
-		del_fvec(fv_out);
-		del_aubio_pitch(pDetector);
-		return {};
-	}
-	
-	for (int i = 0; i < num_wins; ++i) {
-		std::memcpy(fv_in->data,
-					waveSpan.data() + i * hop_sz,
-					win_sz * sizeof(Real));
-		
-		aubio_pitch_do(pDetector, fv_in, fv_out);
-		
-		pitches[i] = fvec_get_sample(fv_out, 0);
-	}
-	
-	del_fvec(fv_in);
-	del_fvec(fv_out);
-	del_aubio_pitch(pDetector);
-	
-	return pitches;
-#else
-	assert(false);
-	return {};	// of course it won't return anyway.
-#endif
-}
 
 PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings){
 	size_t const waveSize = waveSpan.size();

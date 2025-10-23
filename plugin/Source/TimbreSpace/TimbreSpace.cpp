@@ -147,6 +147,12 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
                 return;
             }
         }
+        if (paramID == "statistic") {
+            settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager._apvts.getRawParameterValue("statistic")->load());
+            std::cout << "tree changed! redrawing points...\n";
+            fullSelfUpdate(true);
+            return;
+        }
     }
 }
 
@@ -449,7 +455,7 @@ void TimbreSpace::extract(const bool verbose) {
 	auto const &timbreTree = _treeManager.getTimbralFramesTree();
 	for (int i = 0; i < timbreTree.getNumChildren(); ++i) {
 		ValueTree const &frame = timbreTree.getChild(i);
-		std::vector<float> v = extractFeatures(frame, featuresToExtract, nvs::analysis::Statistic::Median);
+		std::vector<float> v = extractFeatures(frame, featuresToExtract, settings.statistic);
 		_eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }
