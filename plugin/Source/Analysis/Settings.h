@@ -111,6 +111,10 @@ struct AnalyzerSettings {
 		juce::String sampleFilePath;
 		juce::String author;
 	} info;
+
+    struct Statistics {
+        static constexpr float BFCC0_normalizationFactor {1.f / 20.f}; // used for weighing BFCCs via 0th BFCC for means
+    } _statistics;
 };
 bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree);
 

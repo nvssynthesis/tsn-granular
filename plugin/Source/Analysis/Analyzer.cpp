@@ -58,6 +58,47 @@ std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, R
     return onsetsInSeconds;
 }
 
+
+template <typename T>
+static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& frames,
+                                   const std::vector<T>& weights,
+                                   int beginIdx = 0,
+                                   int endIdx = -1) {
+    if (frames.empty()) {
+        throw EssentiaException("trying to calculate mean of empty array of frames");
+    }
+
+    if (endIdx == -1) endIdx = (int)frames.size();
+
+    if (weights.size() != frames.size()) {
+        throw EssentiaException("weights vector must match frames vector size");
+    }
+
+    uint vsize = frames[0].size();
+    std::vector<T> result(vsize, (T)0.0);
+    T totalWeight = (T)0.0;
+
+    for (int i = beginIdx; i < endIdx; ++i) {
+        T weight = weights[i];
+        totalWeight += weight;
+
+        for (uint j = 0; j < vsize; ++j) {
+            result[j] += frames[i][j] * weight;
+        }
+    }
+
+    // Normalize by total weight
+    if (totalWeight > (T)0.0) {
+        for (uint j = 0; j < vsize; ++j) {
+            result[j] /= totalWeight;
+        }
+    }
+
+    return result;
+}
+
+
+
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent) const {
     const auto [pitches, confidences] = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, settings);
 #pragma message("not using confidences yet")
@@ -91,7 +132,14 @@ EventwiseStatistics<float> Analyzer::calculateEventwiseLoudness(const vecReal &w
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(const vecReal &waveEvent) const {
     const vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, settings);	// bfccs per frame
 
-    const vecReal means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
+    // const vecReal means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
+    vecReal frameWeights; frameWeights.reserve(b_tmp.size());
+    for (auto const &frame : b_tmp) {
+        const Real bfcc0 = frame[0]; // bfcc #0 is energy
+        const Real weight = std::exp(bfcc0 * settings._statistics.BFCC0_normalizationFactor);
+        frameWeights.push_back(weight);
+    }
+    const vecReal means = weightedMeanFrames(b_tmp, frameWeights);
     const vecReal  medians = essentia::medianFrames(b_tmp);
     const vecReal  variances = essentia::varianceFrames(b_tmp);
     const vecReal  skewnesses = essentia::skewnessFrames(b_tmp);
