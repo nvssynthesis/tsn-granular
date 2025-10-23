@@ -183,6 +183,9 @@ Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
 
     rls.set("Calculating timbre descriptions per event...");
     for (size_t i = 0; i < events.size(); ++i) {
+        if (shouldExit()) {
+            return std::nullopt;
+        }
         const auto &e = events[i];
         FeatureContainer<EventwiseStatistics<Real>> f;
 

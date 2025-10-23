@@ -18,7 +18,7 @@ ThreadedAnalyzer::ThreadedAnalyzer()
 	:	juce::Thread("Analyzer")
 {}
 ThreadedAnalyzer::~ThreadedAnalyzer(){
-	stopThread(100);
+	stopThread(5000);
 }
 
 void ThreadedAnalyzer::updateStoredAudio(std::span<float const> wave, const juce::String &audioFileAbsPath){
@@ -81,7 +81,11 @@ void ThreadedAnalyzer::run() {
 		// perform onsetwise BFCC analysis
 		_rls.set("Calculating Onsetwise TimbreSpace...");
 		auto timbreMeasurementsOpt = _analyzer.calculateOnsetwiseTimbreSpace(_inputWave, onsets, _rls, shouldExit);
-		jassert (timbreMeasurementsOpt.has_value());
+		if (!timbreMeasurementsOpt.has_value()) {
+		    DBG("no timbre measurement accomplished, likely due to early exit");
+            sendChangeMessage();
+		    return;
+		}
 
 		normalizeOnsets(onsets, lengthInSeconds);
 
