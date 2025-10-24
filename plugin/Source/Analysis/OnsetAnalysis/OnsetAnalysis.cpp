@@ -35,15 +35,18 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  RunLoopStatus& rls,
 						  const ShouldExitFn &shouldExit)
 {
-	auto const input_sr     = settings.analysis.sampleRate;
+	const auto input_sr     = settings.analysis.sampleRate;
 	assert(0.0 < input_sr);
-	auto const internal_sr  = 44100.0f;
-	auto const framesize    = settings.analysis.frameSize;
-	auto const hopsize      = settings.analysis.hopSize;
+    constexpr auto internal_sr  = 44100.0f;
+	const auto frameSize    = std::min(std::max(512, settings.analysis.frameSize), 2048);
+    constexpr auto frameSize1024    = 1024; // dedicated for melflux
+	constexpr auto hopSize      = 512;
+
+	const bool needSeparateMelFluxChain = (frameSize != frameSize1024);
 
 
 	vectorInput *inVec = new vectorInput(&waveform);
-	
+
 	Algorithm* resampler	= factory.create("Resample",
 											 "inputSampleRate", input_sr,
 											 "outputSampleRate", internal_sr,
@@ -56,46 +59,74 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 																	   SRC_LINEAR                  = 4
 																   } ;
 															 */
+
+	// ============ Main processing chain (variable frameSize) ============
 	Algorithm* frameCutter  = factory.create("FrameCutter",
-											 "frameSize", framesize,
-											 "hopSize", hopsize,
+											 "frameSize", frameSize,
+											 "hopSize", hopSize,
 											 "startFromZero", false,
-											 "lastFrameToEndOfFile", true,	// irrelevant unless startFromZero is true
-											 "validFrameThresholdRatio", 0.0f);	// at 1, only frames with length frameSize are kept
-	
+											 "lastFrameToEndOfFile", true,
+											 "validFrameThresholdRatio", 0.0f);
+
 	Algorithm* windowingToFFT = factory.create("Windowing",
 											 "normalized", true,
-											 "size", framesize,
+											 "size", frameSize,
 											 "zeroPhase", false,
-											 "zeroPadding", framesize ,	/*
-																		 zero padding as such resolves potential for
-																		 "essentia::EssentiaException: TriangularBands: the number of spectrum bins is insufficient for the specified number of triangular bands. Use zero padding to increase the number of FFT bins."
-																		 */
-											 "type", "hamming");	// options: hamming, hann, hannnsgcq, triangular, square, blackmanharris62, blackmanharris70, blackmanharris74, blackmanharris92
-	
+											 "zeroPadding", frameSize,
+											 "type", "hamming");
+
 	Algorithm* FFT			= factory.create("FFT",
-											 "size", framesize);
-	
+											 "size", frameSize);
+
 	Algorithm* carToPol		= factory.create("CartesianToPolar");
-	
+
+	// ============ Separate processing chain for MelFlux (only if frameSize != 1024) ============
+	Algorithm* frameCutter1024 = nullptr;
+	Algorithm* windowingToFFT1024 = nullptr;
+	Algorithm* FFT1024 = nullptr;
+	Algorithm* carToPol1024 = nullptr;
+
+	if (needSeparateMelFluxChain) {
+		frameCutter1024  = factory.create("FrameCutter",
+												 "frameSize", frameSize1024,
+												 "hopSize", hopSize,
+												 "startFromZero", false,
+												 "lastFrameToEndOfFile", true,
+												 "validFrameThresholdRatio", 0.0f);
+
+		windowingToFFT1024 = factory.create("Windowing",
+												 "normalized", true,
+												 "size", frameSize1024,
+												 "zeroPhase", false,
+												 "zeroPadding", frameSize1024,
+												 "type", "hamming");
+
+		FFT1024		= factory.create("FFT",
+												 "size", frameSize1024);
+
+		carToPol1024	= factory.create("CartesianToPolar");
+	}
+
+	// ============ Onset detection algorithms ============
 	Algorithm* onsetDetectionHfc = factory.create("OnsetDetection",
-											"method", "hfc",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "hfc",
 											   "sampleRate", internal_sr);
 	Algorithm* onsetDetectionComplex = factory.create("OnsetDetection",
-											"method", "complex",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "complex",
 											   "sampleRate", internal_sr);
 	Algorithm* onsetDetectionComplexPhase = factory.create("OnsetDetection",
-											"method", "complex_phase",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "complex_phase",
 											   "sampleRate", internal_sr);
 	Algorithm* onsetDetectionFlux = factory.create("OnsetDetection",
-											"method", "flux",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "flux",
 											   "sampleRate", internal_sr);
 	Algorithm* onsetDetectionMelFlux = factory.create("OnsetDetection",
-											"method", "melflux",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "melflux",
 											   "sampleRate", internal_sr);
 	Algorithm* onsetDetectionRms = factory.create("OnsetDetection",
-											"method", "rms",	// options: hfc, complex, complex_phase, flux, melflux, rms
+											"method", "rms",
 											   "sampleRate", internal_sr);
+
 	vecReal onsetDetVecHFC;
 	vectorOutput *onsetDetsHFC = new vectorOutput(&onsetDetVecHFC);
 	vecReal onsetDetVecComplex;
@@ -108,31 +139,47 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	vectorOutput *onsetDetsMelFlux = new vectorOutput(&onsetDetVecMelFlux);
 	vecReal onsetDetVecRms;
 	vectorOutput *onsetDetsRms = new vectorOutput(&onsetDetVecRms);
-	
+
+	// ============ Connect main processing chain ============
 	*inVec >> resampler->input("signal");
 	resampler->output("signal") >> frameCutter->input("signal");
 	frameCutter->output("frame") >> windowingToFFT->input("frame");
 	windowingToFFT->output("frame") >> FFT->input("frame");
 	FFT->output("fft") >> carToPol->input("complex");
-	
+
+	// Connect main chain to onset detectors (all except MelFlux if separate chain needed)
 	carToPol->output("magnitude") >> onsetDetectionHfc->input("spectrum");
 	carToPol->output("phase")	>> onsetDetectionHfc->input("phase");
-	
+
 	carToPol->output("magnitude") >> onsetDetectionComplex->input("spectrum");
 	carToPol->output("phase")	>> onsetDetectionComplex->input("phase");
-	
+
 	carToPol->output("magnitude") >> onsetDetectionComplexPhase->input("spectrum");
 	carToPol->output("phase")	>> onsetDetectionComplexPhase->input("phase");
-	
+
 	carToPol->output("magnitude") >> onsetDetectionFlux->input("spectrum");
 	carToPol->output("phase")	>> onsetDetectionFlux->input("phase");
-	
-	carToPol->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionMelFlux->input("phase");
-	
+
 	carToPol->output("magnitude") >> onsetDetectionRms->input("spectrum");
 	carToPol->output("phase")	>> onsetDetectionRms->input("phase");
-	
+
+	// ============ Connect MelFlux to appropriate chain ============
+	if (needSeparateMelFluxChain) {
+		// Use separate 1024 chain for MelFlux
+		resampler->output("signal") >> frameCutter1024->input("signal");
+		frameCutter1024->output("frame") >> windowingToFFT1024->input("frame");
+		windowingToFFT1024->output("frame") >> FFT1024->input("frame");
+		FFT1024->output("fft") >> carToPol1024->input("complex");
+
+		carToPol1024->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
+		carToPol1024->output("phase")	>> onsetDetectionMelFlux->input("phase");
+	} else {
+		// Use main chain for MelFlux (frameSize is already 1024)
+		carToPol->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
+		carToPol->output("phase")	>> onsetDetectionMelFlux->input("phase");
+	}
+
+	// ============ Connect all outputs ============
 	onsetDetectionHfc->output("onsetDetection") >> *onsetDetsHFC;
 	onsetDetectionComplex->output("onsetDetection") >> *onsetDetsComplex;
 	onsetDetectionComplexPhase->output("onsetDetection") >> *onsetDetsComplexPhase;
@@ -193,7 +240,7 @@ vecReal calculateOnsetsInSeconds(const array2dReal &onsetAnalysisMatrix,
 	 the sample rate of the signal will have already been converted to 44100 before the analysis.
 	 */
 
-	float const frameRate = 44100.f / settings.analysis.hopSize;
+	constexpr float frameRate = 44100.f / 512.f;
 
 	essentia::standard::Algorithm* onsetDetectionSeconds = factory.create (
 		"Onsets",
@@ -203,7 +250,7 @@ vecReal calculateOnsetsInSeconds(const array2dReal &onsetAnalysisMatrix,
 		  "delay",           settings.onset.numFrames_shortOnsetFilter // number of frames used to compute the threshold-size of short-onset filter
 	);
 
-	vecReal weights {
+	const vecReal weights {
 		static_cast<float>(settings.onset.weight_hfc),
 		static_cast<float>(settings.onset.weight_complex),
 		static_cast<float>(settings.onset.weight_complexPhase),
