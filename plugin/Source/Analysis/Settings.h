@@ -63,9 +63,9 @@ struct AnalyzerSettings {
 	
 	struct BFCC {
 		juce::String dctType = "typeII";
-		double highFrequencyBound = 8000.0;
+		double highFrequencyBound = 4000.0;
 		int liftering = 0;
-		double lowFrequencyBound = 100.0;
+		double lowFrequencyBound = 500.0;
 		juce::String normalize = "unit_sum";
 		int numBands = 40;
 		int numCoefficients = 13;

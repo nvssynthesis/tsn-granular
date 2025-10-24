@@ -28,8 +28,8 @@ static juce::NormalisableRange<double> makePowerOfTwoRange (double minValue, dou
 
 const std::map<juce::String, AnySpec> analysisSpecs
 {
-	{ "frameSize",     RangeWithDefault<int>{   makePowerOfTwoRange(64, 8192), 1024 } },
-	{ "hopSize",       RangeWithDefault<int>{   makePowerOfTwoRange(16, 4096),  512 } },
+	{ "frameSize",     RangeWithDefault<int>{   makePowerOfTwoRange(64, 16384), 1024 } },
+	{ "hopSize",       RangeWithDefault<int>{   makePowerOfTwoRange(32, 8192),  512 } },
 	{ "windowingType",  ChoiceWithDefault{ 	{"hann", "hamming", "hannnsgcq",
 		"triangular", "square", "blackmanharris62", "blackmanharris70",
 		"blackmanharris74", 	"blackmanharris92"}, /* default: */		"hann" 		} }
