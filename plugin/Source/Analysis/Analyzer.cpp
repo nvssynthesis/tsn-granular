@@ -68,15 +68,15 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
         throw EssentiaException("trying to calculate mean of empty array of frames");
     }
 
-    if (endIdx == -1) endIdx = (int)frames.size();
+    if (endIdx == -1) endIdx = static_cast<int>(frames.size());
 
     if (weights.size() != frames.size()) {
         throw EssentiaException("weights vector must match frames vector size");
     }
 
     uint vsize = frames[0].size();
-    std::vector<T> result(vsize, (T)0.0);
-    T totalWeight = (T)0.0;
+    std::vector<T> result(vsize, static_cast<T>(0.0));
+    T totalWeight = static_cast<T>(0.0);
 
     for (int i = beginIdx; i < endIdx; ++i) {
         T weight = weights[i];
@@ -88,7 +88,7 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
     }
 
     // Normalize by total weight
-    if (totalWeight > (T)0.0) {
+    if (totalWeight > static_cast<T>(0.0)) {
         for (uint j = 0; j < vsize; ++j) {
             result[j] /= totalWeight;
         }
@@ -96,7 +96,6 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
 
     return result;
 }
-
 
 
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent) const {
