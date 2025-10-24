@@ -81,6 +81,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						addAndMakeVisible (s);
 
 						s.setNormalisableRange (spec.range);            // range is double
+					    s.setNumDecimalPlacesToDisplay(3);
 						
 						auto const val = [this, spec, propName](bool use_default){
 							if (use_default){
