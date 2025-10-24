@@ -23,7 +23,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 ,	askForAnalysisButton("Calculate Analysis")
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
-,	audioProcessor(p)
+,	TSNaudioProcessor(p)
 {
 	setSize (680, 950);
 	setResizable(true, true);
@@ -32,7 +32,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	addAndMakeVisible(presetPanel);
 	addAndMakeVisible(askForAnalysisButton);
 	askForAnalysisButton.onClick = [this]{
-		if (TSNGranularAudioProcessor* a = dynamic_cast<TSNGranularAudioProcessor*>(&processor)){
+		if (auto* a = dynamic_cast<TSNGranularAudioProcessor*>(&processor)){
 			audioProcessor.writeToLog("success dynamic casting");
 			a->askForAnalysis();
 		}
@@ -62,12 +62,12 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
 	paintOnsetMarkers();
 	
-	auto &a = audioProcessor.getAnalyzer();
+	auto &a = TSNaudioProcessor.getAnalyzer();
 	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
 	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
 	
-	auto &ts = audioProcessor.getTimbreSpace();
+	auto &ts = TSNaudioProcessor.getTimbreSpace();
 	ts.addActionListener(this); // tell me to paint onsets
 	for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
@@ -87,14 +87,13 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	}
 	closeAllWindows();
 	
-	auto &a = audioProcessor.getAnalyzer();
+	auto &a = TSNaudioProcessor.getAnalyzer();
 	a.getStatus().removeChangeListener(&timbreSpaceComponent);
 	a.removeListener(&timbreSpaceComponent);
 	a.removeChangeListener(&timbreSpaceComponent);
 	a.removeChangeListener(this);
 	
-	// audioProcessor.getTsnGranularSynthesizer()->removeChangeListener(&(waveformAndPositionComponent.wc));
-	audioProcessor.getTimbreSpace().removeActionListener(this);
+	TSNaudioProcessor.getTimbreSpace().removeActionListener(this);
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()
@@ -105,14 +104,14 @@ void TsnGranularAudioProcessorEditor::closeAllWindows()
 	windows.clear();
 }
 //==============================================================================
-void TsnGranularAudioProcessorEditor::popupSettings(bool native){
-	int const intensity = 70;
-	auto* settingsWindow = new SettingsWindow (audioProcessor, juce::Colour(intensity, intensity, intensity));
+void TsnGranularAudioProcessorEditor::popupSettings(const bool native){
+    constexpr int intensity = 70;
+	auto* settingsWindow = new SettingsWindow (TSNaudioProcessor, juce::Colour(intensity, intensity, intensity));
 	windows.add (settingsWindow);
 
-	juce::Rectangle<int> area (0, 0, 500, 400);
+	const juce::Rectangle<int> area (0, 0, 500, 400);
 
-	juce::RectanglePlacement placement (juce::RectanglePlacement::xMid
+	const juce::RectanglePlacement placement (juce::RectanglePlacement::xMid
 										| juce::RectanglePlacement::yTop
 										| juce::RectanglePlacement::doNotResize);
 
@@ -127,7 +126,7 @@ void TsnGranularAudioProcessorEditor::popupSettings(bool native){
 
 void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 {
-    const auto onsetsOpt = audioProcessor.getTimbreSpace().getOnsets();
+    const auto onsetsOpt = TSNaudioProcessor.getTimbreSpace().getOnsets();
 	if (!onsetsOpt.has_value()){
 		audioProcessor.writeToLog("TsnGranularAudioProcessorEditor::paintOnsetMarkers : Onsets had no value; returning\n");
 		return;
@@ -138,7 +137,7 @@ void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
 	audioProcessor.writeToLog("Editor: Drawing waveform markers\n");
 
 	wc.removeMarkers(WaveformComponent::MarkerType::Onset);
-	for (auto onset : onsetsOpt.value()) {
+	for (const auto onset : onsetsOpt.value()) {
 		wc.addMarker(onset);
 	}
 	wc.repaint();
@@ -149,17 +148,17 @@ void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::timerCallback() {
     timbreSpaceComponent.repaint();
-    waveformAndPositionComponent.wc.highlightOnsets(audioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
+    waveformAndPositionComponent.wc.highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
 }
 
 //==============================================================================
 void TsnGranularAudioProcessorEditor::drawBackground()
 {
-	float const w = (float)getWidth();
-	float const h = (float)getHeight();
+	auto const w = static_cast<float>(getWidth());
+	auto const h = static_cast<float>(getHeight());
 
 	// rebuild our off‑screen image
-	backgroundImage = juce::Image (juce::Image::ARGB, (int)w, (int)h, true);
+	backgroundImage = juce::Image (juce::Image::ARGB, static_cast<int>(w), static_cast<int>(h), true);
 	juce::Graphics tg (backgroundImage);
 
 	// start with solid black
@@ -167,18 +166,18 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 
 	auto& r = juce::Random::getSystemRandom();
 
-	const int numLayers = int(r.nextFloat() * 15) + 1;
+	const int numLayers = static_cast<int>(r.nextFloat() * 15) + 1;
 	jassert(numLayers > 0);
 	for (int i = 0; i < numLayers; ++i)
 	{
-		float x1 = r.nextFloat() * w;
-		float y1 = r.nextFloat() * h;
-		float x2 = r.nextFloat() * w;
-		float y2 = r.nextFloat() * h;
+		const float x1 = r.nextFloat() * w;
+		const float y1 = r.nextFloat() * h;
+		const float x2 = r.nextFloat() * w;
+		const float y2 = r.nextFloat() * h;
 		
 		// two random shades
-		auto c1 = juce::Colour::greyLevel( r.nextFloat() );
-		auto c2 = juce::Colour::greyLevel( r.nextFloat() );
+		const auto c1 = juce::Colour::greyLevel( r.nextFloat() );
+		const auto c2 = juce::Colour::greyLevel( r.nextFloat() );
 
 		juce::ColourGradient grad (c1, x1, y1,
 								  c2, x2, y2,
@@ -187,14 +186,14 @@ void TsnGranularAudioProcessorEditor::drawBackground()
 		for (double g = r.nextFloat() * 0.01; g < 1.0; g += r.nextFloat() * 0.03 + 0.02){
 			grad.addColour (g, c1.interpolatedWith (c2, r.nextFloat()));
 		}
-		float opacity = 0.1f + r.nextFloat() * 0.2f;
+		const float opacity = 0.1f + r.nextFloat() * 0.2f;
 		tg.setGradientFill (grad);
 		tg.setOpacity       (opacity);
 		tg.fillRect         (0.0f, 0.0f, w, h);
 	}
 
 //	optional radial vignette to darken the very edges
-	if (false)
+	if constexpr (false)
 	{
 		juce::Colour inner = juce::Colour::fromHSV (r.nextFloat(), 1.0f, 1.0f, 0.07f);
 		juce::Colour outer = juce::Colours::black;
@@ -257,23 +256,23 @@ void TsnGranularAudioProcessorEditor::resized()
 	jassert((0.999f <= totalRemainingHeightRatiosSummed) && (totalRemainingHeightRatiosSummed <= 1.001f));
 	
 	{
-		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.getHeight();
+		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.toFloat().getHeight();
 
-		int const alottedMainParamsHeight = mainParamsRemainingHeight - y + smallPad;
+		int const allottedMainParamsHeight = static_cast<int>(mainParamsRemainingHeight) - y + smallPad;
 		
-		int const alottedMainParamsWidth = localBounds.getWidth();
-		tabbedPages.setBounds(localBounds.getX(), y, alottedMainParamsWidth, alottedMainParamsHeight);
+		int const allottedMainParamsWidth = localBounds.getWidth();
+		tabbedPages.setBounds(localBounds.getX(), y, allottedMainParamsWidth, allottedMainParamsHeight);
 		y += tabbedPages.getHeight();
 	}
 	{
-		auto const waveformComponentHeight = waveformCompRemainingHeightRatio * localBounds.getHeight();
-		waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), waveformComponentHeight);
+		auto const waveformComponentHeight = waveformCompRemainingHeightRatio * localBounds.toFloat().getHeight();
+		waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), static_cast<int>(waveformComponentHeight));
 		y += waveformAndPositionComponent.getHeight();
 	}
 	{
-		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.getHeight();
+		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.toFloat().getHeight();
 		auto const timbreSpaceComponentWidth = localBounds.getWidth();
-		timbreSpaceComponent.setBounds(localBounds.getX(), y, timbreSpaceComponentWidth, timbreSpaceComponentHeight);
+		timbreSpaceComponent.setBounds(localBounds.getX(), y, timbreSpaceComponentWidth, static_cast<int>(timbreSpaceComponentHeight));
 		y += timbreSpaceComponent.getHeight();
 	}
 }

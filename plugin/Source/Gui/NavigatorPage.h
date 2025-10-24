@@ -10,7 +10,6 @@
 
 #pragma once
 #include <JuceHeader.h>
-#include "../Navigation/LFO.h"
 #include "../slicer_granular/Source/Gui/AttachedComboBox.h"
 #include "../slicer_granular/Source/Gui/AttachedSlider.h"
 

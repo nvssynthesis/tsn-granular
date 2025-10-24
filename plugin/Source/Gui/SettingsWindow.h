@@ -26,5 +26,5 @@ private:
 	juce::ComponentBoundsConstrainer constrainer;
 
 	// Create a component containing all controls for one branch
-	juce::Component* createPageForBranch (juce::ValueTree& settingsVT, const juce::String& branchName, const std::map<juce::String,nvs::analysis::AnySpec>& specMap) const;
+	static juce::Component* createPageForBranch (juce::ValueTree& settingsVT, const juce::String& branchName, const std::map<juce::String,nvs::analysis::AnySpec>& specMap) ;
 };

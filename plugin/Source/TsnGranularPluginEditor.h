@@ -2,7 +2,6 @@
 
 #include "TsnGranularPluginProcessor.h"
 #include "./Gui/TimbreSpaceComponent.h"
-#include "./Navigation/LFO.h"
 #include "../slicer_granular/Source/SlicerGranularPluginEditor.h"
 #include "Gui/LAF.h"
 
@@ -60,6 +59,6 @@ private:
 	//=================================================================
 	void actionListenerCallback(juce::String const &message) override;
 	//=================================================================
-	TSNGranularAudioProcessor& audioProcessor;
+	TSNGranularAudioProcessor& TSNaudioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)
 };
