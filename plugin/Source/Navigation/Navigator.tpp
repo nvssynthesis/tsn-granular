@@ -20,11 +20,47 @@ static constexpr std::array navTendencyLookup {
 }
 
 template<typename Point_t>
+ManualNavigator<Point_t>::ManualNavigator()
+    :   NavigationStrategy<Point_t>(NavigationType_e::Manual)
+{
+    setSampleRate(0.0);
+}
+
+template<typename Point_t>
+Point_t ManualNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint)
+{
+    const double filterCutoff = *paramTree.getRawParameterValue("nav_manual_response");
+    const double filterReso = *paramTree.getRawParameterValue("nav_manual_overshoot");
+    for (auto &f : filters) {
+        f.setParams(filterCutoff, filterReso);
+    }
+    this->_centers[0] = *paramTree.getRawParameterValue(juce::String(std::string(navTendencyLookup[0])));
+    this->_centers[1] = *paramTree.getRawParameterValue(juce::String(std::string(navTendencyLookup[1])));
+
+    Point_t p = Point_t::Zero();
+    for (int i = 0; i < this->Dimensions; ++i) {
+        p[i] = this->filters[i](this->_centers[i]);
+    }
+
+    return p;
+}
+
+template<typename Point_t>
+void ManualNavigator<Point_t>::setSampleRate(double sampleRate)
+{
+    NavigationStrategy<Point_t>::setSampleRate(sampleRate);
+    for (auto &f : filters) {
+        f.setSampleRate(sampleRate);
+    }
+}
+
+
+template<typename Point_t>
 RandomWalkNavigator<Point_t>::RandomWalkNavigator()
     :   NavigationStrategy<Point_t>(NavigationType_e::RandomWalk)
 {}
 
-inline float randomStep1D(float previous, float tendency, float stepSize,
+inline float randomStep1DConstrained(float previous, float tendency, float stepSize,
     std::mt19937 &rng, std::uniform_real_distribution<float> &uni)
 {
     // 1) direction bias back toward 0
@@ -44,18 +80,31 @@ inline float randomStep1D(float previous, float tendency, float stepSize,
     if (previous < -1.0) previous = -1.0;
     return previous;
 }
+inline float randomStep1D(float previous, float stepSize,
+    std::mt19937 &rng, std::uniform_real_distribution<float> &uni)
+{
+    float u = uni(rng);
+    float magnitude = std::sqrt(u) * stepSize;    // bias to extremes via sqrt transform
+
+    bool up = (uni(rng) < 0.5);
+    float accumVal = (up ? magnitude : -magnitude);
+
+    previous += accumVal;
+    if (previous >  1.0) previous =  1.0;
+    if (previous < -1.0) previous = -1.0;
+    return previous;
+}
 template<typename Point_t>
 Point_t RandomWalkNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
     Point_t p{};
     for (int i = 0; i < this->Dimensions; ++i) {
-        const auto s = juce::String(std::string(navTendencyLookup[i]));
-        const float tendency = *paramTree.getRawParameterValue(s);
+        // const auto s = juce::String(std::string(navTendencyLookup[i]));
+        // const float tendency = *paramTree.getRawParameterValue(s);
         const float prev = previousPoint[i];
         const float stepSize = *paramTree.getRawParameterValue("nav_rwalk_step_size");
-        p[i] = randomStep1D(prev, tendency, stepSize,
+        p[i] = randomStep1D(prev, stepSize,
             _rng, _uni);
     }
-    // Eigen::Vector3<float> p1;
     jassert(p.norm() < 100.f);
     return p;
 }
@@ -63,35 +112,13 @@ Point_t RandomWalkNavigator<Point_t>::navigate(AudioProcessorValueTreeState cons
 template<typename Point_t>
 LFONavigator<Point_t>::LFONavigator()
 :   NavigationStrategy<Point_t>(NavigationType_e::LFO)
-{
-    for (auto &f : filters) {
-        f.setSampleRate(0.0f);
-    }
-}
-
-template<typename Point_t>
-void LFONavigator<Point_t>::setSampleRate(double sampleRate) {
-    NavigationStrategy<Point_t>::setSampleRate(sampleRate);
-    for (auto &f : filters) {
-        f.setSampleRate(sampleRate);
-    }
-}
+{}
 
 template<typename Point_t>
 Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space,
     Point_t previousPoint)
 {
     setFrequency(*paramTree.getRawParameterValue("nav_lfo_rate"));
-    const double filterCutoff = *paramTree.getRawParameterValue("nav_lfo_response");
-    const double filterReso = *paramTree.getRawParameterValue("nav_lfo_overshoot");
-    for (auto &f : filters) {
-        f.setParams(filterCutoff, filterReso);
-    }
-
-    const double amplitude = *paramTree.getRawParameterValue("nav_lfo_amount");
-
-    this->_centers[0] = *paramTree.getRawParameterValue("nav_tendency_x");
-    this->_centers[1] = *paramTree.getRawParameterValue("nav_tendency_y");
 
     // compute phase and waveforms
     assert(this->_phaseIncrement >= 0.0);	// otherwise wrapping method won't work as expected
@@ -114,11 +141,11 @@ Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &para
 
         return (1.0 - frac(q)) * std::cos((i(q) + 1.0) * phase) + frac(q) * std::cos((i(q) + 2.0) * phase);
     };
-    Point_t p {};
+    Point_t p {Point_t::Zero()};
     for (int i = 0; i < this->Dimensions; ++i) {
-        const double interDimensionalPhaseIncrement = 2.5 * (static_cast<double>(i) / this->Dimensions) * -M_PI;
-        const double ø = this->_phase + interDimensionalPhaseIncrement;
-        p[i] = this->filters[i](amplitude * calculateShape(ø) + this->_centers[i]);
+        const double interDimensionalPhaseOffset = 2.5 * (static_cast<double>(i) / this->Dimensions) * -M_PI;
+        const double ø = this->_phase + interDimensionalPhaseOffset;
+        p[i] = calculateShape(ø);
     }
 
     return p;
@@ -307,6 +334,9 @@ Navigator<Point_t>::Navigator(const AudioProcessorValueTreeState &paramTree)
 template<typename Point_t>
 void Navigator<Point_t>::setNavigationStrategy(const NavigationType_e navType) {
     switch (navType) {
+        case NavigationType_e::Manual:
+            _navigationStrategy = std::make_unique<ManualNavigator<Point_t>>();
+            break;
         case NavigationType_e::LFO:
             _navigationStrategy = std::make_unique<LFONavigator<Point_t>>();
             break;
@@ -325,9 +355,6 @@ template<typename Point_t>
 void Navigator<Point_t>::setSampleRate(double sampleRate) {
     _sampleRate = sampleRate;
     updateNavPeriodSamples();
-    if (_navigationStrategy != nullptr) {
-        _navigationStrategy->setSampleRate(sampleRate);
-    }
 }
 template<typename Point_t>
 void Navigator<Point_t>:: setNavigationPeriod(double navPeriodMs) {
@@ -372,30 +399,4 @@ Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElap
     return _previousPoint;
 }
 
-inline void staticNavTest() {
-    class DummyProcessor : public juce::AudioProcessor {
-    public:
-        const String getName() const override {return "";}
-        void prepareToPlay(double sampleRate, int maximumExpectedSamplesPerBlock) override {}
-        void releaseResources() override {}
-        void processBlock(AudioBuffer<float> &buffer, MidiBuffer &midiMessages) override {}
-        double getTailLengthSeconds() const override { return 0.0; }
-        bool acceptsMidi() const override { return true; }
-        bool producesMidi() const override { return true; }
-        AudioProcessorEditor *createEditor() override { return nullptr; }
-        bool hasEditor() const override { return true; }
-        int getNumPrograms() override { return 1; }
-        int getCurrentProgram() override { return 0; }
-        void setCurrentProgram(int index) override {}
-        const String getProgramName(int index) override { return ""; }
-        void changeProgramName(int index, const String &newName) override {}
-        void getStateInformation(MemoryBlock &destData) override {}
-        void setStateInformation(const void *data, int sizeInBytes) override {}
-    private:
-    };
-    DummyProcessor dummy;
-    const juce::AudioProcessorValueTreeState apvts (dummy, nullptr, "", {});
-    static Navigator<Timbre3DPoint> nav(apvts);
-    nav.setNavigationStrategy(NavigationType_e::LFO);
-}
-}
+} // namespace nvs::timbrespace

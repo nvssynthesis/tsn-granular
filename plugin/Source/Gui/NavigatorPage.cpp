@@ -86,6 +86,7 @@ NavigatorPage::~NavigatorPage() = default;
 
 static std::map<nvs::timbrespace::NavigationType_e, juce::String> navTypeParamSubgroupMap
 {
+{nvs::timbrespace::NavigationType_e::Manual, "nav_manual"},
 {nvs::timbrespace::NavigationType_e::LFO, "nav_lfo"},
 {nvs::timbrespace::NavigationType_e::RandomWalk, "nav_rwalk"},
 {nvs::timbrespace::NavigationType_e::Lorenz, "nav_lorenz"},

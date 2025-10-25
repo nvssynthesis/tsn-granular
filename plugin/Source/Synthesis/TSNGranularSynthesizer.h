@@ -36,8 +36,8 @@ public:
     void processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi) override;
 private:
     //==============================================================================
-    using Navigator = timbrespace::Navigator<nvs::timbrespace::Timbre5DPoint>;
-    Navigator _navigator;
+    using NavigationManager = timbrespace::NavigationManager<timbrespace::Timbre5DPoint>;
+    NavigationManager _navigator;
     TimbreSpace _timbreSpace;
 
     //==============================================================================
