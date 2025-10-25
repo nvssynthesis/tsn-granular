@@ -233,7 +233,7 @@ void TsnGranularAudioProcessorEditor::resized()
 	localBounds.reduce(smallPad, smallPad);
 	
 	int x(localBounds.getX()), y(0);
-	y = placeFileCompAndGrainBusyDisplay(localBounds, smallPad, grainBusyDisplay, presetPanel, y);
+	y = placeFileCompAndGrainBusyDisplay(localBounds, 2, grainBusyDisplay, presetPanel, y);
 
 	{
 		int buttonWidth = 90;
