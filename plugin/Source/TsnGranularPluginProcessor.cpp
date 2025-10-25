@@ -119,7 +119,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 		writeToLog("TSN: askForAnalysis: buffer had no samples. Early exit.");
 		return;
 	}
-	_analyzer.updateStoredAudio(std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples()),
+	_analyzer.updateStoredAudio(std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples())),
 		getSampleFilePath());
 	
 	auto const settingsVT = apvts.state.getChildWithName("Settings");
@@ -139,7 +139,7 @@ void TSNGranularAudioProcessor::writeEvents(){
 		return;
 	}
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
-	auto const waveSpan = std::span<float const>(buffer.getReadPointer(0), buffer.getNumSamples());
+	auto const waveSpan = std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples()));
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
