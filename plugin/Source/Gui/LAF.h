@@ -27,7 +27,7 @@ public:
 						   Slider::SliderStyle style,
 						   Slider& s) override;
 	
-	void drawPieSegment(juce::Graphics &g, juce::Rectangle<float> ellipseRect, float angle, float notchWidth, float sliderPosProportional, juce::Colour notchCol);
+	static void drawPieSegment(juce::Graphics &g, juce::Rectangle<float> ellipseRect, float angle, float notchWidth, float sliderPosProportional, juce::Colour notchCol);
 	
 	void drawRotarySlider (juce::Graphics& g,
 						   int x, int y, int width, int height,
@@ -70,7 +70,7 @@ public:
 							bool /*isMouseDown*/) override;
 	Font getLabelFont (Label&) override
 	{
-		return Font (fontName, 14.0f, Font::bold);
+		return Font (FontOptions(fontName, 14.0f, Font::bold));
 	}
 private:
 	float const notchWidthDegrees {8.f};

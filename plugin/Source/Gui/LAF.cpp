@@ -38,8 +38,8 @@ LAF::LAF()
 }
 void LAF::drawTabButton (TabBarButton& button,
 					Graphics& g,
-					bool isMouseOver,
-					bool isMouseDown)
+					const bool isMouseOver,
+					const bool isMouseDown)
 {
 	Path outline;
 	createTabButtonShape (button, outline, isMouseOver, isMouseDown);
@@ -53,20 +53,23 @@ void LAF::drawTabButtonText (TabBarButton& button,
 						bool /*isMouseOver*/,
 						bool /*isMouseDown*/)
 {
-	auto fontHeight = 14.0f;
-	auto fontStyle  = button.isFrontTab() ? Font::bold : Font::plain;
-	Font  f (fontName, fontHeight, fontStyle);
-	g.setFont (f);
+	static constexpr auto fontHeight = 14.0f;
+	const auto fontStyle  = button.isFrontTab() ? Font::bold : Font::plain;
+
+	g.setFont (FontOptions(fontName, fontHeight, fontStyle));
 	g.setColour(Colours::white);
 	g.drawFittedText (button.getButtonText(),
 					  button.getLocalBounds(),
 					  Justification::centred,
 					  1);
 }
-void LAF::drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
-									int buttonX, int buttonY, int buttonW, int buttonH, ComboBox& cb)
+void LAF::drawComboBox (juce::Graphics& g,
+    const int width, const int height,
+    const bool isButtonDown,
+	const int buttonX, const int buttonY, const int buttonW, const int buttonH,
+	ComboBox& cb)
 {
-	auto bounds = juce::Rectangle<float> (0, 0, (float) width, (float) height).reduced (1.0f);
+	const auto bounds = Rectangle(0.f, 0.f, static_cast<float>(width), static_cast<float>(height)).reduced (1.0f);
 	
 	g.setColour (findColour (ComboBox::backgroundColourId));
 	g.fillRect (bounds);
@@ -79,40 +82,48 @@ void LAF::drawComboBox (juce::Graphics& g, int width, int height, bool isButtonD
 	arrow.addTriangle ({ 0.0f, 0.0f },
 					   { 1.0f, 0.0f },
 					   { 0.5f, 0.5f });
-	auto arrowH = buttonH * 0.3f;
-	auto arrowW = arrowH * 1.3f;
+
+    const auto buttonHf = static_cast<float> (buttonH);
+    const auto buttonWf = static_cast<float> (buttonW);
+    const auto buttonXf = static_cast<float> (buttonX);
+    const auto buttonYf = static_cast<float> (buttonY);
+
+    const auto arrowH = buttonHf * 0.3f;
+	const auto arrowW = arrowH * 1.3f;
 	
 	g.setColour (findColour (ComboBox::arrowColourId));
 	g.fillPath (arrow,
-				arrow.getTransformToScaleToFit (buttonX + (buttonW - arrowW) * 0.5f,
-												buttonY + (buttonH - arrowH) * 0.5f,
+				arrow.getTransformToScaleToFit (buttonXf + (buttonWf - arrowW) * 0.5f,
+												buttonYf + (buttonHf - arrowH) * 0.5f,
 												arrowW, arrowH,
 												true));
 }
 Font LAF::getTextButtonFont(TextButton&, int buttonHeight) {
-	return Font(fontName, 13.0, Font::plain);
+	return {FontOptions(fontName, 13.0, Font::plain)};
 }
 Font LAF::getComboBoxFont (ComboBox&) {
 	return getPopupMenuFont();// use same font as its popup menu
 }
 Font LAF::getPopupMenuFont() {
-	return Font(fontName, 13.0, Font::plain);
+	return {FontOptions(fontName, 13.0, Font::plain)};
 }
 
-void LAF::drawTooltip (Graphics &g, const String &text, int width, int height)
+void LAF::drawTooltip (Graphics &g, const String &text, const int width, const int height)
 {
+    const auto wf = static_cast<float>(width);
+    const auto hf = static_cast<float>(height);
+
 	// background
 	g.setColour (findColour (TooltipWindow::backgroundColourId));
-	g.fillRoundedRectangle (0.0f, 0.0f, (float) width, (float) height, 4.0f);
+	g.fillRoundedRectangle (0.0f, 0.0f, wf, hf, 4.0f);
 
 	// border
 	g.setColour (findColour (TooltipWindow::outlineColourId));
-	g.drawRoundedRectangle (0.0f, 0.0f, (float) width, (float) height, 4.0f, 1.0f);
+	g.drawRoundedRectangle (0.0f, 0.0f, wf, hf, 4.0f, 1.0f);
 
 	// text
 	g.setColour (findColour (TooltipWindow::textColourId));
-	g.setFont (Font(fontName, 13.0, Font::plain));
-//	g.drawFittedText (text, area, juce::Justification::centred, 2)
+	g.setFont (Font(FontOptions(fontName, 13.0, Font::plain)));
 	g.drawFittedText(text, g.getClipBounds(), juce::Justification::centred, 4);
 }
 
@@ -120,7 +131,7 @@ void LAF::drawButtonBackground (Graphics& g, Button& b,
 											const Colour& backgroundColour,
 											bool isMouseOverButton, bool isButtonDown)
 {
-	auto area = b.getLocalBounds().toFloat().reduced (1.0f);
+	const auto area = b.getLocalBounds().toFloat().reduced (1.0f);
 	g.setColour (backgroundColour);
 	g.fillRect (area);
 	
@@ -131,7 +142,6 @@ void LAF::drawButtonBackground (Graphics& g, Button& b,
 void LAF::drawButtonText (Graphics& g, TextButton& b,
 									  bool /*isMouseOverButton*/, bool /*isButtonDown*/)
 {
-	auto fontSize = jmin (16.0f, b.getHeight() * 0.6f);
 	g.setFont (getTextButtonFont(b, b.getHeight()));
 	g.setColour (b.getToggleState()
 				 ? findColour (TextButton::textColourOnId)
@@ -142,7 +152,7 @@ void LAF::drawButtonText (Graphics& g, TextButton& b,
 					  Justification::centred, 1);
 }
 
-void LAF::drawPopupMenuBackground (Graphics& g, int width, int height) {
+void LAF::drawPopupMenuBackground (Graphics& g, const int width, const int height) {
 	g.fillAll (findColour(PopupMenu::ColourIds::backgroundColourId));
 	g.setColour (findColour(PopupMenu::ColourIds::highlightedBackgroundColourId));
 	g.drawRect (0, 0, width, height, 1);
@@ -187,7 +197,7 @@ void LAF::drawPopupMenuItem (Graphics& g,
 }
 void LAF::drawLabel (Graphics& g, Label& label)
 {
-	if (auto* slider = dynamic_cast<Slider*>(label.getParentComponent()))
+	if (const auto* slider = dynamic_cast<Slider*>(label.getParentComponent()))
 	{
 		if (slider->getSliderStyle() == Slider::LinearBarVertical)
 		{
@@ -197,10 +207,10 @@ void LAF::drawLabel (Graphics& g, Label& label)
 	LookAndFeel_V4::drawLabel(g, label);
 }
 void LAF::drawLinearSlider (Graphics& g,
-										int x, int y, int width, int height,
-										float sliderPos,
+										const int x, const int y, const int width, const int height,
+										const float sliderPos,
 										float minSliderPos, float maxSliderPos,
-										Slider::SliderStyle style,
+										const Slider::SliderStyle style,
 										Slider& s)
 {
 	if (style == Slider::LinearBarVertical)
@@ -210,15 +220,15 @@ void LAF::drawLinearSlider (Graphics& g,
 		g.fillRect(x, y, width, height);
 		
 		// Filled portion (from bottom to slider position)
-		auto fillHeight = height - (sliderPos - y);
+		const auto fillHeight = static_cast<float>(height) - (sliderPos - static_cast<float>(y));
 		g.setColour(s.findColour(Slider::trackColourId));
-		g.fillRect((float)x, sliderPos, (float)width, fillHeight);
-		
-		Rectangle<int> tb (x, y + (height/2 - 10), width, 20);
-		bool over = (tb.getCentreY() >= sliderPos);
+		g.fillRect(static_cast<float>(x), sliderPos, static_cast<float>(width), fillHeight);
+
+		const Rectangle tb (x, y + (height/2 - 10), width, 20);
+		const bool over = (static_cast<float>(tb.getCentreY()) >= sliderPos);
 		g.setColour (over ? juce::Colour(Colours::grey).withMultipliedBrightness(1.25f)
 						  : juce::Colour(Colours::grey).withMultipliedBrightness(1.5f));
-		g.setFont(Font (fontName, 13.5f, Font::plain));
+		g.setFont(Font (FontOptions(fontName, 13.5f, Font::plain)));
 		g.drawFittedText (s.getTextFromValue (s.getValue()),
 						 tb, Justification::centred, 1);
 	}
@@ -229,7 +239,10 @@ void LAF::drawLinearSlider (Graphics& g,
 										  style, s);
 	}
 }
-void LAF::drawPieSegment(juce::Graphics &g, juce::Rectangle<float> ellipseRect, float angle, float notchWidth, float sliderPosProportional, juce::Colour notchCol)
+void LAF::drawPieSegment(juce::Graphics &g,
+    const juce::Rectangle<float> ellipseRect,
+    const float angle, const float notchWidth, const float sliderPosProportional,
+    juce::Colour notchCol)
 {
 	juce::Path p;
 	p.addPieSegment(ellipseRect.reduced(1.f), angle - juce::degreesToRadians(notchWidth), angle + juce::degreesToRadians(notchWidth), 0.f);
@@ -242,15 +255,20 @@ void LAF::drawPieSegment(juce::Graphics &g, juce::Rectangle<float> ellipseRect, 
 }
 
 void LAF::drawRotarySlider (juce::Graphics& g,
-										int x, int y, int width, int height,
-										float sliderPosProportional,
-										float rotaryStartAngle,
-										float rotaryEndAngle,
+										const int x, const int y, const int width, const int height,
+										const float sliderPosProportional,
+										const float rotaryStartAngle,
+										const float rotaryEndAngle,
 										juce::Slider& slider)
 {
-	const float radius = juce::jmin (width, height) * 0.4f;
-	const float centreX = x + width  * 0.5f;
-	const float centreY = y + height * 0.5f;
+    const auto wf = static_cast<float>(width);
+    const auto hf = static_cast<float>(height);
+    const auto xf = static_cast<float>(x);
+    const auto yf = static_cast<float>(y);
+
+	const float radius =  juce::jmin (wf, hf) * 0.4f;
+	const float centreX = xf + wf  * 0.5f;
+	const float centreY = yf + hf * 0.5f;
 	
 	// draw the circular outline
 	g.setColour (slider.findColour (juce::Slider::rotarySliderOutlineColourId));
@@ -272,10 +290,10 @@ void LAF::drawRotarySlider (juce::Graphics& g,
 	const float notchLength     = radius * 0.6f;  // how long the notch is
 	const float outerRadius     = innerRadius + notchLength;
 	[[maybe_unused]] auto makeLine = [=](float a){
-		float x1 = centreX + std::cos (a) * innerRadius;
-		float y1 = centreY + std::sin (a) * innerRadius;
-		float x2 = centreX + std::cos (a) * outerRadius;
-		float y2 = centreY + std::sin (a) * outerRadius;
+		const float x1 = centreX + std::cos (a) * innerRadius;
+		const float y1 = centreY + std::sin (a) * innerRadius;
+		const float x2 = centreX + std::cos (a) * outerRadius;
+		const float y2 = centreY + std::sin (a) * outerRadius;
 		return Line(Point(x1, y1), Point(x2, y2));
 	};
 	drawPieSegment(g, ellipseRect, angle, notchWidthDegrees * 1.618f, sliderPosProportional, juce::Colours::black);
