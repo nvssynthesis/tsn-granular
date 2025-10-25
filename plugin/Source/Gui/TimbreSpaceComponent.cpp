@@ -24,28 +24,30 @@ juce::Point<float> p2DtoJucePoint(Timbre2DPoint p2D) {
     return {p2D[0], p2D[1]};
 }
 
-Timbre2DPoint jucePointToTimbre2DPoint(juce::Point<float> p2D) {
+Timbre2DPoint jucePointToTimbre2DPoint(const juce::Point<float> p2D) {
     return Timbre2DPoint {p2D.x, p2D.y};
 }
 
-juce::Rectangle<float> pointToRect(Timbre2DPoint p, float pt_sz) {
+juce::Rectangle<float> pointToRect(const Timbre2DPoint p, float pt_sz) {
 	Timbre2DPoint upperLeft{p}, bottomRight{p};
     const float halfDotSize {2.f * pt_sz};
 	upperLeft += Timbre2DPoint(-halfDotSize, -halfDotSize);
 	bottomRight += Timbre2DPoint(halfDotSize, halfDotSize);
-	return juce::Rectangle<float>(
+	return {
 	    p2DtoJucePoint(upperLeft),
-	    p2DtoJucePoint(bottomRight));
-};
-juce::Rectangle<float> pointToRect(juce::Point<float> p, float pt_sz) {
+	    p2DtoJucePoint(bottomRight)
+	};
+}
+juce::Rectangle<float> pointToRect(const juce::Point<float> p, const float pt_sz) {
     juce::Point<float> upperLeft{p}, bottomRight{p};
     const float halfDotSize {2.f * pt_sz};
     upperLeft.addXY(-halfDotSize, -halfDotSize);
     bottomRight.addXY(halfDotSize, halfDotSize);
-    return juce::Rectangle<float>(
+    return {
         upperLeft,
-        bottomRight);
-};
+        bottomRight
+    };
+}
 
 auto transformFromZeroOrigin = [](Timbre2DPoint p) -> Timbre2DPoint
 {
@@ -56,17 +58,17 @@ auto transformFromZeroOrigin = [](Timbre2DPoint p) -> Timbre2DPoint
 	return p;
 };
 
-Timbre2DPoint bipolar2dPointToComponentSpace(Timbre2DPoint p2D, float componentWidth, float componentHeight){
+Timbre2DPoint bipolar2dPointToComponentSpace(const Timbre2DPoint& p2D, const float componentWidth, const float componentHeight){
 	return Timbre2DPoint(componentWidth, componentHeight).cwiseProduct(transformFromZeroOrigin(p2D));
 }
 
-auto softclip = [](float const x, float const bias = -0.2f, float const q = 0.2f, float const s = 0.6f, float const scale = 5.f) -> float
+auto softclip = [](const float  x, const float  bias = -0.2f, const float  q = 0.2f, const float  s = 0.6f, const float  scale = 5.f) -> float
 {
-	float const y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias/2;
+	const float  y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias/2;
 	return y;
 };
 
-Timbre3DPoint biuni(Timbre3DPoint const &bipolar_p3){
+Timbre3DPoint biuni(const Timbre3DPoint &bipolar_p3){
 	using nvs::memoryless::biuni;
 	Timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
 	return uni_pts3;
@@ -74,16 +76,16 @@ Timbre3DPoint biuni(Timbre3DPoint const &bipolar_p3){
 auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){
 	return out_low + (x - in_low) * (out_high - out_low) / (in_high - in_low);
 }
-juce::Colour p3ToColour(Timbre3DPoint const &p3, float alpha=1.f){
-	float const h = p3[0];
-	float const s = p3[1];
+juce::Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
+	const float  h = p3[0];
+	const float  s = p3[1];
 	float v = p3[2];
 	assert (v >= 0.0);
 	assert (v <= 1.0);
 	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
 	return juce::Colour(h, s, v, alpha);
 }
-void setLfoOffsetParamsFromPoint(juce::AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
+void setLfoOffsetParamsFromPoint(const juce::AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
 	apvts.getParameterAsValue("nav_tendency_x") = p2D(0);
 	apvts.getParameterAsValue("nav_tendency_y") = p2D(1);
 }
@@ -114,7 +116,7 @@ TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
 
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
     _proc->getTimbreSpace().setSavePending(false);
-	callback = new Callback(*this);
+	const auto callback = new Callback(*this);
 	
 	auto const result = juce::AlertWindow::showYesNoCancelBox(
 								  juce::MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
@@ -164,19 +166,19 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 		
 		for (const auto& p5 : timbres5D){
 			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
-			auto const p3 = get3D(p5);
+			const auto p3 = get3D(p5);
 			
-			auto const uni_p3 = biuni(p3);
+			const auto uni_p3 = biuni(p3);
 			Colour fillColour = p3ToColour(uni_p3);
 			
-			float const z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
-			auto const rect = pointToRect(p2, softclip(z_closeness));
+			const float z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
+			const auto rect = pointToRect(p2, softclip(z_closeness));
 			
 			if (containsValue(current_points, p5)){
 				// brighter colour for selected point
 				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
 				// also draw glowing orb under the point
-				float const orb_radius = rect.getWidth() * 1.5f;
+				const float orb_radius = rect.getWidth() * 1.5f;
 				juce::ColourGradient gradient(
 					fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
 					p2.x, p2.y,					// Center position
@@ -194,13 +196,13 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			g.drawEllipse(rect, 0.5f);
 		}
 		// draw lines from target to nearby (selected, current) points 
-		for (auto const &p : current_points){
-			auto const center = p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h));
-			auto const dest = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p), w, h));
-			auto const l = Line(center, dest);
-			auto const norm = [l, w, h](){
-				auto const a = l.getLength() / std::sqrt( (w * w) + (h * h) );
-				auto const b = 2.f * (0.5f - a);
+		for (const auto &p : current_points){
+			const auto center = p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h));
+			const auto dest = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p), w, h));
+			const auto l = Line(center, dest);
+			const auto norm = [l, w, h](){
+				const auto a = l.getLength() / std::sqrt( (w * w) + (h * h) );
+				const auto b = 2.f * (0.5f - a);
 				return jlimit(0.1f, 1.f, b * b * b + 0.1f);
 			}();
 			g.setColour(juce::Colours::whitesmoke.withAlpha(norm));
@@ -210,11 +212,11 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	{
 		if (tsn_mouse._dragging){
 			// draw orb around mouse
-			auto const uvz = tsn_mouse._uvz;
+			const auto uvz = tsn_mouse._uvz;
 			Colour c = p3ToColour(biuni(uvz));
 			Point<int> const xy = getMouseXYRelative();
-			auto const r = pointToRect(xy.toFloat(), 1.f);
-			float const orbRadius = r.getWidth() * 4.5f;
+			const auto r = pointToRect(xy.toFloat(), 1.f);
+			const float  orbRadius = r.getWidth() * 4.5f;
 			ColourGradient gradient(c,
 								  xy.x, xy.y,
 								  c.withAlpha(0.f),
@@ -248,7 +250,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
                     auto p3 = (i + 2 < points.size()) ? points[i + 2] : p2;
 
                     // Subdivide segment for smoothness
-                    const int subdiv = 10;
+                    constexpr int subdiv = 10;
                     for (int j = 0; j < subdiv; ++j) {
                         float t1 = static_cast<float>(j) / subdiv;
                         float t2 = static_cast<float>(j + 1) / subdiv;
@@ -297,7 +299,6 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	tsn_mouse._dragging = true;
 	const auto p2D_norm =  jucePointToTimbre2DPoint(normalizePosition_neg1_pos1(mousePos));
-	Timbre5DPoint p5D =	to5D(p2D_norm, Timbre3DPoint(tsn_mouse._uvz[0], tsn_mouse._uvz[1], tsn_mouse._uvz[2]));
 	auto &apvts = _proc->getAPVTS();
 	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
 }
@@ -337,22 +338,22 @@ void TimbreSpaceComponent::updateCursor() {
 }
 
 void TimbreSpaceComponent::resized() {
-	auto const b = getLocalBounds();
-	auto const proportionRect = juce::Rectangle<float> {0.1f, 0.05f,
+	const auto b = getLocalBounds();
+	const auto proportionRect = juce::Rectangle<float> {0.1f, 0.05f,
 														0.8f, 0.05f};
 	auto progressBounds = b.getProportion(proportionRect);
 	progressIndicator.setBounds(progressBounds);
 }
 
 void ProgressIndicator::paint(juce::Graphics &g) {
-	auto const b = getLocalBounds();
+	const auto b = getLocalBounds();
 	g.setColour(juce::Colours::whitesmoke);
 	g.fillRect(b);
 	g.setColour(juce::Colours::black);
 	g.drawRect(b, 2.f);
-	
-	int partialW = b.getWidth() * progress;
-	auto progressBar = b.withWidth(partialW);
+
+	const auto partialW = static_cast<int>(b.getWidth() * progress);
+	const auto progressBar = b.withWidth(partialW);
 	g.fillRect(progressBar);
 	
 	g.setColour(juce::Colours::whitesmoke);
@@ -401,7 +402,6 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	auto y1 = y0 + (0.86 * b.getHeight());
 	auto y2 = b.getBottom();
 	
-	using Line = juce::Line<float>;
 	using Point = juce::Point<float>;
 	triPath.startNewSubPath (Point(x1, y0));	// A
 	triPath.lineTo        	(Point(x0, y2));	// B
@@ -415,13 +415,13 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 }
 
 std::vector<nvs::util::WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
-	auto const &ts = _proc->getTimbreSpace();
+	const auto &ts = _proc->getTimbreSpace();
 	return ts.getCurrentPointIndices();
 }
 
-juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point<int> pos){
-	float x = static_cast<float>(pos.getX());
-	float y = static_cast<float>(pos.getY());
+juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(const juce::Point<int> pos) const {
+	auto x = static_cast<float>(pos.getX());
+	auto y = static_cast<float>(pos.getY());
 	auto bounds = getLocalBounds().toFloat();
 	x /= bounds.getWidth();
 	y /= bounds.getHeight();
@@ -430,10 +430,10 @@ juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(juce::Point
 	y = clamp(y, 0.0f, 1.0f);
 	x = unibi(x);
 	y = unibi(y);
-	return juce::Point<float>(x,y);
+	return {x, y};
 }
 
-void TimbreSpaceComponent::setNavigatorPoint(Timbre2DPoint p){
+void TimbreSpaceComponent::setNavigatorPoint(const Timbre2DPoint& p){
     nav.update(p);
 }
 ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
@@ -468,9 +468,9 @@ void TimbreSpaceComponent::saveAnalysis(){
 															this 	//  Component *parentComponent=nullptr
 														   );
 
-	auto const &timbreSpace = _proc->getTimbreSpace();
-	auto const vt = timbreSpace.getTimbreSpaceTree();
-	auto const par = vt.getParent();
+	const auto &timbreSpace = _proc->getTimbreSpace();
+	const auto vt = timbreSpace.getTimbreSpaceTree();
+	const auto par = vt.getParent();
 	fmt::print("par: {}\n", par.getType().toString().toStdString());
 	// Show async save dialog
 	fileChooser->launchAsync

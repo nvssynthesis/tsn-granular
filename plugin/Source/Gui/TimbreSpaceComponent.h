@@ -60,7 +60,7 @@ public:
 	void clear();
 	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
 	
-	void setNavigatorPoint(Timbre2DPoint p);
+	void setNavigatorPoint(const Timbre2DPoint& p);
 	ProgressIndicator& getProgressIndicator();
 	
 
@@ -102,20 +102,19 @@ private:
 	} nav;
 	
 	void showAnalysisSaveDialog();
-	class Callback 	:	public juce::ModalComponentManager::Callback
+	class Callback final :	public juce::ModalComponentManager::Callback
 	{
 	public:
-		Callback(TimbreSpaceComponent &comp);
+        explicit Callback(TimbreSpaceComponent &comp);
 	private:
 		void modalStateFinished(int choice) override;
 		TimbreSpaceComponent &_ts_comp;
 	};
-	Callback *callback;
 
 	void saveAnalysis();
 
 	std::unique_ptr<juce::FileChooser> fileChooser;
-	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos);
+	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos) const;
 	
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimbreSpaceComponent);
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimbreSpaceComponent)
 };
