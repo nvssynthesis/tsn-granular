@@ -23,7 +23,7 @@ class TimbreSpace final :	public juce::ChangeListener
 ,						    public juce::ActionBroadcaster
 {
 public:
-	TimbreSpace(juce::AudioProcessorValueTreeState &apvts);
+    explicit TimbreSpace(juce::AudioProcessorValueTreeState &apvts);
 	~TimbreSpace() override;
 	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
 	TimbreSpace(const TimbreSpace&) = delete;
@@ -56,10 +56,14 @@ private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
-	
+
+    void updateDimensionwiseFeature(const juce::String& paramID);
+    void updateAllDimensionwiseFeatures();
+    void updateStatistic();
+
 	struct Settings {
 		float histogramEqualization {0.0f};
-		std::vector<nvs::analysis::Features> dimensionWisefeatures {
+		std::vector<nvs::analysis::Features> dimensionwiseFeatures {
 			nvs::analysis::Features::bfcc1,
 			nvs::analysis::Features::bfcc2,
 			nvs::analysis::Features::bfcc3,

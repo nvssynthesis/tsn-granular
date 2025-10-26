@@ -118,6 +118,34 @@ std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
 bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
 	return _audioFileHash.compare(audioHash) == 0;
 }
+
+static const std::map<juce::String, size_t> pidToDimensionMap {
+    {"x_axis", 0},
+    {"y_axis", 1},
+    {"z_axis", 2},
+    {"u_axis", 3},
+    {"v_axis", 4},
+};
+
+void TimbreSpace::updateDimensionwiseFeature(const juce::String& paramID) {
+    for (auto const &[s, i] : pidToDimensionMap) {
+        if (paramID == s) {
+            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue(s)->load());
+            fullSelfUpdate(true);
+            return;
+        }
+    }
+}
+void TimbreSpace::updateAllDimensionwiseFeatures(){
+    for (auto const &[s, i] : pidToDimensionMap) {
+        const auto val = _treeManager._apvts.getRawParameterValue(s)->load();
+        const auto feat = static_cast<nvs::analysis::Features>(val);
+        settings.dimensionwiseFeatures[i] = feat;
+    }
+}
+void TimbreSpace::updateStatistic() {
+    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager._apvts.getRawParameterValue("statistic")->load());
+}
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
     if (alteredTree.hasType("PARAM") && property == juce::Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
@@ -131,28 +159,13 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             fullSelfUpdate(true);
             return;
         }
-        static const std::map<juce::String, size_t> pidToDimensionMap {
-            {"x_axis", 0},
-            {"y_axis", 1},
-            {"z_axis", 2},
-            {"u_axis", 3},
-            {"v_axis", 4},
-        };
-        for (auto const &[s, i] : pidToDimensionMap){
-            if (paramID == s) {
-                settings.dimensionWisefeatures[i] = static_cast<nvs::analysis::Features>(_treeManager._apvts.
-                    getRawParameterValue(s)->load());
-                std::cout << "tree changed! redrawing points...\n";
-                fullSelfUpdate(true);
-                return;
-            }
-        }
         if (paramID == "statistic") {
-            settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager._apvts.getRawParameterValue("statistic")->load());
+            updateStatistic();
             std::cout << "tree changed! redrawing points...\n";
             fullSelfUpdate(true);
             return;
         }
+        updateDimensionwiseFeature(paramID);
     }
 }
 
@@ -335,7 +348,11 @@ void TimbreSpace::signalTimbreSpaceUpdated() const {
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
 	if (&treeWhichHasBeenChanged == &_treeManager._timbreSpaceTree){
 		signalTimbreSpaceUpdated();
-	}
+	} else if (&treeWhichHasBeenChanged == &_treeManager._apvts.state) {
+        // if we get here, the plugin state has been loaded. we need to deal with setting dimensionwise features from state.
+        updateAllDimensionwiseFeatures();
+        updateStatistic();
+    }
 }
 
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
@@ -365,6 +382,9 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
     if (verbose)
         DBG("TimbreDataManager::updateData computing _delaunator & storing _pendingUpdate flag\n");
+    if (_timbres5D_pending.empty()) {
+        return;
+    }
     _delaunator_pending = std::make_unique<delaunator::Delaunator>(make2dCoordinates(_timbres5D_pending));
     _pendingUpdate.store(true, std::memory_order_release);
 }
@@ -443,7 +463,7 @@ void TimbreSpace::extract(const bool verbose) {
     if (verbose)
         DBG("Extracting timbre points\n");
 
-	auto const &featuresToExtract = settings.dimensionWisefeatures;
+	auto const &featuresToExtract = settings.dimensionwiseFeatures;
 	if (nvs::util::isEmpty(_treeManager._timbreSpaceTree)){
 		if (verbose)
 		    DBG("TimbreSpace::extract: timbre space empty, early exit\n");
