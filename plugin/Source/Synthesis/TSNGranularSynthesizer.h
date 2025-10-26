@@ -12,7 +12,7 @@
 #include <span>
 #include "../../slicer_granular/Source/Synthesis/GranularSynthesizer.h"
 #include "../../slicer_granular/Source/misc_util.h"
-#include "Navigation/Navigator.h"
+#include "Navigation/NavigationManager.h"
 
 namespace nvs::gran {
 class TSNGranularSynthesizer final
