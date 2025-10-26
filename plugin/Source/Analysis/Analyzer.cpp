@@ -15,7 +15,7 @@
 namespace nvs::analysis {
 
 Analyzer::Analyzer()
-:	ess_init()
+:	ess_init()  // don't delete this seemingly unnecessary construction-it is a good reminder that ess_init MUST be initialized first
 ,	ess_hold(ess_init)
 {}
 
@@ -26,6 +26,7 @@ bool Analyzer::updateSettings(const juce::ValueTree &newSettings){
 
     if (valid){
         updateSettingsFromValueTree(settings, newSettings);
+        _settingsHash = util::hashValueTree(newSettings);
     }
     else {
         std::cerr << "settings tree invalid\n";
@@ -46,13 +47,13 @@ std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, R
         return std::nullopt;
     }
 
-    analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settings, rls, shouldExit);
+    const analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settings, rls, shouldExit);
     std::cout << "analyzed onsets\n";
     const essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
 
 #pragma message("it is a problem that we have not the ability to inject a runLoopCallback here, since onsetsInSeconds uses StandardFactory instead of StreamingFactory")
 
-    std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, settings);	// needs namespace qualifier to not call itself
+    const std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, settings);	// needs namespace qualifier to not call itself
     std::cout << "calculated onsets in seconds\n";
 
     return onsetsInSeconds;
@@ -275,8 +276,6 @@ void writeEventsToWav(const vecReal &wave,
     }();
 
     const auto& settings = analyzer.getSettings();
-    //	denormalizeOnsets(normalizedOnsets, getLengthInSeconds(wave.size(), analyzer._analysisSettings.sampleRate));
-    //	const auto &onsetsInSeconds = normalizedOnsets;	// merely renaming because now normalizedOnsets are in fact not normalized; they are in seconds.
     const vecVecReal events = splitWaveIntoEvents(wave, onsetsInSeconds,
                                             analyzer.ess_hold.factory,
                                             settings,
@@ -286,7 +285,7 @@ void writeEventsToWav(const vecReal &wave,
     std::unique_ptr<juce::AudioFormatWriter> writer;
 
 
-    juce::File directory(base_name);
+    juce::File directory(base_name + analyzer.getSettingsHash());
     if (!directory.isDirectory()) {
         // If base_name has an extension, remove it to make it a directory
         directory = directory.getParentDirectory().getChildFile(directory.getFileNameWithoutExtension());
@@ -299,7 +298,7 @@ void writeEventsToWav(const vecReal &wave,
         }
     }
     std::cout << "Directory created at: " << directory.getFullPathName() << "\n";
-    const juce::String filePrefix = directory.getFileName();
+    const juce::String filePrefix = juce::File(base_name).getFileName();
 
     int idx = 0;
     for (const auto &e : events){
@@ -315,12 +314,18 @@ void writeEventsToWav(const vecReal &wave,
         //			buffer.applyGainRamp(0, 0, 									5, 0.f, 1.f);	// fade in 5 samps
         //			buffer.applyGainRamp(0, static_cast<int>(e.size())-10, 10, 1.f, 0.f);	// fade out 10 samps
 
-        writer.reset (format.createWriterFor (new juce::FileOutputStream (outFile),	// OutputStream* streamToWriteTo,
-                                              analyzer.getAnalyzedFileSampleRate(), // double sampleRateToUse
-                                              buffer.getNumChannels(),		//	unsigned int numberOfChannels
-                                              24,							//	int bitsPerSample
-                                              {},							//	const StringPairArray& metadataValues
-                                              0));							//	int qualityOptionIndex
+
+        const auto options = juce::AudioFormatWriterOptions()
+                        .withSampleRate(analyzer.getAnalyzedFileSampleRate()) // sr
+                        .withNumChannels(buffer.getNumChannels()) // numChans
+                        .withBitsPerSample(24) // bitsPerSample
+                        .withMetadataValues({}) // metadataValues
+                        .withQualityOptionIndex(0) // qualityOptionIndex
+                        .withSampleFormat(AudioFormatWriterOptions::SampleFormat::integral); // sampleFormat
+
+        std::unique_ptr<OutputStream> outputStream = std::make_unique<FileOutputStream>(outFile);
+        writer = format.createWriterFor(outputStream, options);
+
         if (writer != nullptr){
             writer->writeFromAudioSampleBuffer (buffer, 0, buffer.getNumSamples());
             std::cout << "File " << outFile.getFileName() << " written\n";

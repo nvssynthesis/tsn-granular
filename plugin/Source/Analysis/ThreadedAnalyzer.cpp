@@ -34,11 +34,10 @@ std::optional<ThreadedAnalyzer::AnalysisResult> ThreadedAnalyzer::stealTimbreSpa
 void ThreadedAnalyzer::updateSettings(const juce::ValueTree &settingsTree){
 	jassert( settingsTree.hasType("Settings") );
 
-	if (_analyzer.updateSettings(settingsTree)){
-		_settingsHash = util::hashValueTree(settingsTree);
-	}
-	else {
-		jassertfalse;
+	if (!_analyzer.updateSettings(settingsTree))
+	{
+	    DBG("updateSettings failed");
+	    jassertfalse;
 	}
 }
 

@@ -117,10 +117,13 @@ public:
 
 	bool updateSettings(const juce::ValueTree &newSettings);
 	AnalyzerSettings const &getSettings() const;
-	
+    juce::String getSettingsHash() const {
+        return _settingsHash;
+    }
 	nvs::ess::EssentiaHolder ess_hold;
 private:
 	AnalyzerSettings settings;
+    juce::String _settingsHash {};
 };
 
 double getLengthInSeconds(auto lengthInSamples, auto sampleRate){

@@ -41,7 +41,7 @@ public:
 	//===============================================================================
 	Analyzer &getAnalyzer() { return _analyzer; }
 	RunLoopStatus &getStatus() noexcept { return _rls; }
-	juce::String getSettingsHash() const noexcept { return _settingsHash; }
+	juce::String getSettingsHash() const noexcept { return _analyzer.getSettingsHash(); }
 	//===============================================================================
 private:
 	Analyzer _analyzer;
@@ -49,7 +49,6 @@ private:
 	vecReal _inputWave;
 	
 	std::optional<AnalysisResult> _analysisResult;
-	juce::String _settingsHash {};
 	juce::String _audioFileAbsPath {};
 
 	RunLoopStatus _rls;
