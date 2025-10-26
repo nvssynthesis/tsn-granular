@@ -25,8 +25,8 @@ private:
     static constexpr int pad {3};
 };
 
-class NavigatorPage :	public juce::Component
-,                       private juce::ComboBox::Listener
+class NavigatorPage final :	public juce::Component
+,                           private juce::ComboBox::Listener
 {
 public:
 	explicit NavigatorPage(juce::AudioProcessorValueTreeState &apvts);
@@ -36,13 +36,14 @@ public:
 
 private:
 	juce::AudioProcessorValueTreeState &_apvts;
+
 	AttachedComboBox navigatorTypeMenu;
     void comboBoxChanged(ComboBox *comboBoxThatHasChanged) override;
     void updateDisplayedParameters();
 
-	std::unique_ptr<NavigatorPanel> timbreSpacePanel;
-	std::unique_ptr<NavigatorPanel> navPanel;
+	std::unique_ptr<NavigatorPanel> timbreSpaceParamsPanel;
+	std::unique_ptr<NavigatorPanel> navigatorParamsPanel;
     std::unique_ptr<NavigatorPanel> navCommonParamsPanel;
-    juce::Rectangle<int> navPanelBounds;
+    juce::Rectangle<int> navParamsPanelBounds;
 };
 
