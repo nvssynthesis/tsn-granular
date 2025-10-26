@@ -138,16 +138,26 @@ void TSNGranularAudioProcessor::writeEvents(){
 		writeToLog("writeEvents failed: onsets optional does not contain value");
 		return;
 	}
+
+    auto const settingsVT = apvts.state.getChildWithName("Settings");
+    _analyzer.updateSettings(settingsVT);
+
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
 	auto const waveSpan = std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples()));
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
 	
 	// any reason to use getPropertyAsValue instead?
-    const juce::String sampleFilePath = apvts.state.getProperty("sampleFilePath");
-    const float sr = 	apvts.state.getProperty("sampleRate");
 
 	std::vector<float> onsetsTmp = onsetsOpt.value();
+
+    auto const par = settingsVT.getParent();
+    const auto fileInfoTree = par.getChildWithName("FileInfo");
+    jassert (fileInfoTree.hasProperty("sampleRate"));
+    jassert (fileInfoTree.hasProperty("sampleFilePath"));
+    const float sr = fileInfoTree.getProperty("sampleRate");
+    const juce::String sampleFilePath = fileInfoTree.getProperty("sampleFilePath");
+    jassert(!sampleFilePath.isEmpty());
 
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
 	

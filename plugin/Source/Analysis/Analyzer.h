@@ -124,6 +124,7 @@ private:
 };
 
 double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
+    jassert(sampleRate > 0);
 	return static_cast<double>(lengthInSamples / sampleRate);
 }
 

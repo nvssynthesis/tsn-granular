@@ -285,13 +285,29 @@ void writeEventsToWav(const vecReal &wave,
     juce::WavAudioFormat format;
     std::unique_ptr<juce::AudioFormatWriter> writer;
 
+
+    juce::File directory(base_name);
+    if (!directory.isDirectory()) {
+        // If base_name has an extension, remove it to make it a directory
+        directory = directory.getParentDirectory().getChildFile(directory.getFileNameWithoutExtension());
+    }
+    if (!directory.exists()) {
+        if (const auto result = directory.createDirectory(); !result) {
+            std::cerr << "Failed to create directory: " << result.getErrorMessage() << "\n";
+            jassertfalse;
+            return;
+        }
+    }
+    std::cout << "Directory created at: " << directory.getFullPathName() << "\n";
+    const juce::String filePrefix = directory.getFileName();
+
     int idx = 0;
     for (const auto &e : events){
-        juce::String evName = base_name;
-        evName.append("_", 2);
-        evName.append(std::to_string(idx++), 4);
-        evName.append(".wav", 4);
-        juce::File outFile(evName);
+
+        juce::String evName = filePrefix;
+        evName << "_" << idx++ << ".wav";
+
+        const juce::File outFile = directory.getChildFile(evName);
 
         juce::AudioBuffer<float> buffer(1, static_cast<int>(e.size()));
         buffer.clear();
