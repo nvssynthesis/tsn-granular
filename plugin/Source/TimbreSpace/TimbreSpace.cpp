@@ -218,29 +218,29 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		ValueTree timbreMeasurements("TimbreMeasurements");
 		
 		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
-			const auto &frame = fullTimbreSpace[frameIdx];
+			const auto &[bfccs, periodicity, loudness, f0] = fullTimbreSpace[frameIdx];
 			
 			ValueTree frameTree("Frame");
 			
 			ValueTree bfccsTree("BFCCs");
-			for (int bfccIdx = 0; bfccIdx < static_cast<int>(frame.bfccs.size()); ++bfccIdx){
+			for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
 				ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
-				addEventwiseStatistics(bfccTree, frame.bfccs[bfccIdx]);
+				addEventwiseStatistics(bfccTree, bfccs[bfccIdx]);
 				bfccsTree.addChild(bfccTree, bfccIdx, nullptr);
 			}
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
 			ValueTree periodicityTree("Periodicity");
-			addEventwiseStatistics(periodicityTree, frame.periodicity);
+			addEventwiseStatistics(periodicityTree, periodicity);
 			frameTree.addChild(periodicityTree, -1, nullptr);
 			
 			ValueTree loudnessTree("Loudness");
-			addEventwiseStatistics(loudnessTree, frame.loudness);
+			addEventwiseStatistics(loudnessTree, loudness);
 			frameTree.addChild(loudnessTree, -1, nullptr);
 			
 			ValueTree f0Tree("F0");
-			addEventwiseStatistics(f0Tree, frame.f0);
+			addEventwiseStatistics(f0Tree, f0);
 			frameTree.addChild(f0Tree, -1, nullptr);
 			
 			timbreMeasurements.addChild(frameTree, frameIdx, nullptr);
@@ -268,8 +268,8 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 		nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF> frame;
 		
 		// Extract BFCCs
-		auto bfccsTree = frameTree.getChildWithName("BFCCs");
-		if (bfccsTree.isValid())
+		if (auto bfccsTree = frameTree.getChildWithName("BFCCs");
+		    bfccsTree.isValid())
 		{
 			frame.bfccs.reserve(bfccsTree.getNumChildren());
 			
@@ -281,17 +281,21 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 		}
 		
 		// Extract single-value features
-		auto periodicityTree = frameTree.getChildWithName("Periodicity");
-		if (periodicityTree.isValid())
-			frame.periodicity = toEventwiseStatistics(periodicityTree);
-		
-		auto loudnessTree = frameTree.getChildWithName("Loudness");
-		if (loudnessTree.isValid())
-			frame.loudness = toEventwiseStatistics(loudnessTree);
-		
-		auto f0Tree = frameTree.getChildWithName("F0");
-		if (f0Tree.isValid())
-			frame.f0 = toEventwiseStatistics(f0Tree);
+        if (auto periodicityTree = frameTree.getChildWithName("Periodicity");
+            periodicityTree.isValid())
+        {
+            frame.periodicity = toEventwiseStatistics(periodicityTree);
+        }
+        if (auto loudnessTree = frameTree.getChildWithName("Loudness");
+            loudnessTree.isValid())
+        {
+            frame.loudness = toEventwiseStatistics(loudnessTree);
+        }
+        if (auto f0Tree = frameTree.getChildWithName("F0");
+            f0Tree.isValid())
+        {
+            frame.f0 = toEventwiseStatistics(f0Tree);
+        }
 		
 		timbreSpace.push_back(std::move(frame));
 	}
@@ -302,8 +306,8 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 {
 	std::vector<float> normalizedOnsets;
-	
-	auto onsetArray = vt.getProperty("NormalizedOnsets");
+
+	const auto onsetArray = vt.getProperty("NormalizedOnsets");
 	if (!onsetArray.isArray())
 		return normalizedOnsets;
 	
@@ -431,7 +435,7 @@ extractFeatures(const juce::ValueTree &frameTree,
 		
 		if (0 <= idx && idx < NumBFCC) {
 			// It's a BFCC - get from BFCCs array
-			auto bfccsTree = frameTree.getChildWithName("BFCCs");
+			const auto bfccsTree = frameTree.getChildWithName("BFCCs");
 			if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
 				auto bfccTree = bfccsTree.getChild(idx);
 				value = bfccTree.getProperty(statPropName, 0.0f);
@@ -446,9 +450,10 @@ extractFeatures(const juce::ValueTree &frameTree,
 				case Features::f0:          childName = "F0";          break;
 				default: jassertfalse;
 			}
-			
-			auto scalarTree = frameTree.getChildWithName(childName);
-			if (scalarTree.isValid()) {
+
+            if (auto scalarTree = frameTree.getChildWithName(childName);
+                scalarTree.isValid())
+            {
 				value = scalarTree.getProperty(statPropName, 0.0f);
 			}
 		}
@@ -492,9 +497,9 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	for (auto const& p : points)
 	{
 		// find first index ≥ p.x
-		const auto idx = (int)(std::ranges::lower_bound (allX,
-                                                   p)
-						 - allX.begin());
+		const auto idx = static_cast<int>(std::ranges::lower_bound(allX,
+                                                                   p)
+                                          - allX.begin());
 		const float quantile = static_cast<float>(idx) / static_cast<float>(allX.size() - 1);
 		
 		// optional: you can still gamma‑tweak the quantile
@@ -537,7 +542,7 @@ void TimbreSpace::updateTimbreSpacePoints(const bool verbose)
 		_histoEqualizedD1 = getHistoEqualizationVec(allDim1);
 	}
 }
-void TimbreSpace::reshape(bool verbose)
+void TimbreSpace::reshape(const bool verbose)
 {   /** to be called when we only want to change the VIEW of the timbre points (which will also need to happen when the timbre space itself changes) */
 
 
@@ -689,7 +694,7 @@ std::vector<util::WeightedIdx> findPointsDistanceBased(
        weightArr[choice] = 0.0;
 
        // Check if any weights remain (optional optimization)
-       if (std::all_of(weightArr.begin(), weightArr.end(), [](double w) { return w == 0.0; })) {
+       if (std::ranges::all_of(weightArr, [](const double w) { return w == 0.0; })) {
           break;
        }
     }
@@ -718,12 +723,12 @@ std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> 
 	} else {
 		// Apply softmax: exp(-sharpness * (distance/dmax))
 		for (const auto& di : dv) {
-			double normalizedDist = di.distance / dmax;
+			const double normalizedDist = di.distance / dmax;
 			weights.push_back(std::exp(-sharpness * normalizedDist));
 		}
 		
 		// Normalize to sum = 1
-		double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
+		const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
 		for (auto& w : weights) {
 			w /= sum;
 		}
@@ -736,8 +741,9 @@ std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> 
 		}
 		
 		// Re-normalize after power scaling
-		double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
-		if (sum > 0.0) {
+        if (const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
+            sum > 0.0)
+        {
 			for (auto& w : weights) {
 				w /= sum;
 			}
