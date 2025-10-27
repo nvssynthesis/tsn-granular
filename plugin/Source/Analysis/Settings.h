@@ -20,35 +20,35 @@ void initializeSettingsBranches(juce::ValueTree& settingsVT, bool dbg=true);
 bool verifySettingsStructure (const juce::ValueTree& settingsVT);
 
 template<typename T>
-struct RangeWithDefault
+struct RangedSettingsSpec
 {
-	juce::NormalisableRange<double> range;	// always double to be compatible with slider
-	T defaultValue;
+    juce::NormalisableRange<double> range;
+    T defaultValue;
+    juce::String tooltip = {};           // Optional tooltip
+    int numDecimalPlaces = 2;            // Default precision
+    juce::String unit = {};              // e.g., "Hz", "dB", "ms"
 };
-struct ChoiceWithDefault
+struct ChoiceSettingsSpec
 {
-	std::vector<juce::String> options;
-	juce::String              defaultValue;
+    std::vector<juce::String> options;
+    juce::String defaultValue;
+    juce::String tooltip = {};
 };
 
-struct BoolWithDefault
+struct BoolSettingsSpec
 {
-	bool defaultValue;
+    bool defaultValue;
+    juce::String tooltip = {};
 };
 
 using AnySpec = std::variant<
-	RangeWithDefault<int>,
-	RangeWithDefault<double>,
-	ChoiceWithDefault,
-	BoolWithDefault
+	RangedSettingsSpec<int>,
+	RangedSettingsSpec<double>,
+	ChoiceSettingsSpec,
+	BoolSettingsSpec
 >;
 
-using AnyRangeWithDefault = std::variant<
-	RangeWithDefault<int>,
-	RangeWithDefault<double>
->;
-
-// defined in .cpp to avoid circular include (issue was just with  calling nvs::analysis::buildFeatureChoiceVec, but this allows consistency)
+// defined in .cpp to avoid circular include (issue was just with calling nvs::analysis::buildFeatureChoiceVec, but this allows consistency)
 extern const std::map<juce::String, AnySpec> analysisSpecs, bfccSpecs, onsetSpecs, sBicSpecs, pitchSpecs, splitSpecs, timbreSpaceSpecs;
 extern const std::map<juce::String, const std::map<juce::String,AnySpec>*> specsByBranch;
 

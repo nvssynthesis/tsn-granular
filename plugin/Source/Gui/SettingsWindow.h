@@ -25,6 +25,8 @@ private:
 	std::unique_ptr<juce::TabbedComponent> tabs;
 	juce::ComponentBoundsConstrainer constrainer;
 
+    juce::TooltipWindow tooltipWindow {this};
+
 	// Create a component containing all controls for one branch
 	static juce::Component* createPageForBranch (juce::ValueTree& settingsVT, const juce::String& branchName, const std::map<juce::String,nvs::analysis::AnySpec>& specMap) ;
 };

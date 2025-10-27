@@ -28,62 +28,69 @@ static juce::NormalisableRange<double> makePowerOfTwoRange (double minValue, dou
 
 const std::map<juce::String, AnySpec> analysisSpecs
 {
-	{ "frameSize",     RangeWithDefault<int>{   makePowerOfTwoRange(64, 16384), 1024 } },
-	{ "hopSize",       RangeWithDefault<int>{   makePowerOfTwoRange(32, 8192),  512 } },
-	{ "windowingType",  ChoiceWithDefault{ 	{"hann", "hamming", "hannnsgcq",
+	{ "frameSize",     RangedSettingsSpec<int>{   makePowerOfTwoRange(64, 8192), 1024 } },
+	{ "hopSize",       RangedSettingsSpec<int>{   makePowerOfTwoRange(32, 4096),  512 } },
+	{ "windowingType",  ChoiceSettingsSpec{ 	{"hann", "hamming", "hannnsgcq",
 		"triangular", "square", "blackmanharris62", "blackmanharris70",
 		"blackmanharris74", 	"blackmanharris92"}, /* default: */		"hann" 		} }
 };
 
 const std::map<juce::String, AnySpec> bfccSpecs
 {
-	{ "highFrequencyBound",  RangeWithDefault<double>{ {20.0,24000.0,1.0,1.0}, 8000.0 } },
-	{ "lowFrequencyBound",   RangeWithDefault<double>{ {0.0,5000.0,1.0,1.0},    120.0 } },
-	{ "liftering",           RangeWithDefault<int>{   {0,100,1,1},            0 } },
-	{ "numBands",            RangeWithDefault<int>{   {1,128,1,1},           40 } },
-	{ "numCoefficients",     RangeWithDefault<int>{   {5,26,1,1},            13 } },
-	{ "normalize",           ChoiceWithDefault{ {"unit_sum", "unit_max"},     "unit_sum" } },
-	{ "spectrumType",        ChoiceWithDefault{ {"magnitude", "power"},       "power"    } },
-	{ "weightingType",       ChoiceWithDefault{ {"warping",  "linear"},       "warping"  } },
-	{ "dctType",             ChoiceWithDefault{ {"typeII",   "typeIII"},      "typeII"   } }
+	{ "highFrequencyBound",  RangedSettingsSpec<double>{ {20.0,24000.0,1.0,0.4}, 4000.0,
+	    "Upper bound of the frequency range. Bandlimiting to ~4000 can help for classification.", 1, "Hz"} },
+	{ "lowFrequencyBound",   RangedSettingsSpec<double>{ {0.0,5000.0,1.0,0.4},    500.0,
+	    "Lower bound of the frequency range. Bandlimiting to ~500 can help with classification.", 1, "Hz"} },
+	{ "liftering",           RangedSettingsSpec<int>{   {0,100,1,1 },0,
+	    "the liftering coefficient. Use '0' to bypass it"} },
+	{ "numBands",            RangedSettingsSpec<int>{
+	    {
+	        1,128,1,1},40, "the number of bark bands in the filter" } },
+	{ "numCoefficients",     RangedSettingsSpec<int>{   {5,26,1,1}, 13 } },
+	{ "normalize",           ChoiceSettingsSpec{
+	    {
+	        "unit_sum", "unit_max"},     "unit_sum", "'unit_max' makes the vertex of all the triangles equal to 1, 'unit_sum' makes the area of all the triangles equal to 1." } },
+	{ "spectrumType",        ChoiceSettingsSpec{ {"magnitude", "power"},"power", "use magnitude or power spectrum"} },
+	{ "weightingType",       ChoiceSettingsSpec{ {"warping",  "linear"},"warping", "type of weighting function for determining triangle area"} },
+	{ "dctType",             ChoiceSettingsSpec{ {"typeII",   "typeIII"},"typeII" } }
 };
 
 const std::map<juce::String, AnySpec> onsetSpecs
 {
-	{ "silenceThreshold",         RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
-	{ "alpha",                    RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0}, 0.1f } },
-	{ "numFrames_shortOnsetFilter",RangeWithDefault<int>  { { 1,  64,  1,   1 },    5 } },
-	{ "weight_hfc",               RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
-	{ "weight_complex",           RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
-	{ "weight_complexPhase",      RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
-	{ "weight_flux",              RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
-	{ "weight_melFlux",           RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } },
-	{ "weight_rms",               RangeWithDefault<double>{ {0.0,1.0,0.01f,1.0},  0.5 } }
+	{ "silenceThreshold",         RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f, "the threshold for silence"} },
+	{ "alpha",                    RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f, "the proportion of the mean included to reject smaller peaks; filters very short onsets" } },
+	{ "numFrames_shortOnsetFilter",RangedSettingsSpec<int>  { { 1,  64,  1,   1 },    5, "the number of frames used to compute the threshold; size of short-onset filter"} },
+	{ "weight_hfc",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
+	{ "weight_complex",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.1 } },
+	{ "weight_complexPhase",      RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
+	{ "weight_flux",              RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
+	{ "weight_melFlux",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
+	{ "weight_rms",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } }
 };
 
 const std::map<juce::String, AnySpec> sBicSpecs
 {
-	{ "complexityPenaltyWeight", RangeWithDefault<double>{ {0.0,10.0,0.1f,1.0}, 1.5f } },
-	{ "incrementFirstPass",      RangeWithDefault<int>{   {1,500,1,1},      60  } },
-	{ "incrementSecondPass",     RangeWithDefault<int>{   {1,500,1,1},      20  } },
-	{ "minSegmentLengthFrames",  RangeWithDefault<int>{   {1,100,1,1},      10  } },
-	{ "sizeFirstPass",           RangeWithDefault<int>{   {1,1000,1,1},     300 } },
-	{ "sizeSecondPass",          RangeWithDefault<int>{   {1,1000,1,1},     200 } }
+	{ "complexityPenaltyWeight", RangedSettingsSpec<double>{ {0.0,10.0,0.1f,1.0}, 1.5f } },
+	{ "incrementFirstPass",      RangedSettingsSpec<int>{   {1,500,1,1},      60  } },
+	{ "incrementSecondPass",     RangedSettingsSpec<int>{   {1,500,1,1},      20  } },
+	{ "minSegmentLengthFrames",  RangedSettingsSpec<int>{   {1,100,1,1},      10  } },
+	{ "sizeFirstPass",           RangedSettingsSpec<int>{   {1,1000,1,1},     300 } },
+	{ "sizeSecondPass",          RangedSettingsSpec<int>{   {1,1000,1,1},     200 } }
 };
 
 const std::map<juce::String, AnySpec> pitchSpecs
 {
-	{ "pitchDetectionAlgorithm",  ChoiceWithDefault{ {"yin","pYin","chroma"}, "yin" } },
-	{ "interpolate",              BoolWithDefault{ true } },
-	{ "maxFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0}, 4000.0 } },
-	{ "minFrequency",             RangeWithDefault<double>{ {20.0,22050.0, 1.0, 1.0},  140.0 } },
-	{ "tolerance",                RangeWithDefault<double>{ {0.0, 1.0,  0.001f, 1.0},   0.15 } }
+	{ "pitchDetectionAlgorithm",  ChoiceSettingsSpec{ {"yin","pYin","chroma"}, "yin" } },
+	{ "interpolate",              BoolSettingsSpec{ true } },
+	{ "maxFrequency",             RangedSettingsSpec<double>{ {20.0,22050.0, 1.0, 1.0}, 4000.0 } },
+	{ "minFrequency",             RangedSettingsSpec<double>{ {20.0,22050.0, 1.0, 1.0},  140.0 } },
+	{ "tolerance",                RangedSettingsSpec<double>{ {0.0, 1.0,  0.001f, 1.0},   0.15 } }
 };
 
 const std::map<juce::String, AnySpec> splitSpecs
 {
-	{ "fadeInSamps",  RangeWithDefault<int>{ {0,10000,1,1}, 5 } },
-	{ "fadeOutSamps", RangeWithDefault<int>{ {0,10000,1,1}, 5 } }
+	{ "fadeInSamps",  RangedSettingsSpec<int>{ {0,10000,1,1}, 5 } },
+	{ "fadeOutSamps", RangedSettingsSpec<int>{ {0,10000,1,1}, 5 } }
 };
 
 const std::map<juce::String, const std::map<juce::String,AnySpec>*>
@@ -101,23 +108,22 @@ void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
 										const juce::String& branchName) {
 	auto branchVT = settingsVT.getOrCreateChildWithName (branchName, nullptr);
 
-	if (auto it = specsByBranch.find (branchName); it != specsByBranch.end()) {
-		auto const& specMap = *it->second;
-		for (auto const& kv : specMap) {
-			auto prop = kv.first;
-			auto const& anySpec = kv.second;
+	if (const auto it = specsByBranch.find (branchName); it != specsByBranch.end()) {
+        for (auto const& specMap = *it->second; const auto&[fst, snd] : specMap) {
+			auto prop = fst;
+			auto const& anySpec = snd;
 
-			std::visit ([&](auto&& spec){
-				using SpecT = std::decay_t<decltype(spec)>;
+			std::visit ([&]<typename T0>(T0&& spec){
+				using SpecT = std::decay_t<T0>;
 
-				if constexpr (std::is_same_v<SpecT, RangeWithDefault<int>> ||
-							  std::is_same_v<SpecT, RangeWithDefault<double>>) {
+				if constexpr (std::is_same_v<SpecT, RangedSettingsSpec<int>> ||
+							  std::is_same_v<SpecT, RangedSettingsSpec<double>>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
-				else if constexpr (std::is_same_v<SpecT, ChoiceWithDefault>) {
+				else if constexpr (std::is_same_v<SpecT, ChoiceSettingsSpec>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
-				else if constexpr (std::is_same_v<SpecT, BoolWithDefault>) {
+				else if constexpr (std::is_same_v<SpecT, BoolSettingsSpec>) {
 					branchVT.setProperty (prop, spec.defaultValue, nullptr);
 				}
 			}, anySpec);
@@ -130,7 +136,7 @@ void initializeSettingsBranches(juce::ValueTree& settingsVT, const bool dbg){
 		ensureBranchAndInitializeDefaults (settingsVT, branchName);
 	}
     if constexpr (!TIMBRE_SPACE_SETTINGS_EXIST) {
-        if (auto timbreSpaceSettingsTree = settingsVT.getChildWithName("TimbreSpace"); timbreSpaceSettingsTree.isValid())
+        if (const auto timbreSpaceSettingsTree = settingsVT.getChildWithName("TimbreSpace"); timbreSpaceSettingsTree.isValid())
         {
             settingsVT.removeChild(timbreSpaceSettingsTree, nullptr);
             std::cout << "removed previously existing TimbreSpace settings subtree\n";
@@ -157,8 +163,9 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 
 		// check every parameter key inside that branch
 		for (auto const& [propertyName, spec] : *specMapPtr) {
-			juce::Identifier propertyId (propertyName);
-			if (!branchVT.hasProperty(propertyId)){
+            if (juce::Identifier propertyId (propertyName);
+                !branchVT.hasProperty(propertyId))
+            {
 				return false;
 			}
 		}
@@ -169,8 +176,9 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 
 bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree) {
 	// Verify tree structure first
-	bool const valid = verifySettingsStructure(settingsTree);
-	if (!valid) {
+    if (bool const valid = verifySettingsStructure(settingsTree);
+        !valid)
+    {
 		std::cerr << "settings tree invalid\n";
 		jassertfalse;
 		return false;

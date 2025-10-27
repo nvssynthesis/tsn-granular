@@ -610,6 +610,8 @@ void TimbreSpace::reshape(const bool verbose)
         // the Nth member of timbreSpaceComponent._timbres5D corresponds to
         // the Nth member of onsets.
         constexpr float padding_scalar = 0.95f;
+
+#pragma message("maybe we should build up the points, then add all instead of one by one. there is occassional bug when histo equalizing otherwise")
         add5DPoint(p * padding_scalar, color);
         
         if (verbose){

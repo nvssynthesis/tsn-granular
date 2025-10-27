@@ -18,6 +18,8 @@ SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
   : DocumentWindow ("Settings", backgroundColour, allButtons),
 	proc (processor)
 {
+    tooltipWindow.setMillisecondsBeforeTipAppears(700);
+
 	setAlwaysOnTop (true);
 	constrainer.setMinimumSize (300, 300);
 	setConstrainer (&constrainer);
@@ -58,6 +60,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 			  const std::map<juce::String, nvs::analysis::AnySpec>& m)
 		   : tree (std::move(t)), specs (m)
 		{
+
 			int y = 10;
 
 			for (const auto&[specStr, specVar] : specs)
@@ -72,9 +75,9 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 
 				std::visit ([&]<typename T0>(T0&& spec){
 					using SpecT = std::decay_t<T0>;
-					using RangeWithDefaultInt = nvs::analysis::RangeWithDefault<int>;
-					using RangeWithDefaultFloat = nvs::analysis::RangeWithDefault<float>;
-					using RangeWithDefaultDouble = nvs::analysis::RangeWithDefault<double>;
+					using RangeWithDefaultInt = nvs::analysis::RangedSettingsSpec<int>;
+					using RangeWithDefaultFloat = nvs::analysis::RangedSettingsSpec<float>;
+					using RangeWithDefaultDouble = nvs::analysis::RangedSettingsSpec<double>;
 
 					if constexpr (std::is_same_v<SpecT, RangeWithDefaultInt> ||
 								  std::is_same_v<SpecT, RangeWithDefaultFloat> ||
@@ -84,8 +87,15 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						addAndMakeVisible (s);
 
 						s.setNormalisableRange (spec.range);            // range is double
-					    s.setNumDecimalPlacesToDisplay(3);
-						
+					    s.setNumDecimalPlacesToDisplay(spec.numDecimalPlaces);
+
+					    if (!spec.tooltip.isEmpty()) {
+					        s.setTooltip(spec.tooltip);
+					    }
+					    if (!spec.unit.isEmpty()) {
+					        s.setTextValueSuffix(" " + spec.unit);
+					    }
+
 						auto const val = [this, spec, propName](const bool use_default){
 							if (use_default){
 								return static_cast<double>(spec.defaultValue);
@@ -114,7 +124,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							}, propSpec);
 						};
 					}
-					else if constexpr (std::is_same_v<SpecT, nvs::analysis::ChoiceWithDefault>)
+					else if constexpr (std::is_same_v<SpecT, nvs::analysis::ChoiceSettingsSpec>)
 					{
 						addAndMakeVisible (labels[propName]);
 						labels[propName].setText (propName, juce::dontSendNotification);
@@ -134,23 +144,28 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						}
 
 						// Look up the default value’s ID (or fallback)
-						int val = [this, textToId, spec, propName](bool use_default){
+						const int val = [this, textToId, spec, propName](const bool use_default){
 							int id = 1;
-						    if (use_default){
+						    if (use_default) {
 								auto it = textToId.find (spec.defaultValue);
 								if (it != textToId.end())
 									id = it->second;
 							}
 							else {
 								auto const propVal = tree.getPropertyAsValue(propName, nullptr).getValue();
-								auto it = textToId.find(propVal);
-								if (it != textToId.end()){
+                                if (auto it = textToId.find(propVal);
+                                    it != textToId.end())
+                                {
 									id = it->second;
 								}
 							}
 							return id;
 						}(false);
-						
+
+					    if (!spec.tooltip.isEmpty()) {
+					        cb.setTooltip(spec.tooltip);
+					    }
+
 						cb.setSelectedId (val, juce::dontSendNotification);
 						cb.setBounds (170, y, 200, 20);
 
@@ -159,14 +174,12 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							tree.setProperty (propName, cb.getText(), nullptr);
 						};
 					}
-					else if constexpr (std::is_same_v<SpecT, nvs::analysis::BoolWithDefault>)
+					else if constexpr (std::is_same_v<SpecT, nvs::analysis::BoolSettingsSpec>)
 					{
 						auto& tb = toggles[propName];
 						addAndMakeVisible (tb);
 
-
-						
-						bool val = [this, spec, propName](const bool use_default) -> bool {
+						const bool val = [this, spec, propName](const bool use_default) -> bool {
 							if (use_default){
 								return static_cast<bool>(spec.defaultValue);
 							}
@@ -185,6 +198,10 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							}
 						};
 						tb.setButtonText (displayMap.at(val));
+
+					    if (!spec.tooltip.isEmpty()) {
+					        tb.setTooltip(spec.tooltip);
+					    }
 
 						tb.setToggleState (val,
 										   juce::dontSendNotification);
