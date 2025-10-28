@@ -47,11 +47,11 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 		"zeroPhase",   false
 	);
 	
-	float sr = settings.analysis.sampleRate;
+	const auto sr = static_cast<float>(settings.analysis.sampleRate);
 	jassert (sr > 20000.f);
-	auto maxFrequency = settings.pitch.maxFrequency;
-	auto minFrequency = settings.pitch.minFrequency;
-	auto tolerance = settings.pitch.tolerance;
+	const auto maxFrequency = settings.pitch.maxFrequency;
+	const auto minFrequency = settings.pitch.minFrequency;
+	const auto tolerance = settings.pitch.tolerance;
 	
 	std::string pitchAlgoStr = settings.pitch.pitchDetectionAlgorithm.toStdString();
 	
@@ -71,27 +71,39 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
 	Algorithm* pitchFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
 	Algorithm* pitchConfidenceFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
 	
-	std::vector<vecReal> pitches, pitchConfidences;
-	auto *pitchAccumOutput = new VectorOutput<vecReal>(&pitches);
-	auto *pitchConfidenceAccumOutput = new VectorOutput<vecReal>(&pitchConfidences);
+	std::vector<vecReal> frequencies, confidences;
+	auto *frequencyAccumOutput = new VectorOutput<vecReal>(&frequencies);
+	auto *confidenceAccumOutput = new VectorOutput<vecReal>(&confidences);
 	
 	*inVec												>>		frameCutter->input("signal");
 	frameCutter->output("frame")						>>		windowing->input("frame");
 	windowing->output("frame")							>>		pitchDet->input("signal");
 	pitchDet->output("pitch")							>>		pitchFrameAccumulator->input("data");
 	pitchDet->output("pitchConfidence")					>>		pitchConfidenceFrameAccumulator->input("data");
-	pitchFrameAccumulator->output("array")				>>		pitchAccumOutput->input("data");
-	pitchConfidenceFrameAccumulator->output("array")	>>		pitchConfidenceAccumOutput->input("data");
+	pitchFrameAccumulator->output("array")				>>		frequencyAccumOutput->input("data");
+	pitchConfidenceFrameAccumulator->output("array")	>>		confidenceAccumOutput->input("data");
 	
 	Network n(inVec);
 	n.run();
 	n.clear();
 	
-	assert(pitches.size() == pitchConfidences.size());
-	assert(pitches.size() == 1);
-	assert(pitches[0].size() == pitchConfidences[0].size());
-	
-	return PitchesAndConfidences { pitches[0], pitchConfidences[0] };
+	assert(frequencies.size() == confidences.size());
+	assert(frequencies.size() == 1);
+
+    {
+        vecReal pitches = std::move(frequencies[0]);
+	    assert(pitches.size() == confidences[0].size());
+
+	    std::ranges::transform(pitches, pitches.begin(),
+                               [](const float x) {
+                                   if (x == 0.f) {
+                                       return 0.0f;
+                                   }
+                                   return 69.f + 12.f * std::log2(x / 440.f);
+                               }
+                );
+	    return PitchesAndConfidences{pitches, confidences[0]};
+    }
 }
 }	// anonymous namespace
 

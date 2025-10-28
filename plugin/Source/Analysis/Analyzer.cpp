@@ -43,7 +43,7 @@ float Analyzer::getAnalyzedFileSampleRate() const {
 }
 
 std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, RunLoopStatus& rls, const ShouldExitFn &shouldExit) const {
-    if (!wave.size()){
+    if (wave.empty()){
         return std::nullopt;
     }
 
@@ -53,7 +53,7 @@ std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, R
 
 #pragma message("it is a problem that we have not the ability to inject a runLoopCallback here, since onsetsInSeconds uses StandardFactory instead of StreamingFactory")
 
-    const std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, settings);	// needs namespace qualifier to not call itself
+    std::vector<float> onsetsInSeconds = analysis::calculateOnsetsInSeconds(onsets2d, tmpStFac, settings);	// explicit namespace qualifier for clarity
     std::cout << "calculated onsets in seconds\n";
 
     return onsetsInSeconds;
@@ -102,24 +102,39 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent) const {
     const auto [pitches, confidences] = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, settings);
 #pragma message("not using confidences yet")
-    const auto p_mean = mean(pitches);
 
-    const EventwisePitchDescription descr {
-            .mean = p_mean,
-            .median = essentia::median(pitches),
-            .variance = essentia::variance(pitches, p_mean),
-            .skewness = essentia::skewness(pitches, p_mean),
-            .kurtosis = essentia::kurtosis(pitches, p_mean)
+    // weightedMeanFrames()
+    const auto p_mean = mean(pitches);
+    const auto c_mean = mean(confidences);
+
+    return EventwisePitchDescription {
+        .pitch = {
+            EventwiseStatistics<float> {
+                .mean = p_mean,
+                .median = essentia::median(pitches),
+                .variance = essentia::variance(pitches, p_mean),
+                .skewness = essentia::skewness(pitches, p_mean),
+                .kurtosis = essentia::kurtosis(pitches, p_mean)
+            }
+        },
+        .confidence = {
+            EventwiseStatistics<float> {
+                .mean = c_mean,
+                .median = essentia::median(confidences),
+                .variance = essentia::variance(confidences, c_mean),
+                .skewness = essentia::skewness(confidences, c_mean),
+                .kurtosis = essentia::kurtosis(confidences, c_mean)
+            }
+        }
     };
-    return descr;
 }
 
-EventwiseStatistics<float> Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent) const {
+EventwiseLoudnessDescription Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent) const {
     const vecReal l_tmp = calculateLoudnesses(waveEvent, ess_hold.factory, settings);
 
     const auto l_mean = mean(l_tmp);
 
-    const EventwisePitchDescription descr {
+    const EventwiseLoudnessDescription descr {
             .mean = l_mean,
             .median = essentia::median(l_tmp),
             .variance = essentia::variance(l_tmp, l_mean),
@@ -190,7 +205,9 @@ Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
         FeatureContainer<EventwiseStatistics<Real>> f;
 
         f.bfccs = calculateEventwiseBFCCDescription(e);
-        f.f0 = calculateEventwisePitchDescription(e);
+        const auto [pitch, confidence] = calculateEventwisePitchDescription(e);
+        f.f0 = pitch;
+        f.periodicity = confidence;
         f.loudness = calculateEventwiseLoudness(e);
 
         timbre_points.push_back(f);
