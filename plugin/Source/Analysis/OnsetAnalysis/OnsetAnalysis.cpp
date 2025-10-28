@@ -39,7 +39,7 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	assert(0.0 < input_sr);
     constexpr auto internal_sr  = 44100.0f;
 	const auto frameSize    = std::min(std::max(512, settings.analysis.frameSize), 2048);
-    constexpr auto frameSize1024    = 1024; // dedicated for melflux
+    constexpr auto frameSize1024= 1024; // dedicated for melflux
 	constexpr auto hopSize      = 512;
 
 	const bool needSeparateMelFluxChain = (frameSize != frameSize1024);
@@ -213,21 +213,15 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	return onsetsMatrix;
 }
 
-std::vector<juce::String> getOnsetWeightKeys()
-{
-	std::vector<juce::String> keys;
-	keys.reserve (onsetSpecs.size());
-
-	for (auto& kv : onsetSpecs)
-	{
-		const auto& key = kv.first;
-		if (key.startsWith ("weight_"))
-			keys.push_back (key);
-	}
-
-	// Optional: sort them if you want a consistent order
-	std::sort (keys.begin(), keys.end());
-	return keys;
+vecReal getWeights(const AnalyzerSettings &settings) {
+    return {
+        static_cast<float>(settings.onset.weight_hfc),
+        static_cast<float>(settings.onset.weight_complex),
+        static_cast<float>(settings.onset.weight_complexPhase),
+        static_cast<float>(settings.onset.weight_flux),
+        static_cast<float>(settings.onset.weight_melFlux),
+        static_cast<float>(settings.onset.weight_rms)
+    };
 }
 
 #pragma message("make this work with StreamingFactory")
@@ -250,14 +244,7 @@ vecReal calculateOnsetsInSeconds(const array2dReal &onsetAnalysisMatrix,
 		  "delay",           settings.onset.numFrames_shortOnsetFilter // number of frames used to compute the threshold-size of short-onset filter
 	);
 
-	const vecReal weights {
-		static_cast<float>(settings.onset.weight_hfc),
-		static_cast<float>(settings.onset.weight_complex),
-		static_cast<float>(settings.onset.weight_complexPhase),
-		static_cast<float>(settings.onset.weight_flux),
-		static_cast<float>(settings.onset.weight_melFlux),
-		static_cast<float>(settings.onset.weight_rms)
-	};
+    const vecReal weights = getWeights(settings);
 	
 	vecReal onsets;
 	onsetDetectionSeconds->input("detections").set(onsetAnalysisMatrix);
