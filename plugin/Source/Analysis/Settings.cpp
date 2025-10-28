@@ -57,15 +57,24 @@ const std::map<juce::String, AnySpec> bfccSpecs
 
 const std::map<juce::String, AnySpec> onsetSpecs
 {
-	{ "silenceThreshold",         RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f, "the threshold for silence"} },
-	{ "alpha",                    RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f, "the proportion of the mean included to reject smaller peaks; filters very short onsets" } },
-	{ "numFrames_shortOnsetFilter",RangedSettingsSpec<int>  { { 1,  64,  1,   1 },    5, "the number of frames used to compute the threshold; size of short-onset filter"} },
-	{ "weight_hfc",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
-	{ "weight_complex",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.1 } },
-	{ "weight_complexPhase",      RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
-	{ "weight_flux",              RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
-	{ "weight_melFlux",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } },
-	{ "weight_rms",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0 } }
+	{ "silenceThreshold",         RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f,
+	    "the threshold for silence"} },
+	{ "alpha",                    RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f,
+	    "the proportion of the mean included to reject smaller peaks; filters very short onsets" } },
+	{ "numFrames_shortOnsetFilter",RangedSettingsSpec<int>  { { 1,  64,  1,   1 },    5,
+	    "the number of frames used to compute the threshold; size of short-onset filter"} },
+	{ "weight_hfc",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
+	    "the High Frequency Content detection function which accurately detects percussive events" } },
+	{ "weight_complex",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.1,
+	    "the Complex-Domain spectral difference function taking into account changes in magnitude and phase. It emphasizes note onsets either as a result of significant change in energy in the magnitude spectrum, and/or a deviation from the expected phase values in the phase spectrum, caused by a change in pitch." } },
+	{ "weight_complexPhase",      RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
+	    "the simplified Complex-Domain spectral difference function taking into account phase changes, weighted by magnitude. It reacts better on tonal sounds such as bowed string, but tends to over-detect percussive events."} },
+	{ "weight_flux",              RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
+	    "the Spectral Flux detection function which characterizes changes in magnitude spectrum." } },
+	{ "weight_melFlux",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
+	    "the spectral difference function, similar to spectral flux, but using half-rectified energy changes in Mel-frequency bands of the spectrum" } },
+	{ "weight_rms",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
+	    "the difference function, measuring the half-rectified change of the RMS of the magnitude spectrum (i.e., measuring overall energy flux)" } }
 };
 
 const std::map<juce::String, AnySpec> sBicSpecs
