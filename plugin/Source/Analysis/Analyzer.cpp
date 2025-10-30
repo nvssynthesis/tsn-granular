@@ -39,7 +39,7 @@ AnalyzerSettings const &Analyzer::getSettings() const {
 }
 
 float Analyzer::getAnalyzedFileSampleRate() const {
-    return settings.analysis.sampleRate;
+    return static_cast<float>(settings.analysis.sampleRate);
 }
 
 std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, RunLoopStatus& rls, const ShouldExitFn &shouldExit) const {
