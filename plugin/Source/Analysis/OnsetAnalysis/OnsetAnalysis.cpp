@@ -10,25 +10,32 @@
 
 #include "OnsetAnalysis.h"
 
-
 /** TODO:
  consolidate onsetsInSeconds with onsetAnalysis.
  The trouble is that there was a problem figuring out how to use essentia's streaming factory (instead of standard) with the Onsets algorithm. So that function has to reference a different factory.
  */
 
-namespace nvs {
-namespace analysis {
+namespace nvs::analysis {
 
 vecReal makeSweptSine(Real const low, Real const high, size_t const len, Real const sampleRate){
 	std::vector<Real> freqSweep(len, 0.f);
 	for (size_t i = 0; i < len; ++i){
-		Real x = (high - low) * (Real(i)/Real(len)) + low;
+		const Real x = (high - low) * (static_cast<Real>(i) / static_cast<Real>(len)) + low;
 		freqSweep[i] = std::sin(2.f * 3.14159265f * (x / sampleRate));
 	}
 	
 	return freqSweep;
 }
-
+static vecReal getWeights(const AnalyzerSettings &settings) {
+    return {
+        static_cast<float>(settings.onset.weight_hfc),
+        static_cast<float>(settings.onset.weight_complex),
+        static_cast<float>(settings.onset.weight_complexPhase),
+        static_cast<float>(settings.onset.weight_flux),
+        static_cast<float>(settings.onset.weight_melFlux),
+        static_cast<float>(settings.onset.weight_rms)
+    };
+}
 array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 						  streamingFactory const &factory,
 						  AnalyzerSettings const &settings,
@@ -45,7 +52,7 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	const bool needSeparateMelFluxChain = (frameSize != frameSize1024);
 
 
-	vectorInput *inVec = new vectorInput(&waveform);
+	auto *inVec = new vectorInput(&waveform);
 
 	Algorithm* resampler	= factory.create("Resample",
 											 "inputSampleRate", input_sr,
@@ -107,92 +114,106 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 		carToPol1024	= factory.create("CartesianToPolar");
 	}
 
-	// ============ Onset detection algorithms ============
-	Algorithm* onsetDetectionHfc = factory.create("OnsetDetection",
-											"method", "hfc",
-											   "sampleRate", internal_sr);
-	Algorithm* onsetDetectionComplex = factory.create("OnsetDetection",
-											"method", "complex",
-											   "sampleRate", internal_sr);
-	Algorithm* onsetDetectionComplexPhase = factory.create("OnsetDetection",
-											"method", "complex_phase",
-											   "sampleRate", internal_sr);
-	Algorithm* onsetDetectionFlux = factory.create("OnsetDetection",
-											"method", "flux",
-											   "sampleRate", internal_sr);
-	Algorithm* onsetDetectionMelFlux = factory.create("OnsetDetection",
-											"method", "melflux",
-											   "sampleRate", internal_sr);
-	Algorithm* onsetDetectionRms = factory.create("OnsetDetection",
-											"method", "rms",
-											   "sampleRate", internal_sr);
+    // ============ Connect beginning of chain (independent of which onset detectors are used) ============
+    *inVec >> resampler->input("signal");
+    resampler->output("signal") >> frameCutter->input("signal");
+    frameCutter->output("frame") >> windowingToFFT->input("frame");
+    windowingToFFT->output("frame") >> FFT->input("frame");
+    FFT->output("fft") >> carToPol->input("complex");
 
-	vecReal onsetDetVecHFC;
-	vectorOutput *onsetDetsHFC = new vectorOutput(&onsetDetVecHFC);
-	vecReal onsetDetVecComplex;
-	vectorOutput *onsetDetsComplex = new vectorOutput(&onsetDetVecComplex);
-	vecReal onsetDetVecComplexPhase;
-	vectorOutput *onsetDetsComplexPhase = new vectorOutput(&onsetDetVecComplexPhase);
-	vecReal onsetDetVecFlux;
-	vectorOutput *onsetDetsFlux = new vectorOutput(&onsetDetVecFlux);
-	vecReal onsetDetVecMelFlux;
-	vectorOutput *onsetDetsMelFlux = new vectorOutput(&onsetDetVecMelFlux);
-	vecReal onsetDetVecRms;
-	vectorOutput *onsetDetsRms = new vectorOutput(&onsetDetVecRms);
 
-	// ============ Connect main processing chain ============
-	*inVec >> resampler->input("signal");
-	resampler->output("signal") >> frameCutter->input("signal");
-	frameCutter->output("frame") >> windowingToFFT->input("frame");
-	windowingToFFT->output("frame") >> FFT->input("frame");
-	FFT->output("fft") >> carToPol->input("complex");
+	// ============ Connect individual onset detection algorithms ============
+    vecReal onsetDetVecHFC, onsetDetVecComplex, onsetDetVecComplexPhase, onsetDetVecFlux, onsetDetVecMelFlux, onsetDetVecRms;
+    std::vector<std::reference_wrapper<vecReal>> detectionRefs {
+        onsetDetVecHFC,
+        onsetDetVecComplex,
+        onsetDetVecComplexPhase,
+        onsetDetVecFlux,
+        onsetDetVecMelFlux,
+        onsetDetVecRms
+    };
 
-	// Connect main chain to onset detectors (all except MelFlux if separate chain needed)
-	carToPol->output("magnitude") >> onsetDetectionHfc->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionHfc->input("phase");
+    const auto weights = getWeights(settings);
 
-	carToPol->output("magnitude") >> onsetDetectionComplex->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionComplex->input("phase");
+    if (const auto weightSum = std::accumulate(weights.begin(), weights.end(), 0.f);
+        weightSum == 0.f)
+    {
+        jassertfalse;
+        // handle case where user asked for cumulative weight of 0
+    }
 
-	carToPol->output("magnitude") >> onsetDetectionComplexPhase->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionComplexPhase->input("phase");
+    if (0.f < settings.onset.weight_hfc) {
+        Algorithm* onsetDetectionHfc = factory.create("OnsetDetection",
+                                                "method", "hfc",
+                                                   "sampleRate", internal_sr);
+        carToPol->output("magnitude") >> onsetDetectionHfc->input("spectrum");
+        carToPol->output("phase")	>> onsetDetectionHfc->input("phase");
+        auto *onsetDetsHFC = new vectorOutput(&onsetDetVecHFC);
+        onsetDetectionHfc->output("onsetDetection") >> *onsetDetsHFC;
+    }
+    if (0.f < settings.onset.weight_complex) {
+        Algorithm* onsetDetectionComplex = factory.create("OnsetDetection",
+                                                "method", "complex",
+                                                   "sampleRate", internal_sr);
+        carToPol->output("magnitude") >> onsetDetectionComplex->input("spectrum");
+        carToPol->output("phase")	>> onsetDetectionComplex->input("phase");
+        auto *onsetDetsComplex = new vectorOutput(&onsetDetVecComplex);
+        onsetDetectionComplex->output("onsetDetection") >> *onsetDetsComplex;
+    }
+    if (0.f < settings.onset.weight_complexPhase) {
+        Algorithm* onsetDetectionComplexPhase = factory.create("OnsetDetection",
+                                                "method", "complex_phase",
+                                                   "sampleRate", internal_sr);
+        carToPol->output("magnitude") >> onsetDetectionComplexPhase->input("spectrum");
+        carToPol->output("phase")	>> onsetDetectionComplexPhase->input("phase");
+        auto *onsetDetsComplexPhase = new vectorOutput(&onsetDetVecComplexPhase);
+        onsetDetectionComplexPhase->output("onsetDetection") >> *onsetDetsComplexPhase;
+    }
+    if (0.f < settings.onset.weight_flux) {
+        Algorithm* onsetDetectionFlux = factory.create("OnsetDetection",
+                                                "method", "flux",
+                                                   "sampleRate", internal_sr);
+        carToPol->output("magnitude") >> onsetDetectionFlux->input("spectrum");
+        carToPol->output("phase")	>> onsetDetectionFlux->input("phase");
+        auto *onsetDetsFlux = new vectorOutput(&onsetDetVecFlux);
+        onsetDetectionFlux->output("onsetDetection") >> *onsetDetsFlux;
+    }
+    if (0.f < settings.onset.weight_melFlux) {
+        Algorithm* onsetDetectionMelFlux = factory.create("OnsetDetection",
+                                                "method", "melflux",
+                                                   "sampleRate", internal_sr);
+        // ============ Connect MelFlux to appropriate chain ============
+        if (needSeparateMelFluxChain) {
+            // Use separate 1024 chain for MelFlux
+            resampler->output("signal") >> frameCutter1024->input("signal");
+            frameCutter1024->output("frame") >> windowingToFFT1024->input("frame");
+            windowingToFFT1024->output("frame") >> FFT1024->input("frame");
+            FFT1024->output("fft") >> carToPol1024->input("complex");
 
-	carToPol->output("magnitude") >> onsetDetectionFlux->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionFlux->input("phase");
-
-	carToPol->output("magnitude") >> onsetDetectionRms->input("spectrum");
-	carToPol->output("phase")	>> onsetDetectionRms->input("phase");
-
-	// ============ Connect MelFlux to appropriate chain ============
-	if (needSeparateMelFluxChain) {
-		// Use separate 1024 chain for MelFlux
-		resampler->output("signal") >> frameCutter1024->input("signal");
-		frameCutter1024->output("frame") >> windowingToFFT1024->input("frame");
-		windowingToFFT1024->output("frame") >> FFT1024->input("frame");
-		FFT1024->output("fft") >> carToPol1024->input("complex");
-
-		carToPol1024->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
-		carToPol1024->output("phase")	>> onsetDetectionMelFlux->input("phase");
-	} else {
-		// Use main chain for MelFlux (frameSize is already 1024)
-		carToPol->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
-		carToPol->output("phase")	>> onsetDetectionMelFlux->input("phase");
-	}
-
-	// ============ Connect all outputs ============
-	onsetDetectionHfc->output("onsetDetection") >> *onsetDetsHFC;
-	onsetDetectionComplex->output("onsetDetection") >> *onsetDetsComplex;
-	onsetDetectionComplexPhase->output("onsetDetection") >> *onsetDetsComplexPhase;
-	onsetDetectionFlux->output("onsetDetection") >> *onsetDetsFlux;
-	onsetDetectionMelFlux->output("onsetDetection") >> *onsetDetsMelFlux;
-	onsetDetectionRms->output("onsetDetection") >> *onsetDetsRms;
-
-	assert(onsetDetVecHFC.size() == onsetDetVecComplex.size());
+            carToPol1024->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
+            carToPol1024->output("phase")	>> onsetDetectionMelFlux->input("phase");
+        } else {
+            // Use main chain for MelFlux (frameSize is already 1024)
+            carToPol->output("magnitude") >> onsetDetectionMelFlux->input("spectrum");
+            carToPol->output("phase")	>> onsetDetectionMelFlux->input("phase");
+        }
+        auto *onsetDetsMelFlux = new vectorOutput(&onsetDetVecMelFlux);
+        onsetDetectionMelFlux->output("onsetDetection") >> *onsetDetsMelFlux;
+    }
+    if (0.f < settings.onset.weight_rms) {
+        Algorithm* onsetDetectionRms = factory.create("OnsetDetection",
+                                                "method", "rms",
+                                                   "sampleRate", internal_sr);
+        auto *onsetDetsRms = new vectorOutput(&onsetDetVecRms);
+        carToPol->output("magnitude") >> onsetDetectionRms->input("spectrum");
+        carToPol->output("phase")	>> onsetDetectionRms->input("phase");
+        onsetDetectionRms->output("onsetDetection") >> *onsetDetsRms;
+    }
 	
 	Network n(inVec);
 	n.runPrepare();
-	rls.set("Computing onset matrix...");
 	rls.set(0.0);
+	rls.set("Computing onset matrix...");
 	while (n.runStep()){
 		if (shouldExit()) {
 			break;
@@ -200,9 +221,25 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 	}
 	rls.set(1.0);
 	n.clear();
-	
-	TNT::Array2D<essentia::Real> onsetsMatrix(6, static_cast<int>(onsetDetVecHFC.size()));
-	for (size_t j = 0; j < onsetDetVecHFC.size(); ++j){
+
+    // this bit just takes all the detection outputs and makes them constant-size (which should only not happen if some of them had a weight of 0)
+    const auto correctSizedVec = std::ranges::max_element(detectionRefs,
+                                                          [](const vecReal &v0, const vecReal &v1)
+                                                          {
+                                                              return v0.size() < v1.size();
+                                                          });
+    const size_t correctSize = correctSizedVec->get().size();
+
+    jassert (0 < correctSize);
+    for (auto d : detectionRefs) {
+        if (d.get().empty()) {
+            d.get() = vecReal(correctSize, 0.f);
+        }
+        jassert (d.get().size() == correctSize);
+    }
+
+	TNT::Array2D<essentia::Real> onsetsMatrix(6, static_cast<int>(correctSize));
+	for (size_t j = 0; j < correctSize; ++j){
 		onsetsMatrix[0][j] = onsetDetVecHFC[j];
 		onsetsMatrix[1][j] = onsetDetVecComplex[j];
 		onsetsMatrix[2][j] = onsetDetVecComplexPhase[j];
@@ -211,17 +248,6 @@ array2dReal calculateOnsetsMatrix(std::vector<Real> const &waveform,
 		onsetsMatrix[5][j] = onsetDetVecRms[j];
 	}
 	return onsetsMatrix;
-}
-
-vecReal getWeights(const AnalyzerSettings &settings) {
-    return {
-        static_cast<float>(settings.onset.weight_hfc),
-        static_cast<float>(settings.onset.weight_complex),
-        static_cast<float>(settings.onset.weight_complexPhase),
-        static_cast<float>(settings.onset.weight_flux),
-        static_cast<float>(settings.onset.weight_melFlux),
-        static_cast<float>(settings.onset.weight_rms)
-    };
 }
 
 #pragma message("make this work with StreamingFactory")
@@ -266,9 +292,9 @@ vecVecReal featuresForSbic(const vecReal &waveform,
 						   RunLoopStatus& rls,
 						   const ShouldExitFn &shouldExit)
 {
-	vectorInput *inVec = new vectorInput(&waveform);
+	auto *inVec = new vectorInput(&waveform);
 
-	float const sr = settings.analysis.sampleRate;
+    const auto sr = static_cast<float>(settings.analysis.sampleRate);
 	assert (0.0 < sr);
 	int const frameSize = settings.analysis.frameSize;
 	int const hopSize = settings.analysis.hopSize;
@@ -381,7 +407,7 @@ vecVecReal splitWaveIntoEvents(const vecReal&wave, const vecReal&onsetsInSeconds
 	std::copy(onsetsInSeconds.begin() + 1, onsetsInSeconds.end(), endTimes.begin());
 	assert(onsetsInSeconds[1] == endTimes[0]);
 	
-	float const sampleRate = settings.analysis.sampleRate;
+    const auto sampleRate = static_cast<float>(settings.analysis.sampleRate);
 	assert (sampleRate > 22000.f);
 	
 	Real const endOfFile = static_cast<Real>((wave.size() - 1)) / sampleRate;
@@ -396,7 +422,7 @@ vecVecReal splitWaveIntoEvents(const vecReal&wave, const vecReal&onsetsInSeconds
 									   "startTimes", onsetsInSeconds,
 									   "endTimes", endTimes);
 	
-	vectorInput *waveInput = new vectorInput(&wave);
+	auto *waveInput = new vectorInput(&wave);
 	vecVecReal waveEvents;
 	vectorOutputCumulative *waveEventsOutput = new vectorOutputCumulative(&waveEvents);
 	
@@ -412,18 +438,18 @@ vecVecReal splitWaveIntoEvents(const vecReal&wave, const vecReal&onsetsInSeconds
 	}
 	n.clear();
 	
-	assert(waveEvents.size());
+	assert(!waveEvents.empty());
 	
-	for (size_t i = 0; i < waveEvents.size(); ++i){
-		size_t currentLength = waveEvents[i].size();
-		size_t fadeInSamps = std::min(size_t(settings.split.fadeInSamps), currentLength);
+	for (auto & waveEvent : waveEvents){
+		size_t currentLength = waveEvent.size();
+		const size_t fadeInSamps = std::min(static_cast<size_t>(settings.split.fadeInSamps), currentLength);
 		for (size_t j = 0; j < fadeInSamps; ++j){
-			waveEvents[i][j] = waveEvents[i][j] * ((Real)j / (Real)fadeInSamps);
+			waveEvent[j] = waveEvent[j] * (static_cast<Real>(j) / static_cast<Real>(fadeInSamps));
 		}
-		size_t fadeOutSamps = std::min(size_t(settings.split.fadeOutSamps), currentLength);
+		size_t fadeOutSamps = std::min(static_cast<size_t>(settings.split.fadeOutSamps), currentLength);
 		for (size_t j = 0; j < fadeOutSamps; ++j){
-			size_t currentIdx = (currentLength - 1) - j;
-			waveEvents[i][currentIdx] = waveEvents[i][currentIdx] * ((Real)j / (Real)fadeOutSamps);
+			const size_t currentIdx = (currentLength - 1) - j;
+			waveEvent[currentIdx] = waveEvent[currentIdx] * (static_cast<Real>(j) / static_cast<Real>(fadeOutSamps));
 		}
 	}
 	
@@ -435,7 +461,7 @@ void writeWav(const vecReal&wave, const std::string_view name, const streamingFa
 			  RunLoopStatus& rls,
 			  const ShouldExitFn &shouldExit)
 {
-	float const sr = settings.analysis.sampleRate;
+    const auto sr = static_cast<float>(settings.analysis.sampleRate);
 	jassert (sr > 20000.f);
 	Algorithm* writer = factory.create("MonoWriter",
 									   "filename", std::string(name) + ".wav",
@@ -470,5 +496,5 @@ void writeWavs(const vecVecReal &waves, const std::string_view defName, const st
 	}
 }
 
-}	// namespace analysis
-}	// namespace nvs
+} // namespace nvs::analysis
+
