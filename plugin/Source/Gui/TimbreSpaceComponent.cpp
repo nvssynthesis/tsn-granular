@@ -151,6 +151,26 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	auto const w = r_bounds.getWidth();
 	auto const h = r_bounds.getHeight();
     {
+	    if (tsn_mouse._dragging){
+	        // draw orb around mouse
+	        const auto uvz = tsn_mouse._uvz;
+	        Colour c = p3ToColour(biuni(uvz));
+
+	        Point<int> const xy = getMouseXYRelative();//.transformedBy(AffineTransform::verticalFlip(h));
+
+	        const auto r = pointToRect(xy.toFloat(), 1.f);
+	        const float  orbRadius = r.getWidth() * 4.5f;
+	        ColourGradient gradient(c,
+                                  xy.x, xy.y,
+                                  c.withAlpha(0.f),
+                                  xy.x, xy.y + orbRadius,
+                                  true);
+	        g.setGradientFill(gradient);
+	        g.fillEllipse(xy.x - orbRadius, xy.y - orbRadius, orbRadius * 2, orbRadius * 2);
+	    }
+    }
+    g.addTransform(AffineTransform::verticalFlip(h));
+    {
         auto &timbreSpace = _proc->getTimbreSpace();
         auto const &timbres5D = timbreSpace.getTimbreSpace();
 	    if (timbres5D.empty()) {
@@ -207,23 +227,6 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			}();
 			g.setColour(juce::Colours::whitesmoke.withAlpha(norm));
 			g.drawLine(l, 1.f);
-		}
-	}
-	{
-		if (tsn_mouse._dragging){
-			// draw orb around mouse
-			const auto uvz = tsn_mouse._uvz;
-			Colour c = p3ToColour(biuni(uvz));
-			Point<int> const xy = getMouseXYRelative();
-			const auto r = pointToRect(xy.toFloat(), 1.f);
-			const float  orbRadius = r.getWidth() * 4.5f;
-			ColourGradient gradient(c,
-								  xy.x, xy.y,
-								  c.withAlpha(0.f),
-								  xy.x, xy.y + orbRadius,
-								  true);
-			g.setGradientFill(gradient);
-			g.fillEllipse(xy.x - orbRadius, xy.y - orbRadius, orbRadius * 2, orbRadius * 2);
 		}
 	}
 	// draw navigator
@@ -298,6 +301,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 
 void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	tsn_mouse._dragging = true;
+    mousePos = mousePos.transformedBy(AffineTransform::verticalFlip(static_cast<float>(getHeight())));
 	const auto p2D_norm =  jucePointToTimbre2DPoint(normalizePosition_neg1_pos1(mousePos));
 	auto &apvts = _proc->getAPVTS();
 	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
