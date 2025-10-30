@@ -389,7 +389,13 @@ void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
     if (_timbres5D_pending.empty()) {
         return;
     }
-    _delaunator_pending = std::make_unique<delaunator::Delaunator>(make2dCoordinates(_timbres5D_pending));
+    const auto coords2D = make2dCoordinates(_timbres5D_pending);
+    try {
+        _delaunator_pending = std::make_unique<delaunator::Delaunator>(coords2D);
+    }
+    catch (...) {
+        return;
+    }
     _pendingUpdate.store(true, std::memory_order_release);
 }
 void TimbreSpace::TimbreDataManager::swapIfPending(const bool verbose) {
