@@ -14,22 +14,22 @@
 
 namespace nvs::analysis {
 
-class ThreadedAnalyzer final :	public juce::Thread
-                                  ,							    public juce::ChangeBroadcaster
+class ThreadedAnalyzer final :	public Thread
+,							    public ChangeBroadcaster
 {
 public:
     //===============================================================================
     struct OnsetAnalysisResult {
         vecReal onsets;
 
-        juce::String audioHash {};
-        juce::String audioFileAbsPath {};
+        String audioHash {};
+        String audioFileAbsPath {};
     };
     struct TimbreAnalysisResult {
         std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements;
 
-        juce::String audioHash {};
-        juce::String audioFileAbsPath {};
+        String audioHash {};
+        String audioFileAbsPath {};
     };
     //===============================================================================
     ThreadedAnalyzer();
@@ -41,12 +41,19 @@ public:
     void run() override;
     void stopAnalysis() { signalThreadShouldExit(); }
     //===============================================================================
+    bool onsetsReady() const {
+        return _onsetAnalysisResult != nullptr;
+    }
+    bool timbreAnalysisReady() const {
+        return _timbreAnalysisResult.has_value();
+    }
+    //===============================================================================
     std::shared_ptr<OnsetAnalysisResult> shareOnsetAnalysis();
     std::optional<TimbreAnalysisResult> stealTimbreSpaceRepresentation();
     //===============================================================================
     Analyzer &getAnalyzer() { return _analyzer; }
     RunLoopStatus &getStatus() noexcept { return _rls; }
-    juce::String getSettingsHash() const noexcept { return _analyzer.getSettingsHash(); }
+    String getSettingsHash() const noexcept { return _analyzer.getSettingsHash(); }
     //===============================================================================
 private:
     Analyzer _analyzer;
@@ -54,7 +61,7 @@ private:
     std::shared_ptr<OnsetAnalysisResult> _onsetAnalysisResult;
     std::optional<TimbreAnalysisResult> _timbreAnalysisResult;
 
-    juce::String _audioFileAbsPath {};
+    String _audioFileAbsPath {};
 
     RunLoopStatus _rls;
 };
