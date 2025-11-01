@@ -347,7 +347,7 @@ void TimbreSpace::signalSaveAnalysisOption() const {
 	sendActionMessage("saveAnalysis"); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
 }
 void TimbreSpace::signalTimbreSpaceUpdated() const {
-	sendActionMessage("reportAvailability");	// who needs it? TsnGranularPluginEditor and TsnGranularAudioProcessor
+	sendActionMessage("reportAvailability");	// who needs it? TsnGranularPluginEditor and TsnGranularSynthesizer
 }
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
 	if (&treeWhichHasBeenChanged == &_treeManager._timbreSpaceTree){
@@ -363,19 +363,34 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but
 	// what if the rest of this func fails? do we want a cleared tree at that point?
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+	    // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
+	    // ========================================ONSETS========================================
+	    const auto onsetsResult = a->shareOnsetAnalysis();
+	    if (!onsetsResult) {
+            DBG("Onsets somehow null; returning\n");
+            return;
+        }
+	    auto const &onsets = onsetsResult->onsets;
+        if (onsets.empty()) {
+            DBG("Onsets have 0 length");
+            return;
+        }
+
+	    // ===================================TIMBRE ANALYSIS====================================
 		const auto analysisResult = a->stealTimbreSpaceRepresentation();
 		if (!analysisResult.has_value()){
-			fmt::print("No analysis available");
+			DBG("No analysis available\n");
 			return;
 		}
-		auto const &onsets = analysisResult.value().onsets;
 		auto const &tspace = analysisResult.value().timbreMeasurements;
-		auto const audioHash = analysisResult.value().audioHash;
-		_audioFileAbsPath = analysisResult.value().audioFileAbsPath;
-		if (onsets.empty()) {
-			fmt::print("Onsets have 0 length");
-			return;
-		}
+
+	    const String audioHash = onsetsResult->audioHash;
+	    const String absFilePath = onsetsResult->audioFileAbsPath;
+
+	    if (audioHash != analysisResult.value().audioHash || absFilePath != analysisResult.value().audioFileAbsPath) {
+	        DBG("Discrepancy between onsets and timbre analysis\n");
+	    }
+		_audioFileAbsPath = absFilePath;
 		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath));
 
 	    setSavePending(true);
