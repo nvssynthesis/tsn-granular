@@ -20,7 +20,7 @@
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
 */
 
-struct ProgressIndicator	:	public juce::Component
+struct ProgressIndicator final :	public juce::Component
 {
 	void paint(juce::Graphics &g) override;
 	void resized() override;
@@ -29,7 +29,7 @@ struct ProgressIndicator	:	public juce::Component
 	double progress {0.0};
 };
 
-class TimbreSpaceComponent	:	public juce::Component
+class TimbreSpaceComponent final :	public juce::Component
 , 								public juce::ChangeListener
 , 								public juce::Thread::Listener
 ,								private juce::ActionListener
@@ -56,8 +56,6 @@ public:
 	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 	//==========================================================================================
 
-	void add5DPoint(Timbre2DPoint p2D, Timbre3DPoint p3D);
-	void clear();
 	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
 	
 	void setNavigatorPoint(const Timbre2DPoint& p);

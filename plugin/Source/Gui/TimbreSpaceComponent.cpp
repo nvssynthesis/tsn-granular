@@ -244,7 +244,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
             if (points.size() >= 2) {
                 // Draw smooth Catmull-Rom curve segments directly
                 int segmentIndex = 0;
-                const int totalSegments = (points.size() - 1) * 10;  // 10 subdivisions per point pair
+                const size_t totalSegments = (points.size() - 1) * 10;  // 10 subdivisions per point pair
 
                 for (size_t i = 0; i < points.size() - 1; ++i) {
                     auto p0 = (i > 0) ? points[i - 1] : points[i];
@@ -361,17 +361,17 @@ void ProgressIndicator::paint(juce::Graphics &g) {
 	g.fillRect(progressBar);
 	
 	g.setColour(juce::Colours::whitesmoke);
-	g.setFont(juce::Font("Courier New", 15.f, juce::Font::FontStyleFlags::plain));
+	g.setFont(juce::FontOptions("Courier New", 15.f, juce::Font::FontStyleFlags::plain));
 	g.drawText(message, b, juce::Justification::centred);
 }
 void ProgressIndicator::resized() {}
 
 void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* source) {
-	if (auto *a = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
+	if (auto *rls = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
 		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
 		addAndMakeVisible(progressIndicator);
-		progressIndicator.progress = a->getProgress();
-		progressIndicator.message = a->getMessage();
+		progressIndicator.progress = rls->getProgress();
+		progressIndicator.message = rls->getMessage();
 		std::cout << "PROGRESS: " << progressIndicator.progress << '\n';
 		progressIndicator.repaint();
 	}
