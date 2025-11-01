@@ -69,7 +69,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	
 	auto &ts = TSNaudioProcessor.getTimbreSpace();
 	ts.addActionListener(this); // tell me to paint onsets
-	for (auto *child : getChildren()){
+
+    for (auto *child : getChildren()){
 		child->setLookAndFeel(&laf);
 	}
 
@@ -278,7 +279,7 @@ void TsnGranularAudioProcessorEditor::resized()
 }
 
 void TsnGranularAudioProcessorEditor::actionListenerCallback(juce::String const &message) {
-	if (message.compare("reportAvailability") == 0){
+	if (message == "reportAvailability"){
 		paintOnsetMarkers();
 	}
 }
