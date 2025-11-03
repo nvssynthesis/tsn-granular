@@ -17,7 +17,6 @@
 namespace nvs::gran {
 class TSNGranularSynthesizer final
 :	public GranularSynthesizer
-,   private juce::ActionListener
 {
 public:
     using WeightedIdx = nvs::util::WeightedIdx;
@@ -31,7 +30,6 @@ public:
     TimbreSpace &getTimbreSpace() {
         return _timbreSpace;
     }
-    void actionListenerCallback(juce::String const &message) override;
     void setCurrentPlaybackSampleRate(double newSampleRate) override;
     void processBlock(juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi) override;
 private:

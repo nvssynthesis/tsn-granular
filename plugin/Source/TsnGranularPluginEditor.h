@@ -6,15 +6,10 @@
 #include "Gui/LAF.h"
 
 //==============================================================================
-/** TODO:
-	-slider below waveform view to select broad position
-		-needs to be 'locking' to points eventually
-*/
 
-class TsnGranularAudioProcessorEditor  : 	public juce::AudioProcessorEditor
-,											public GranularEditorCommon
-,											private juce::ActionListener
-,                                           private juce::Timer
+class TsnGranularAudioProcessorEditor final : 	public juce::AudioProcessorEditor
+,											    public GranularEditorCommon
+,                                               private juce::Timer
 
 {
 public:
@@ -32,13 +27,11 @@ public:
 	ProgressIndicator &getProgressIndicator() {
 		return timbreSpaceComponent.getProgressIndicator();
 	}
-protected:
 private:
 	nvs::gui::LAF laf;
 	TimbreSpaceComponent timbreSpaceComponent;
 	//===============================================================================
 	void drawBackground();
-	void paintOnsetMarkers();
 	//===============================================================================
 	juce::Image  backgroundImage;
 	bool backgroundNeedsUpdate;
@@ -56,8 +49,6 @@ private:
 	void popupSettings(bool native);
 	juce::Array<juce::Component::SafePointer<juce::Component>> windows;
 	void closeAllWindows();
-	//=================================================================
-	void actionListenerCallback(juce::String const &message) override;
 	//=================================================================
 	TSNGranularAudioProcessor& TSNaudioProcessor;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TsnGranularAudioProcessorEditor)

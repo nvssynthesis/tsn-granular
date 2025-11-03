@@ -26,6 +26,8 @@ public:
 	void setStateInformation (const void* data, int sizeInBytes) override;
 	void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     //==============================================================================
+    void changeListenerCallback (juce::ChangeBroadcaster *source) override;
+    //==============================================================================
     // SlicerGranularAudioProcessor
 	void loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	void askForAnalysis();

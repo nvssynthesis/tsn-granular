@@ -43,31 +43,15 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     addSound(new GranularSound);
 
     apvts.state.addListener(&_timbreSpace);
-    _timbreSpace.addActionListener(this);
 
     _navigator.setNavigationPeriod(5.0);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {
     _synth_shared_state._apvts.state.removeListener(&_timbreSpace);
-    _timbreSpace.removeActionListener(this);
 }
 //==============================================================================
-// void TSNGranularSynthesizer::parameterChanged(const String &parameterID, float newValue) {
-//     if (parameterID == "navigator_type") {
-//         const auto strategy = static_cast<nvs::timbrespace::NavigationType_e>(newValue);
-//         _navigator.setNavigationStrategy(strategy);
-//     }
-// }
-void TSNGranularSynthesizer::actionListenerCallback(juce::String const &message) {
-    if (message.compare("reportAvailability") == 0){
-        auto onsetsOpt = _timbreSpace.getOnsets();
-        if (onsetsOpt.has_value() && onsetsOpt->size()){
-            loadOnsets(onsetsOpt.value());
-        }
-    }
-}
 void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
-    auto const numVoices = getNumVoices();
+    constexpr auto numVoices = getNumVoices();
     for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
         if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 

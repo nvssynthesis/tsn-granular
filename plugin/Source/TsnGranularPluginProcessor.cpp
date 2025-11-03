@@ -131,7 +131,23 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 		writeToLog("analyzer onset thread started");
 	}
 }
-
+void TSNGranularAudioProcessor::changeListenerCallback (juce::ChangeBroadcaster *source) {
+    if (source == &_analyzer) {
+        if (_analyzer.onsetsReady()) {
+            DBG("TSNGranularAudioProcessor: onsets not ready, returning\n");
+            return;
+        }
+        if (const auto onsetsResult = _analyzer.shareOnsetAnalysis();
+            onsetsResult->audioHash == sampleManagementGuts.getAudioHash())
+        {
+            _tsnGranularSynth->loadOnsets(onsetsResult->onsets);
+        } else {
+            DBG("TSNGranularAudioProcessor: Hash mismatch between onsets and current sample, returning\n");
+            return;
+        }
+    }
+    SlicerGranularAudioProcessor::changeListenerCallback(source);
+}
 void TSNGranularAudioProcessor::writeEvents(){
 	auto const onsetsOpt = _tsnGranularSynth->getTimbreSpace().getOnsets();
 	if (!onsetsOpt.has_value()){

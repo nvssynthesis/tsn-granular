@@ -9,7 +9,7 @@
 #include "TsnGranularPluginProcessor.h"
 #include "TsnGranularPluginEditor.h"
 #include "Gui/SettingsWindow.h"
-#include "../slicer_granular/Source/algo_util.h"
+#include "Gui/SegmentedWaveformComponent.h"
 #include "Gui/NavigatorPage.h"
 #include "Analysis/RunLoopStatus.h"
 
@@ -25,9 +25,11 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 ,	settingsButton("Settings...")
 ,	TSNaudioProcessor(p)
 {
+    waveformComponent = std::make_unique<SegmentedWaveformComponent>(TSNaudioProcessor);
+
 	setSize (680, 950);
 	setResizable(true, true);
-	
+
 	addAndMakeVisible(grainBusyDisplay);
 	addAndMakeVisible(presetPanel);
 	addAndMakeVisible(askForAnalysisButton);
@@ -51,28 +53,22 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	tabbedPages.moveTab(3, -1);	// fx, which is added in basic TabbedPages constructor (used already in slicer version), should still be last tab
 	
 	addAndMakeVisible(tabbedPages);
-	addAndMakeVisible(waveformAndPositionComponent);
-	waveformAndPositionComponent.hideSlider();
 
-	// audioProcessor.getTsnGranularSynthesizer()->addChangeListener(&(waveformAndPositionComponent.wc));	// to highlight current event
+    jassert (waveformComponent != nullptr);
+	addAndMakeVisible(*waveformComponent);
 
 	addAndMakeVisible(timbreSpaceComponent);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")
-	paintOnsetMarkers();
-	
+
 	auto &a = TSNaudioProcessor.getAnalyzer();
 	a.getStatus().addChangeListener(&timbreSpaceComponent);	// to tell timbre space comp to make progress bar visible
 	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
-	
-	auto &ts = TSNaudioProcessor.getTimbreSpace();
-	ts.addActionListener(this); // tell me to paint onsets
+    a.addChangeListener(waveformComponent.get());
 
-    for (auto *child : getChildren()){
-		child->setLookAndFeel(&laf);
-	}
+    setLookAndFeel(&laf);
 
     startTimerHz(60);
 
@@ -83,9 +79,8 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 {
     stopTimer();
 
-	for (auto *child : getChildren()){
-		child->setLookAndFeel(nullptr);
-	}
+    setLookAndFeel(nullptr);
+
 	closeAllWindows();
 	
 	auto &a = TSNaudioProcessor.getAnalyzer();
@@ -93,8 +88,8 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	a.removeListener(&timbreSpaceComponent);
 	a.removeChangeListener(&timbreSpaceComponent);
 	a.removeChangeListener(this);
-	
-	TSNaudioProcessor.getTimbreSpace().removeActionListener(this);
+    jassert (waveformComponent != nullptr);
+    a.removeChangeListener(waveformComponent.get());
 }
 //==============================================================================
 void TsnGranularAudioProcessorEditor::closeAllWindows()
@@ -125,31 +120,13 @@ void TsnGranularAudioProcessorEditor::popupSettings(const bool native){
 	settingsWindow->setVisible (true);
 }
 
-void TsnGranularAudioProcessorEditor::paintOnsetMarkers()
-{
-    const auto onsetsOpt = TSNaudioProcessor.getTimbreSpace().getOnsets();
-	if (!onsetsOpt.has_value()){
-		audioProcessor.writeToLog("TsnGranularAudioProcessorEditor::paintOnsetMarkers : Onsets had no value; returning\n");
-		return;
-	}
-	
-	auto &wc = waveformAndPositionComponent.wc;
-
-	audioProcessor.writeToLog("Editor: Drawing waveform markers\n");
-
-	wc.removeMarkers(WaveformComponent::MarkerType::Onset);
-	for (const auto onset : onsetsOpt.value()) {
-		wc.addMarker(onset);
-	}
-	wc.repaint();
-}
-
 void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &) {}
 void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::timerCallback() {
     timbreSpaceComponent.repaint();
-    waveformAndPositionComponent.wc.highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
+    jassert (waveformComponent != nullptr);
+    waveformComponent->highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
 }
 
 //==============================================================================
@@ -238,7 +215,7 @@ void TsnGranularAudioProcessorEditor::resized()
 
 	{
 		int buttonWidth = 90;
-		int buttonHeight = 25;
+		const int buttonHeight = 25;
 		askForAnalysisButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		writeWavsButton.setBounds(x, y, buttonWidth, buttonHeight);
@@ -250,11 +227,11 @@ void TsnGranularAudioProcessorEditor::resized()
 		y += buttonHeight;
 //		y += smallPad;
 	}
-	auto const mainParamsRemainingHeightRatio  = 0.37f;
-	auto const waveformCompRemainingHeightRatio = 0.12f;
-	auto const timbreSpaceRemainingHeightRatio = 0.51f;
-	auto const totalRemainingHeightRatiosSummed = mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio;
-	jassert((0.999f <= totalRemainingHeightRatiosSummed) && (totalRemainingHeightRatiosSummed <= 1.001f));
+    constexpr auto mainParamsRemainingHeightRatio  = 0.37f;
+    constexpr auto waveformCompRemainingHeightRatio = 0.12f;
+    constexpr auto timbreSpaceRemainingHeightRatio = 0.51f;
+    constexpr auto totalRemainingHeightRatiosSummed = mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio;
+	jassert(0.999f <= totalRemainingHeightRatiosSummed && (totalRemainingHeightRatiosSummed <= 1.001f));
 	
 	{
 		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.toFloat().getHeight();
@@ -266,9 +243,11 @@ void TsnGranularAudioProcessorEditor::resized()
 		y += tabbedPages.getHeight();
 	}
 	{
+	    jassert (waveformComponent != nullptr);
+
 		auto const waveformComponentHeight = waveformCompRemainingHeightRatio * localBounds.toFloat().getHeight();
-		waveformAndPositionComponent.setBounds(localBounds.getX(), y, localBounds.getWidth(), static_cast<int>(waveformComponentHeight));
-		y += waveformAndPositionComponent.getHeight();
+		waveformComponent->setBounds(localBounds.getX(), y, localBounds.getWidth(), static_cast<int>(waveformComponentHeight));
+		y += waveformComponent->getHeight();
 	}
 	{
 		auto const timbreSpaceComponentHeight = timbreSpaceRemainingHeightRatio * localBounds.toFloat().getHeight();
@@ -278,8 +257,3 @@ void TsnGranularAudioProcessorEditor::resized()
 	}
 }
 
-void TsnGranularAudioProcessorEditor::actionListenerCallback(juce::String const &message) {
-	if (message == "reportAvailability"){
-		paintOnsetMarkers();
-	}
-}
