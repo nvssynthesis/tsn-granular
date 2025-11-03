@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(tsn-granular-root VERSION 0.4.0)
+project(tsn-granular-root VERSION 0.5.0)
 
 # Global options
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(tsn-granular VERSION 0.5.2)
+project(tsn-granular VERSION 0.5.3)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -310,18 +310,41 @@ target_sources(tsn-granular PRIVATE ${SLICER_SOURCES})
 
 # Copy the dependency fetch logic from slicer_granular/CMakeLists.txt
 # (Xoshiro, and any other FetchContent dependencies)
+set(XOSHIRO_DIR "${CMAKE_SOURCE_DIR}/xoshiro-cpp")
+
 if(USE_SYSTEM_LIBRARIES AND DEFINED XOSHIRO_ROOT)
     set(XOSHIRO_INCLUDE_DIR ${XOSHIRO_ROOT})
+    message(STATUS "Using system Xoshiro from: ${XOSHIRO_INCLUDE_DIR}")
 else()
-    FetchContent_Declare(
-            Xoshiro
-            GIT_REPOSITORY https://github.com/Reputeless/Xoshiro-cpp.git
-            GIT_TAG master
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND ""
-    )
-    FetchContent_MakeAvailable(Xoshiro)
-    set(XOSHIRO_INCLUDE_DIR ${xoshiro_SOURCE_DIR})
+    # Check if Xoshiro header exists
+    if(NOT EXISTS "${XOSHIRO_DIR}/XoshiroCpp.hpp")
+        message(STATUS "Xoshiro not found or incomplete, cloning from GitHub...")
+
+        if(EXISTS "${XOSHIRO_DIR}")
+            message(STATUS "Removing incomplete Xoshiro directory...")
+            file(REMOVE_RECURSE "${XOSHIRO_DIR}")
+        endif()
+
+        execute_process(
+                COMMAND git clone --depth 1 https://github.com/Reputeless/Xoshiro-cpp.git "${XOSHIRO_DIR}"
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                RESULT_VARIABLE GIT_CLONE_RESULT
+                OUTPUT_VARIABLE GIT_CLONE_OUTPUT
+                ERROR_VARIABLE GIT_CLONE_ERROR
+        )
+
+        if(NOT GIT_CLONE_RESULT EQUAL 0)
+            message(STATUS "Git clone output: ${GIT_CLONE_OUTPUT}")
+            message(STATUS "Git clone error: ${GIT_CLONE_ERROR}")
+            message(FATAL_ERROR "Failed to clone Xoshiro repository")
+        endif()
+
+        message(STATUS "Xoshiro cloned successfully")
+    else()
+        message(STATUS "Found existing Xoshiro directory: ${XOSHIRO_DIR}")
+    endif()
+
+    set(XOSHIRO_INCLUDE_DIR ${XOSHIRO_DIR})
 endif()
 
 # fmt library
