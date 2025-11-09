@@ -15,7 +15,8 @@
 
 //==============================================================================
 
-class TSNGranularAudioProcessor final :	public SlicerGranularAudioProcessor
+class TSNGranularAudioProcessor final
+:	public SlicerGranularAudioProcessor
 {
 	friend class SlicerGranularAudioProcessor;	// allow base class to access private ctor
 public:
@@ -60,6 +61,5 @@ private:
 	void ensureSettingsStructure();
 	bool loadAnalysisFileFromState();
 	//==============================================================================
-
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TSNGranularAudioProcessor)
 };

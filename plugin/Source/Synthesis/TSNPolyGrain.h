@@ -9,7 +9,7 @@
 */
 
 #pragma once
-#include "Analysis/EssentiaSetup.h"
+#include "Analysis/ThreadedAnalyzer.h"
 #include "../slicer_granular/Source/Synthesis/GranularSynthesis.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 #include "Analysis/Analyzer.h"
@@ -20,25 +20,22 @@
 	-bake in some way to be sure that the currently held onsets match the current span
 */
 
-namespace nvs	{
-namespace gran	{
-class TSNPolyGrain		:		public PolyGrain
+namespace nvs::gran {
+class TSNPolyGrain final :		public PolyGrain
 {
 public:
-	using WeightedIdx = nvs::util::WeightedIdx;
+    using WeightedIdx = util::WeightedIdx;
+    using SharedOnsets = std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult>;
 	
-	TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, GranularVoiceSharedState *const voice_shared_state);
-	virtual ~TSNPolyGrain() = default;
-	void loadOnsets(std::span<float> const normalizedOnsets);
-	
-	//================================================================================================================================================
-	void setWaveEvent(size_t index);
-	void setWaveEvents(std::vector<WeightedIdx> weightedIndices);
-	//================================================================================================================================================
+    TSNPolyGrain(GranularSynthSharedState *synth_shared_state, GranularVoiceSharedState *voice_shared_state);
+    ~TSNPolyGrain() override = default;
+    //================================================================================================================================================
+    void loadOnsets(SharedOnsets onsets);
+    void setWaveEvent(size_t index);
+    void setWaveEvents(const std::vector<WeightedIdx> &weightedIndices);
+    //================================================================================================================================================
 private:
-	std::vector<double> _onsetsNormalized;
+    SharedOnsets _onsets;
 };
 
-}	// namespace gran
-}	// namespace nvs
-
+}   // namespace nvs::gran

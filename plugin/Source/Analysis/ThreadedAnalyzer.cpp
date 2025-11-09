@@ -11,6 +11,7 @@
 #include "Analysis/ThreadedAnalyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetProcessing.h"
 #include "fmt/core.h"
+#include "StringAxiom.h"
 
 namespace nvs::analysis {
 
@@ -35,7 +36,7 @@ auto ThreadedAnalyzer::stealTimbreSpaceRepresentation() -> std::optional<TimbreA
 }
 
 void ThreadedAnalyzer::updateSettings(const juce::ValueTree &settingsTree){
-	jassert( settingsTree.hasType("Settings") );
+	jassert( settingsTree.hasType(nvs::axiom::Settings) );
 
 	if (!_analyzer.updateSettings(settingsTree))
 	{
@@ -76,13 +77,7 @@ void ThreadedAnalyzer::run() {
 		        return {};
 		    }
 
-		    _onsetAnalysisResult = std::make_shared<OnsetAnalysisResult>(
-                OnsetAnalysisResult{
-                    .onsets = onsetOpt.value(),
-                    .audioHash = audioHash,
-                    .audioFileAbsPath = _audioFileAbsPath
-                }
-            );
+		    _onsetAnalysisResult = std::make_shared<OnsetAnalysisResult>(onsetOpt.value(), audioHash, _audioFileAbsPath);
 
 		    auto const sr = _analyzer.getAnalyzedFileSampleRate();
 		    const auto lengthInSeconds = getLengthInSeconds(_inputWave.size(), sr);
@@ -110,13 +105,7 @@ void ThreadedAnalyzer::run() {
 		        return;
 		    }
 
-		    _timbreAnalysisResult.emplace(
-                TimbreAnalysisResult {
-                    .timbreMeasurements = timbreMeasurementsOpt.value(),
-                    .audioHash = audioHash,
-                    .audioFileAbsPath = _audioFileAbsPath
-                }
-            );
+		    _timbreAnalysisResult.emplace(timbreMeasurementsOpt.value(), audioHash, _audioFileAbsPath);
 		    // only NOW do we send change message, and its a single message which should properly cause ALL data to be visualized etc.
 		    sendChangeMessage();
 	    }

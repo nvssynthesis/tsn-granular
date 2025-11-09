@@ -10,10 +10,9 @@
 
 #include "TimbreSpaceComponent.h"
 #include "../TsnGranularPluginProcessor.h"
-#include "../slicer_granular/Source/Params/params.h"
 #include "Analysis/ThreadedAnalyzer.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../Navigation/Navigator.h"
+#include "StringAxiom.h"
 
 //============================================TimbreSpaceComponent=============================================
 
@@ -86,8 +85,8 @@ juce::Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
 	return juce::Colour(h, s, v, alpha);
 }
 void setLfoOffsetParamsFromPoint(const juce::AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
-	apvts.getParameterAsValue("nav_tendency_x") = p2D(0);
-	apvts.getParameterAsValue("nav_tendency_y") = p2D(1);
+	apvts.getParameterAsValue(nvs::axiom::nav_tendency_x) = p2D(0);
+	apvts.getParameterAsValue(nvs::axiom::nav_tendency_y) = p2D(1);
 }
 
 template<typename T>
@@ -381,7 +380,7 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 	}
 }
 void TimbreSpaceComponent::actionListenerCallback (const juce::String &message) {
-	if (message == "saveAnalysis") {
+	if (message == nvs::axiom::saveAnalysis) {
 		showAnalysisSaveDialog();
 	}
 }
@@ -446,8 +445,8 @@ ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 
 void TimbreSpaceComponent::saveAnalysis(){
 	auto analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-		.getChildFile("tsn_granular")
-		.getChildFile("Analyses");
+		.getChildFile(nvs::axiom::tsn_granular)
+		.getChildFile(nvs::axiom::Analyses);
 
     if (const auto result = analysesDir.createDirectory();
         result.failed())

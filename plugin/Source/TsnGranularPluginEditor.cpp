@@ -68,6 +68,11 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
     a.addChangeListener(waveformComponent.get());
 
+    if (const auto x = dynamic_cast<juce::ActionListener*>(waveformComponent.get())) {
+        auto &ts = TSNaudioProcessor.getTimbreSpace();
+        ts.addActionListener(x);
+    }
+
     setLookAndFeel(&laf);
 
     startTimerHz(60);

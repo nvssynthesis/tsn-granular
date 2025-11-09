@@ -15,6 +15,7 @@
 #include <random>
 #include <ranges>
 #include "fmt/core.h"
+#include "StringAxiom.h"
 
 namespace nvs::timbrespace {
 
@@ -22,27 +23,23 @@ namespace nvs::timbrespace {
 //===============================================TimbreSpace=================================================
 
 TimbreSpace::TimbreSpace(juce::AudioProcessorValueTreeState &apvts)
-    :   _treeManager(apvts)
-{
-	_treeManager._timbreSpaceTree.addListener(this);
-    _treeManager._apvts.state.addListener(this);
-}
-TimbreSpace::~TimbreSpace() {
-	_treeManager._timbreSpaceTree.removeListener(this);
-    _treeManager._apvts.state.removeListener(this);
-}
+    :   _treeManager(apvts, *this)
+{}
+TimbreSpace::~TimbreSpace() {}
 
-void TimbreSpace::add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D){
+void TimbreSpace::setPoints(std::vector<Timbre5DPoint> const &points){
 	using namespace nvs::util;
-	assert(inRangeM1_1(p2D) && inRangeM1_1(p3D));
-	_timbreDataManager.add5DPoint( to5D(p2D, p3D ));
+    assert(std::ranges::all_of(points,
+        [](const auto& p) {
+            return p.cwiseAbs().maxCoeff() <= 1.0;
+        }));
+	_timbreDataManager.setPoints(points);
 }
 void TimbreSpace::clearPoints() {
 	_timbreDataManager.clear();
 }
-
-void TimbreSpace::TimbreDataManager::add5DPoint(const Timbre5DPoint &newPoint) {
-    _timbres5D_pending.push_back(newPoint);
+void TimbreSpace::TimbreDataManager::setPoints(const std::vector<Timbre5DPoint> &points) {
+    _timbres5D_pending = points;
 }
 void TimbreSpace::TimbreDataManager::clear() {
     _timbres5D_pending.clear();
@@ -100,37 +97,34 @@ void TimbreSpace::computeExistingPointsFromTarget()
 	
 	_currentPointIndices = weightedIndices;
 }
-
-std::optional<std::vector<float>> TimbreSpace::getOnsets() const {
-    if (const juce::var onsetsVar = _treeManager.getOnsetsVar();
-        onsetsVar.isArray())
-    {
-		juce::Array<juce::var>* arr = onsetsVar.getArray();
-		std::vector<float> out;
-		out.reserve(arr->size());
-		for (auto onset : *arr){
-			out.push_back(onset);
-		}
-		return out;
-	}
-	return std::nullopt;
+String TimbreSpace::getAudioAbsolutePath() const {
+    if (_onsetAnalysis == nullptr) {
+        return "";
+    }
+    return _onsetAnalysis->audioFileAbsPath;
 }
-bool TimbreSpace::hasValidAnalysisFor(juce::String const &audioHash) const {
-	return _audioFileHash.compare(audioHash) == 0;
+auto TimbreSpace::shareOnsets() const -> std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult>  {
+    return _onsetAnalysis;
+}
+bool TimbreSpace::hasValidAnalysisFor(juce::String const &waveformHash) const {
+    if (_onsetAnalysis == nullptr) {
+        return false;
+    }
+	return _onsetAnalysis->waveformHash == waveformHash;
 }
 
 static const std::map<juce::String, size_t> pidToDimensionMap {
-    {"x_axis", 0},
-    {"y_axis", 1},
-    {"z_axis", 2},
-    {"u_axis", 3},
-    {"v_axis", 4},
+    {nvs::axiom::x_axis, 0},
+    {nvs::axiom::y_axis, 1},
+    {nvs::axiom::z_axis, 2},
+    {nvs::axiom::u_axis, 3},
+    {nvs::axiom::v_axis, 4},
 };
 
 void TimbreSpace::updateDimensionwiseFeature(const juce::String& paramID) {
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
-            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Features>(_treeManager._apvts.getRawParameterValue(s)->load());
+            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Features>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
             fullSelfUpdate(true);
             return;
         }
@@ -138,28 +132,28 @@ void TimbreSpace::updateDimensionwiseFeature(const juce::String& paramID) {
 }
 void TimbreSpace::updateAllDimensionwiseFeatures(){
     for (auto const &[s, i] : pidToDimensionMap) {
-        const auto val = _treeManager._apvts.getRawParameterValue(s)->load();
+        const auto val = _treeManager.getAPVTS().getRawParameterValue(s)->load();
         const auto feat = static_cast<nvs::analysis::Features>(val);
         settings.dimensionwiseFeatures[i] = feat;
     }
 }
 void TimbreSpace::updateStatistic() {
-    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager._apvts.getRawParameterValue("statistic")->load());
+    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
 }
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
-    if (alteredTree.hasType("PARAM") && property == juce::Identifier("value")) {
+    if (alteredTree.hasType(nvs::axiom::PARAM) && property == juce::Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
-        if (paramID == "histogram_equalization") {
+        if (paramID == nvs::axiom::histogram_equalization) {
             DBG("Histogram equalization changed to: " + juce::String(newValue));
-            settings.histogramEqualization = *_treeManager._apvts.getRawParameterValue("histogram_equalization");
+            settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
             std::cout << "tree changed! redrawing points...\n";
 
             fullSelfUpdate(true);
             return;
         }
-        if (paramID == "statistic") {
+        if (paramID == nvs::axiom::statistic) {
             updateStatistic();
             std::cout << "tree changed! redrawing points...\n";
             fullSelfUpdate(true);
@@ -170,41 +164,49 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
 }
 
 void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
-	tree.setProperty("mean", stats.mean, nullptr);
-	tree.setProperty("median", stats.median, nullptr);
-	tree.setProperty("variance", stats.variance, nullptr);
-	tree.setProperty("skewness", stats.skewness, nullptr);
-	tree.setProperty("kurtosis", stats.kurtosis, nullptr);
+	tree.setProperty(axiom::mean, stats.mean, nullptr);
+	tree.setProperty(axiom::median, stats.median, nullptr);
+	tree.setProperty(axiom::variance, stats.variance, nullptr);
+	tree.setProperty(axiom::skewness, stats.skewness, nullptr);
+	tree.setProperty(axiom::kurtosis, stats.kurtosis, nullptr);
 }
 analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueTree const &vt){
 	return {
-		.mean = vt.getProperty("mean"),
-		.median = vt.getProperty("median"),
-		.variance = vt.getProperty("variance"),
-		.skewness = vt.getProperty("skewness"),
-		.kurtosis = vt.getProperty("kurtosis")
+		.mean = vt.getProperty(axiom::mean),
+		.median = vt.getProperty(axiom::median),
+		.variance = vt.getProperty(axiom::variance),
+		.skewness = vt.getProperty(axiom::skewness),
+		.kurtosis = vt.getProperty(axiom::kurtosis)
 	};
 }
 void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
-	_treeManager._timbreSpaceTree = timbreSpaceTree;
-	auto const mdTree = _treeManager._timbreSpaceTree.getChildWithName("Metadata");
-	_audioFileHash = mdTree.getProperty("AudioFileHash", _audioFileHash).toString();
-	_audioFileAbsPath = mdTree.getProperty("AudioFilePath (absolute)", _audioFileAbsPath).toString();
+	_treeManager.setTimbreSpaceTree(timbreSpaceTree);
+    const auto onsetsVar = timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
+    if (const Array<var> *onsetsArray = onsetsVar.getArray()) {
 
+        const juce::ValueTree mdTree = timbreSpaceTree.getChildWithName(axiom::Metadata);
+        const auto waveformHash = mdTree.getProperty(axiom::audioHash).toString();
+        if (const auto path = mdTree.getProperty(axiom::AudioFilePathAbsolute).toString();
+            !(waveformHash.isEmpty() || path.isEmpty()))
+        {
+            std::vector<float> onsets(onsetsArray->begin(), onsetsArray->end());
+            _onsetAnalysis = std::make_shared<analysis::ThreadedAnalyzer::OnsetAnalysisResult>(onsets, waveformHash, path);
+        }
+    }
 	fullSelfUpdate(true);
 }
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
-									const juce::String& audioFileHash,
+									const juce::String& waveformHash,
 									const juce::String& audioAbsPath){
-	ValueTree vt("TimbreAnalysis");
+	ValueTree vt(axiom::TimbreAnalysis);
 	{
-		ValueTree md("Metadata");
-		md.setProperty("Version", ProjectInfo::versionString, nullptr);
-		md.setProperty("AudioFileHash", audioFileHash, nullptr);
-		md.setProperty("AudioFilePath (absolute)", audioAbsPath, nullptr);
-		md.setProperty("CreationTime", {}, nullptr);
-		md.setProperty("AnalysisSettings", {}, nullptr);
+		ValueTree md(axiom::Metadata);
+		md.setProperty(axiom::Version, ProjectInfo::versionString, nullptr);
+		md.setProperty(axiom::audioHash, waveformHash, nullptr);
+		md.setProperty(axiom::AudioFilePathAbsolute, audioAbsPath, nullptr);
+		md.setProperty(axiom::CreationTime, {}, nullptr);
+		md.setProperty(axiom::AnalysisSettings, {}, nullptr);
 		vt.addChild(md, 0, nullptr);
 	}
 	{
@@ -212,7 +214,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		for (auto const &o : normalizedOnsets) {
 			onsetArray.append(o);
 		}
-		vt.setProperty("NormalizedOnsets", onsetArray, nullptr);
+		vt.setProperty(axiom::NormalizedOnsets, onsetArray, nullptr);
 	}
 	{
 		ValueTree timbreMeasurements("TimbreMeasurements");
@@ -220,9 +222,9 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
 			const auto &[bfccs, periodicity, loudness, f0] = fullTimbreSpace[frameIdx];
 			
-			ValueTree frameTree("Frame");
+			ValueTree frameTree(axiom::Frame);
 			
-			ValueTree bfccsTree("BFCCs");
+			ValueTree bfccsTree(axiom::BFCCs);
 			for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
 				ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
 				addEventwiseStatistics(bfccTree, bfccs[bfccIdx]);
@@ -231,15 +233,15 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
-			ValueTree periodicityTree("Periodicity");
+			ValueTree periodicityTree(axiom::Periodicity);
 			addEventwiseStatistics(periodicityTree, periodicity);
 			frameTree.addChild(periodicityTree, -1, nullptr);
 			
-			ValueTree loudnessTree("Loudness");
+			ValueTree loudnessTree(axiom::Loudness);
 			addEventwiseStatistics(loudnessTree, loudness);
 			frameTree.addChild(loudnessTree, -1, nullptr);
 			
-			ValueTree f0Tree("F0");
+			ValueTree f0Tree(axiom::F0);
 			addEventwiseStatistics(f0Tree, f0);
 			frameTree.addChild(f0Tree, -1, nullptr);
 			
@@ -255,7 +257,7 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 {
 	std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> timbreSpace;
 	
-	auto timbreMeasurements = vt.getChildWithName("TimbreMeasurements");
+	auto timbreMeasurements = vt.getChildWithName(axiom::TimbreMeasurements);
 	if (!timbreMeasurements.isValid())
 		return timbreSpace;
 	
@@ -268,7 +270,7 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 		nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF> frame;
 		
 		// Extract BFCCs
-		if (auto bfccsTree = frameTree.getChildWithName("BFCCs");
+		if (auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
 		    bfccsTree.isValid())
 		{
 			frame.bfccs.reserve(bfccsTree.getNumChildren());
@@ -281,17 +283,17 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 		}
 		
 		// Extract single-value features
-        if (auto periodicityTree = frameTree.getChildWithName("Periodicity");
+        if (auto periodicityTree = frameTree.getChildWithName(axiom::Periodicity);
             periodicityTree.isValid())
         {
             frame.periodicity = toEventwiseStatistics(periodicityTree);
         }
-        if (auto loudnessTree = frameTree.getChildWithName("Loudness");
+        if (auto loudnessTree = frameTree.getChildWithName(axiom::Loudness);
             loudnessTree.isValid())
         {
             frame.loudness = toEventwiseStatistics(loudnessTree);
         }
-        if (auto f0Tree = frameTree.getChildWithName("F0");
+        if (auto f0Tree = frameTree.getChildWithName(axiom::F0);
             f0Tree.isValid())
         {
             frame.f0 = toEventwiseStatistics(f0Tree);
@@ -307,7 +309,7 @@ std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 {
 	std::vector<float> normalizedOnsets;
 
-	const auto onsetArray = vt.getProperty("NormalizedOnsets");
+	const auto onsetArray = vt.getProperty(axiom::NormalizedOnsets);
 	if (!onsetArray.isArray())
 		return normalizedOnsets;
 	
@@ -325,14 +327,30 @@ std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 	return normalizedOnsets;
 }
 
+TimbreSpace::TreeManager::TreeManager(AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
+: _apvts(apvts), _timbreSpace(timbreSpace) {
+    _timbreSpaceTree.addListener(&_timbreSpace);
+    _apvts.state.addListener(&_timbreSpace);
+}
+TimbreSpace::TreeManager::~TreeManager() {
+    _timbreSpaceTree.removeListener(&_timbreSpace);
+    _apvts.state.removeListener(&_timbreSpace);
+}
+
 juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
-	return _timbreSpaceTree.getProperty("NormalizedOnsets");
+	return _timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
 }
 juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
 	return _timbreSpaceTree.getChildWithName("TimbreMeasurements");
 }
+const juce::ValueTree &TimbreSpace::TreeManager::getTimbreSpaceTree() const {
+    return _timbreSpaceTree;
+}
+void TimbreSpace::TreeManager::setTimbreSpaceTree(ValueTree timbreSpaceTree) {
+    _timbreSpaceTree = timbreSpaceTree;
+}
 int TimbreSpace::TreeManager::getNumFrames() const {
-	const auto& onsets = _timbreSpaceTree.getProperty("NormalizedOnsets");
+	const auto& onsets = _timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
 	jassert(onsets.isArray());
 	int const numFrames = onsets.size();
 #ifdef DBG
@@ -344,15 +362,15 @@ int TimbreSpace::TreeManager::getNumFrames() const {
 }
 
 void TimbreSpace::signalSaveAnalysisOption() const {
-	sendActionMessage("saveAnalysis"); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
+	sendActionMessage(axiom::saveAnalysis); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
 }
-void TimbreSpace::signalTimbreSpaceUpdated() const {
-	sendActionMessage("reportAvailability");	// who needs it? TsnGranularPluginEditor and TsnGranularSynthesizer
+void TimbreSpace::signalOnsetsAvailable() const {
+	sendActionMessage(axiom::onsetsAvailable);	// who needs it? SegmentedWaveformComponent, TsnGranularPluginProcessor (for calling synth->loadOnsets())
 }
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
-	if (&treeWhichHasBeenChanged == &_treeManager._timbreSpaceTree){
-		signalTimbreSpaceUpdated();
-	} else if (&treeWhichHasBeenChanged == &_treeManager._apvts.state) {
+	if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceTree()){
+		signalOnsetsAvailable();
+	} else if (&treeWhichHasBeenChanged == &_treeManager.getAPVTS().state) {
         // if we get here, the plugin state has been loaded. we need to deal with setting dimensionwise features from state.
         updateAllDimensionwiseFeatures();
         updateStatistic();
@@ -384,18 +402,17 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 		}
 		auto const &tspace = analysisResult.value().timbreMeasurements;
 
-	    const String audioHash = onsetsResult->audioHash;
+	    const String waveformHash = onsetsResult->waveformHash;
 	    const String absFilePath = onsetsResult->audioFileAbsPath;
 
-	    if (audioHash != analysisResult.value().audioHash || absFilePath != analysisResult.value().audioFileAbsPath) {
+	    if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
 	        DBG("Discrepancy between onsets and timbre analysis\n");
 	    }
-		_audioFileAbsPath = absFilePath;
-		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, audioHash, _audioFileAbsPath));
+		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
 
 	    setSavePending(true);
         signalSaveAnalysisOption();
-		signalTimbreSpaceUpdated();
+		signalOnsetsAvailable();
 	}
 }
 void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
@@ -442,11 +459,11 @@ extractFeatures(const juce::ValueTree &frameTree,
 	// Get the statistic property name
 	juce::String statPropName;
 	switch (statisticToUse) {
-		case Statistic::Mean:     statPropName = "mean";     break;
-		case Statistic::Median:   statPropName = "median";   break;
-		case Statistic::Variance: statPropName = "variance"; break;
-		case Statistic::Skewness: statPropName = "skewness"; break;
-		case Statistic::Kurtosis: statPropName = "kurtosis"; break;
+		case Statistic::Mean:     statPropName = axiom::mean;     break;
+		case Statistic::Median:   statPropName = axiom::median;   break;
+		case Statistic::Variance: statPropName = axiom::variance; break;
+		case Statistic::Skewness: statPropName = axiom::skewness; break;
+		case Statistic::Kurtosis: statPropName = axiom::kurtosis; break;
 		default: jassertfalse;
 	}
 	
@@ -456,7 +473,7 @@ extractFeatures(const juce::ValueTree &frameTree,
 		
 		if (0 <= idx && idx < NumBFCC) {
 			// It's a BFCC - get from BFCCs array
-			const auto bfccsTree = frameTree.getChildWithName("BFCCs");
+			const auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
 			if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
 				auto bfccTree = bfccsTree.getChild(idx);
 				value = bfccTree.getProperty(statPropName, 0.0f);
@@ -466,9 +483,9 @@ extractFeatures(const juce::ValueTree &frameTree,
 			// It's one of the scalars
 			juce::String childName;
 			switch (f) {
-				case Features::Periodicity: childName = "Periodicity"; break;
-				case Features::Loudness:    childName = "Loudness";    break;
-				case Features::f0:          childName = "F0";          break;
+				case Features::Periodicity: childName = axiom::Periodicity; break;
+				case Features::Loudness:    childName = axiom::Loudness;    break;
+				case Features::f0:          childName = axiom::F0;          break;
 				default: jassertfalse;
 			}
 
@@ -490,7 +507,7 @@ void TimbreSpace::extract(const bool verbose) {
         DBG("Extracting timbre points\n");
 
 	auto const &featuresToExtract = settings.dimensionwiseFeatures;
-	if (nvs::util::isEmpty(_treeManager._timbreSpaceTree)){
+	if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){
 		if (verbose)
 		    DBG("TimbreSpace::extract: timbre space empty, early exit\n");
 		return;
@@ -599,7 +616,9 @@ void TimbreSpace::reshape(const bool verbose)
 
     // clear points of timbreSpaceHolds
     clearPoints(); // clearing to make way for points we're about to be adding
-    
+
+    std::vector<Timbre5DPoint> points;
+    points.reserve(timbreSpaceRepr.size());
     for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
         static constexpr size_t nDim {5};
         std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
@@ -633,12 +652,13 @@ void TimbreSpace::reshape(const bool verbose)
         constexpr float padding_scalar = 0.95f;
 
 #pragma message("maybe we should build up the points, then add all instead of one by one. there is occassional bug when histo equalizing otherwise")
-        add5DPoint(p * padding_scalar, color);
-        
+        points.emplace_back((Timbre5DPoint() << p * padding_scalar, color).finished());
+
         if (verbose){
             DBG(fmt::format("adding the point  {:.3f}, {:.3f}\n", p(0), p(1)));
         }
     }
+    setPoints(points);
 }
 
 /**

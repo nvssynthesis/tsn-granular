@@ -1,4 +1,6 @@
 #include "TsnGranularPluginProcessor.h"
+
+#include "StringAxiom.h"
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
 #include "Analysis/Settings.h"
@@ -19,12 +21,15 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
 	nvs::analysis::initializeSettingsBranches(settingsVT, false);
 
+    _analyzer.addChangeListener(this);
+
 	// initSynth only gets called AFTER construction for reasons,
 	// so do not call anything here that requires _tsnGranularSynth to be valid (or likewise,
 	// anything that uses _granularSynth in any way).
 }
 TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	_analyzer.removeChangeListener(&_tsnGranularSynth->getTimbreSpace());
+    _analyzer.removeChangeListener(this);
 }
 //==============================================================================
 void TSNGranularAudioProcessor::initSynth() {
@@ -68,11 +73,11 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
      themselves, which would allow to load analysis file and populate the settings of the plugin instance?
     */
     const auto tsTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree();
-	auto timbreSpaceMetaDataTree = tsTree.getChildWithName("Metadata");
-	timbreSpaceMetaDataTree.setProperty("sampleFilePath", apvts.state.getProperty("sampleFilePath"), nullptr);
-	timbreSpaceMetaDataTree.setProperty("sampleRate", apvts.state.getProperty("sampleRate"), nullptr);
-	timbreSpaceMetaDataTree.setProperty("waveformHash", sampleManagementGuts.getAudioHash(), nullptr);
-	timbreSpaceMetaDataTree.setProperty("settingsHash", _analyzer.getSettingsHash(), nullptr);
+	auto timbreSpaceMetaDataTree = tsTree.getChildWithName(nvs::axiom::Metadata);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::sampleFilePath, apvts.state.getProperty(nvs::axiom::sampleFilePath), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::sampleRate, apvts.state.getProperty(nvs::axiom::sampleRate), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::audioHash, sampleManagementGuts.getWaveformHash(), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::settingsHash, _analyzer.getSettingsHash(), nullptr);
 	analysisVT.addChild(tsTree, 1, nullptr);
 
     DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisVT).toStdString()));
@@ -95,7 +100,7 @@ void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(juce::File const f, 
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFileAndUpdateState(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
 
-	if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getAudioHash())) {
+	if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
 		/* do nothing */
 		writeToLog(fmt::format("TSNGranularAudioProcessor already had valid analysis for {}\n", f.getFullPathName().toStdString()));
 	}
@@ -133,14 +138,14 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 }
 void TSNGranularAudioProcessor::changeListenerCallback (juce::ChangeBroadcaster *source) {
     if (source == &_analyzer) {
-        if (_analyzer.onsetsReady()) {
+        if (!_analyzer.onsetsReady()) {
             DBG("TSNGranularAudioProcessor: onsets not ready, returning\n");
             return;
         }
         if (const auto onsetsResult = _analyzer.shareOnsetAnalysis();
-            onsetsResult->audioHash == sampleManagementGuts.getAudioHash())
+            onsetsResult->waveformHash == sampleManagementGuts.getWaveformHash())
         {
-            _tsnGranularSynth->loadOnsets(onsetsResult->onsets);
+            _tsnGranularSynth->loadOnsets(onsetsResult);
         } else {
             DBG("TSNGranularAudioProcessor: Hash mismatch between onsets and current sample, returning\n");
             return;
@@ -149,13 +154,13 @@ void TSNGranularAudioProcessor::changeListenerCallback (juce::ChangeBroadcaster 
     SlicerGranularAudioProcessor::changeListenerCallback(source);
 }
 void TSNGranularAudioProcessor::writeEvents(){
-	auto const onsetsOpt = _tsnGranularSynth->getTimbreSpace().getOnsets();
-	if (!onsetsOpt.has_value()){
-		writeToLog("writeEvents failed: onsets optional does not contain value");
+	auto const sharedOnsets = _tsnGranularSynth->getTimbreSpace().shareOnsets();
+	if (sharedOnsets == nullptr){
+		DBG("TSNGranularAudioProcessor::writeEvents failed: shared onsets null, returning early\n");
 		return;
 	}
 
-    auto const settingsVT = apvts.state.getChildWithName("Settings");
+    auto const settingsVT = apvts.state.getChildWithName(nvs::axiom::Settings);
     _analyzer.updateSettings(settingsVT);
 
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
@@ -165,25 +170,36 @@ void TSNGranularAudioProcessor::writeEvents(){
 	
 	// any reason to use getPropertyAsValue instead?
 
-	std::vector<float> onsetsTmp = onsetsOpt.value();
+	std::vector<float> onsetsTmp = sharedOnsets->onsets;
 
     auto const par = settingsVT.getParent();
-    const auto fileInfoTree = par.getChildWithName("FileInfo");
-    jassert (fileInfoTree.hasProperty("sampleRate"));
-    jassert (fileInfoTree.hasProperty("sampleFilePath"));
-    const float sr = fileInfoTree.getProperty("sampleRate");
-    const juce::String sampleFilePath = fileInfoTree.getProperty("sampleFilePath");
-    jassert(!sampleFilePath.isEmpty());
+    const auto fileInfoTree = par.getChildWithName(nvs::axiom::FileInfo);
+    jassert (fileInfoTree.hasProperty(nvs::axiom::sampleRate));
 
+    const auto sampleFilePath = [fileInfoTree, sharedOnsets]()-> std::string {
+        jassert (fileInfoTree.hasProperty(nvs::axiom::sampleFilePath));
+	    const juce::String sfp = fileInfoTree.getProperty(nvs::axiom::sampleFilePath);
+	    jassert(!sfp.isEmpty());
+	    if (sharedOnsets->audioFileAbsPath != sfp) {
+	        DBG("TSNGranularAudioProcessor::writeEvents failed: file path mismatch, returning early\n");
+	        return "";
+	    }
+        return sfp.toStdString();
+    }();
+    if (sampleFilePath == "") {
+        return; // file path mismatch
+    }
+
+    const float sr = fileInfoTree.getProperty(nvs::axiom::sampleRate);
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
 	
 	nvs::analysis::RunLoopStatus rls;
     const nvs::analysis::ShouldExitFn shouldExitFn = [](){return false;};
-	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath.toStdString(), _analyzer.getAnalyzer(), rls, shouldExitFn);
+	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath, _analyzer.getAnalyzer(), rls, shouldExitFn);
 }
 
 void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getAudioHash())) {
+	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
 		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());
@@ -196,23 +212,23 @@ void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
 }
 
 void TSNGranularAudioProcessor::ensureSettingsStructure() {
-    if (const auto settings = apvts.state.getChildWithName("Settings");
+    if (const auto settings = apvts.state.getChildWithName(nvs::axiom::Settings);
         !nvs::analysis::verifySettingsStructure(settings))
     {
-        juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
+        juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::Settings, nullptr);
         nvs::analysis::initializeSettingsBranches(settingsVT);
     }
 }
 bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
     /// designated directory, manual find, and give up (just perform fresh analysis)
-    const auto fileInfo = apvts.state.getChildWithName("FileInfo");
+    const auto fileInfo = apvts.state.getChildWithName(nvs::axiom::FileInfo);
 	writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
     if (!fileInfo.isValid()) {
 		writeToLog("file info value tree invalid\n");
     	return false;
     }
-    const juce::String analysisFilePath = fileInfo.getProperty("analysisFile", {});
+    const juce::String analysisFilePath = fileInfo.getProperty(nvs::axiom::analysisFile, {});
 	writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
 
     if (analysisFilePath.isEmpty()) {
@@ -232,14 +248,14 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
 
     const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
 
-    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName("TimbreAnalysis");
+    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName(nvs::axiom::TimbreAnalysis);
         analysisFileTree.isValid())
     {
         DBG(fmt::format("tree being set: {}", nvs::util::valueTreeToXmlStringSafe(analysisFileTree).toStdString()));
     	// we need to know if we even SHOULD load the analysisFile pointed to by the state
-    	if (const auto metadataTree = analysisFileTree.getChildWithName("Metadata");
+    	if (auto metadataTree = analysisFileTree.getChildWithName(nvs::axiom::Metadata);
 			metadataTree.isValid() &&
-			metadataTree.getProperty("waveformHash").toString() == getAudioHash())
+			nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     	{
     		writeToLog("setting via setStateInformation");
     		_tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
@@ -251,7 +267,6 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
 }
 
 //==============================================================================
-// This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
 	return SlicerGranularAudioProcessor::create<TSNGranularAudioProcessor>();

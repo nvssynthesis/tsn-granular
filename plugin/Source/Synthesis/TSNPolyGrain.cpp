@@ -21,48 +21,46 @@ TSNPolyGrain::TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, G
 {}
 //====================================================================================
 
-void TSNPolyGrain::loadOnsets(std::span<float> const normalizedOnsets){
-	_onsetsNormalized.assign(normalizedOnsets.begin(), normalizedOnsets.end());
+void TSNPolyGrain::loadOnsets(const SharedOnsets onsets){ // NOLINT: intentional copy for shared ownership
+	_onsets = onsets;
 }
 
-void TSNPolyGrain::setWaveEvent(size_t index) {
-	if (!_onsetsNormalized.size()){
+void TSNPolyGrain::setWaveEvent(const size_t index) {
+	if (_onsets == nullptr || _onsets->onsets.empty()){
+	    DBG("TSNPolyGrain: onsets not ready, returning\n");
 		return;
 	}
-	assert(index < _onsetsNormalized.size());
-	auto const nextIdx = (index + 1) % _onsetsNormalized.size();
+	auto const nextIdx = (index + 1) % _onsets->onsets.size();
 	ReadBounds const bounds
 	{
-		.begin = _onsetsNormalized[index],
-		.end =  _onsetsNormalized[nextIdx]
+		.begin = _onsets->onsets[index],
+		.end =  _onsets->onsets[nextIdx]
 	};
 	setReadBounds(bounds);
 }
-void TSNPolyGrain::setWaveEvents(std::vector<WeightedIdx> weightedIndices) {
-	if (!_onsetsNormalized.size()){
-		return;
-	}
+void TSNPolyGrain::setWaveEvents(const std::vector<WeightedIdx> &weightedIndices) {
+    if (_onsets == nullptr || _onsets->onsets.empty()){
+        DBG("TSNPolyGrain: onsets not ready, returning\n");
+        return;
+    }
 	
 	std::vector<WeightedReadBounds> wrbs;
 	wrbs.reserve(weightedIndices.size());
 	for (auto wi : weightedIndices){
-		auto index = wi.idx;
-		if (index >= (int)_onsetsNormalized.size()){
+		const auto index = wi.idx;
+		if (index >= static_cast<int>(_onsets->onsets.size())){
 			return; // invalid
 		}
-		auto const nextIdx = (index + 1) % _onsetsNormalized.size();
+		auto const nextIdx = (index + 1) % _onsets->onsets.size();
 		
 		wrbs.emplace_back(
 			 ReadBounds {
-				.begin = _onsetsNormalized[index],
-				.end = _onsetsNormalized[nextIdx]
+				.begin = _onsets->onsets[index],
+				.end = _onsets->onsets[nextIdx]
 			 }, wi.weight);
 	}
 	setMultiReadBounds(wrbs);
 }
-
-//====================================================================================
-
 
 }	// namespace gran
 }	// namespace nvs

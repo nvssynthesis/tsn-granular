@@ -12,6 +12,7 @@
 #include <JuceHeader.h>
 #include "../Analysis/Features.h"
 #include "../Analysis/Statistics.h"
+#include "../Analysis/ThreadedAnalyzer.h"   // just for OnsetAnalysisResult
 #include "../../slicer_granular/Source/misc_util.h"
 #include "TimbrePointTypes.h"
 #include "../../delaunator-cpp/include/delaunator.hpp"
@@ -34,7 +35,7 @@ public:
 	std::vector<Timbre5DPoint> const &getTimbreSpace() const;
     Timbre5DPoint getTargetPoint() const;
 	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const;
-	std::optional<std::vector<float>> getOnsets() const;
+	std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> shareOnsets() const;
 	//=============================================================================================================================
 	void setTargetPoint(const Timbre5DPoint& target);
     void computeExistingPointsFromTarget();
@@ -43,12 +44,12 @@ public:
 	using ValueTree = juce::ValueTree;
 	using String = juce::String;
 	//=============================================================================================================================
-	bool hasValidAnalysisFor(juce::String const &audioHash) const;
+	bool hasValidAnalysisFor(juce::String const &waveformHash) const;
 	//=============================================================================================================================
-	juce::String getAudioAbsolutePath() const { return _audioFileAbsPath; }
+	juce::String getAudioAbsolutePath() const;
 	//=============================================================================================================================
 	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
-	ValueTree getTimbreSpaceTree() const { return _treeManager._timbreSpaceTree; }
+	ValueTree getTimbreSpaceTree() const { return _treeManager.getTimbreSpaceTree(); }
 	//=============================================================================================================================
     void setSavePending(const bool saveIsPending) { _analysisSavePending = saveIsPending; }
     bool isSavePending() const { return _analysisSavePending; }
@@ -73,8 +74,7 @@ private:
 	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
 	} settings;
 	//=============================================================================================================================
-	juce::String _audioFileHash;
-	juce::String _audioFileAbsPath;
+    std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> _onsetAnalysis;
 	//=============================================================================================================================
     class TimbreDataManager {
     public:
@@ -83,7 +83,7 @@ private:
 
         // Audio thread: read current stable data
         const std::vector<Timbre5DPoint>& getTimbres() const;
-        void add5DPoint(const Timbre5DPoint& newPoint);
+        void setPoints(const std::vector<Timbre5DPoint>& points);
         void clear();
         bool isReadyForTriangulation() const;
 
@@ -113,28 +113,33 @@ private:
     Timbre5DPoint _target {};
 	std::vector<util::WeightedIdx> _currentPointIndices {{},{},{}};
     //=============================================================================================================================
-    void add5DPoint(const Timbre2DPoint &p2D, const Timbre3DPoint &p3D);
+    void setPoints(std::vector<Timbre5DPoint> const &points);
     void clearPoints();
 	//=============================================================================================================================
 	typedef std::pair<float, float> Range;
 	std::vector<Range> _ranges {}; // min, max per dimension
 	std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
 
-	struct TreeManager {
-	    explicit TreeManager(AudioProcessorValueTreeState &apvts)
-	    : _apvts(apvts)
-	    {}
-		ValueTree _timbreSpaceTree;
-	    AudioProcessorValueTreeState &_apvts;
+	class TreeManager {
+	public:
+	    TreeManager(AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace);
+	    ~TreeManager();
 		var getOnsetsVar() const;
 		ValueTree getTimbralFramesTree() const;
+	    const ValueTree &getTimbreSpaceTree() const;
+	    void setTimbreSpaceTree(ValueTree timbreSpaceTree);
+	    const AudioProcessorValueTreeState &getAPVTS() const { return _apvts; }
 		int getNumFrames() const;
+	private:
+	    ValueTree _timbreSpaceTree;
+	    AudioProcessorValueTreeState &_apvts;
+	    TimbreSpace &_timbreSpace;  // just for adding/removing as listener
 	} _treeManager;
 	
 	bool _analysisSavePending {false};
 	
 	void signalSaveAnalysisOption() const;
-	void signalTimbreSpaceUpdated() const;
+	void signalOnsetsAvailable() const;
 	
 	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
 	
@@ -142,9 +147,9 @@ private:
 	void extract(bool verbose=false);
 	void updateTimbreSpacePoints(bool verbose=false);
 	void reshape(bool verbose=false);
-	//=============================================================================================================================
 };
 
+//=============================================================================================================================
 std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
 												    const juce::Array<Timbre5DPoint>&  database,
 												    int K,

@@ -43,19 +43,28 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     addSound(new GranularSound);
 
     apvts.state.addListener(&_timbreSpace);
+    _timbreSpace.addActionListener(this);
 
     _navigator.setNavigationPeriod(5.0);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {
     _synth_shared_state._apvts.state.removeListener(&_timbreSpace);
+    _timbreSpace.removeActionListener(this);
 }
 //==============================================================================
-void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
+void TSNGranularSynthesizer::actionListenerCallback(const String &message) {
+    if (message == nvs::axiom::onsetsAvailable) {
+        loadOnsets(_timbreSpace.shareOnsets());
+    }
+}
+//==============================================================================
+void TSNGranularSynthesizer::loadOnsets(SharedOnsets onsets) { // NOLINT: shared_ptr will be copied anyway, no need to pass by const ref
+#pragma message("actually, since TSNGranularSynthesizer now holds _timbreSpace, why should we not load onsets into _timbreSpace here as well?")
     constexpr auto numVoices = getNumVoices();
     for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
-        if (GranularVoice* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
+        if (auto* granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
 
-            if (auto* tsnGuts = dynamic_cast<nvs::gran::TSNPolyGrain*>( granularVoice->getGranularSynthGuts() )){
+            if (auto* tsnGuts = dynamic_cast<TSNPolyGrain*>( granularVoice->getGranularSynthGuts() )){
                 tsnGuts->loadOnsets(onsets);
             }
         }
@@ -64,8 +73,10 @@ void TSNGranularSynthesizer::loadOnsets(const std::span<float> onsets) {
 
 void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
     // needs to get called upon each new navigation
-    if (auto const onsetOpt = _timbreSpace.getOnsets();
-        !onsetOpt.has_value() || (onsetOpt.value().empty())){
+    if (const SharedOnsets onsetsResult = _timbreSpace.shareOnsets();
+        onsetsResult == nullptr || onsetsResult->onsets.empty())
+    {
+        DBG("TSNGranularSynthesizer::setReadBoundsFromChosenPoint: onsets unavailable; returning\n");
         return;
     }
 
@@ -95,7 +106,7 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
     {
         _navigator.setNavigationStrategy(navType);
     }
-    auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
+    const auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
 
     jassert(p5D.norm() < 100.f);
 

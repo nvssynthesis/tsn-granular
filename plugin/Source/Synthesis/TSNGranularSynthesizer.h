@@ -17,15 +17,17 @@
 namespace nvs::gran {
 class TSNGranularSynthesizer final
 :	public GranularSynthesizer
+,   private ActionListener
 {
 public:
     using WeightedIdx = nvs::util::WeightedIdx;
     using TimbreSpace = timbrespace::TimbreSpace;
+    using SharedOnsets = std::shared_ptr<nvs::analysis::ThreadedAnalyzer::OnsetAnalysisResult>;
 
     explicit TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
     ~TSNGranularSynthesizer() override;
 
-    void loadOnsets(const std::span<float> onsets);
+    void loadOnsets(SharedOnsets onsets);
 
     TimbreSpace &getTimbreSpace() {
         return _timbreSpace;
@@ -39,7 +41,8 @@ private:
     TimbreSpace _timbreSpace;
 
     //==============================================================================
-
+    void actionListenerCallback(const String &message) override;
+    //==============================================================================
     void setReadBoundsFromChosenPoint();
 };
 }   // nvs::gran

@@ -20,15 +20,21 @@ class ThreadedAnalyzer final :	public Thread
 public:
     //===============================================================================
     struct OnsetAnalysisResult {
+        OnsetAnalysisResult(vecReal onsets_, juce::String hash_, juce::String path_)
+        :   onsets(std::move(onsets_)), waveformHash(std::move(hash_)), audioFileAbsPath(std::move(path_)) {}
+
         vecReal onsets;
 
-        String audioHash {};
+        String waveformHash {};
         String audioFileAbsPath {};
     };
     struct TimbreAnalysisResult {
+        TimbreAnalysisResult(std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements_, juce::String hash_, juce::String path_)
+        :   timbreMeasurements(std::move(timbreMeasurements_)), waveformHash(std::move(hash_)), audioFileAbsPath(std::move(path_)) {}
+
         std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbreMeasurements;
 
-        String audioHash {};
+        String waveformHash {};
         String audioFileAbsPath {};
     };
     //===============================================================================
