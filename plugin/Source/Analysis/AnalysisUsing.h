@@ -18,8 +18,7 @@
 
 #include "essentia/essentiamath.h"
 
-namespace nvs {
-namespace analysis {
+namespace nvs::analysis {
 
 //===================================================================================
 using namespace essentia;
@@ -40,5 +39,4 @@ using standardFactory = essentia::standard::AlgorithmFactory;
 
 using array2dReal = TNT::Array2D<Real>;
 
-}	// namespace analysis
-}	// namespace nvs
+}   // namespace nvs::analysis
