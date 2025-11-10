@@ -81,7 +81,6 @@ struct AnalyzerSettings {
 		double weight_complexPhase = 0.5;
 		double weight_flux = 0.5;
 		double weight_hfc = 0.5;
-		double weight_melFlux = 0.5;
 		double weight_rms = 0.5;
 	} onset;
 	

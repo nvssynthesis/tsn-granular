@@ -71,8 +71,6 @@ const std::map<juce::String, AnySpec> onsetSpecs
 	    "the simplified Complex-Domain spectral difference function taking into account phase changes, weighted by magnitude. It reacts better on tonal sounds such as bowed string, but tends to over-detect percussive events."} },
 	{ "weight_flux",              RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
 	    "the Spectral Flux detection function which characterizes changes in magnitude spectrum." } },
-	{ "weight_melFlux",           RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
-	    "the spectral difference function, similar to spectral flux, but using half-rectified energy changes in Mel-frequency bands of the spectrum" } },
 	{ "weight_rms",               RangedSettingsSpec<double>{ {0.0,1.0,0.01f,1.0},  0.0,
 	    "the difference function, measuring the half-rectified change of the RMS of the magnitude spectrum (i.e., measuring overall energy flux)" } }
 };
@@ -259,8 +257,8 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	if (!onsetNode.hasProperty("alpha") || !onsetNode.hasProperty("numFrames_shortOnsetFilter") ||
 		!onsetNode.hasProperty("silenceThreshold") || !onsetNode.hasProperty("weight_complex") ||
 		!onsetNode.hasProperty("weight_complexPhase") || !onsetNode.hasProperty("weight_flux") ||
-		!onsetNode.hasProperty("weight_hfc") || !onsetNode.hasProperty("weight_melFlux") ||
-		!onsetNode.hasProperty("weight_rms")) {
+		!onsetNode.hasProperty("weight_hfc") || !onsetNode.hasProperty("weight_rms"))
+	{
 		std::cerr << "Onset node missing required properties\n";
 		jassertfalse;
 		return false;
@@ -272,7 +270,6 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	settings.onset.weight_complexPhase = onsetNode.getProperty("weight_complexPhase");
 	settings.onset.weight_flux = onsetNode.getProperty("weight_flux");
 	settings.onset.weight_hfc = onsetNode.getProperty("weight_hfc");
-	settings.onset.weight_melFlux = onsetNode.getProperty("weight_melFlux");
 	settings.onset.weight_rms = onsetNode.getProperty("weight_rms");
 	
 	// Pitch settings

@@ -355,8 +355,12 @@ int TimbreSpace::TreeManager::getNumFrames() const {
 	int const numFrames = onsets.size();
 #ifdef DBG
 	auto const timbralFramesTree = getTimbralFramesTree();
-	auto const numChildren = timbralFramesTree.getNumChildren();
-	jassert(numChildren == numFrames);
+    if(auto const numChildren = timbralFramesTree.getNumChildren();
+        !numChildren == numFrames)
+    {
+	    DBG(util::valueTreeToXmlStringSafe(_timbreSpaceTree));
+	    jassertfalse;
+	}
 #endif
 	return numFrames;
 }
