@@ -101,17 +101,27 @@ public:
 	Analyzer();
 	using EventwiseStats = EventwiseStatistics<Real>;
 
-	std::optional<vecReal> calculateOnsetsInSeconds(vecReal const &wave, RunLoopStatus& rls, const ShouldExitFn &shouldExit) const;
+	std::optional<vecReal>
+    calculateOnsetsInSeconds(
+        vecReal const &wave,
+        RunLoopStatus& rls,
+	    const ShouldExitFn &shouldExit) const;
 	
 	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent) const;
 	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent) const;
 	EventwiseStats calculateEventwiseLoudness(vecReal const &waveEvent) const;
 
-	std::optional<std::vector<FeatureContainer<EventwiseStats>>> calculateOnsetwiseTimbreSpace(vecReal const &wave, vecReal const &normalizedOnsets,
-																										  RunLoopStatus& rls, const ShouldExitFn &shouldExit) const;
+	std::optional<std::vector<FeatureContainer<EventwiseStats>>>
+    calculateOnsetwiseTimbreSpace(
+        const vecReal &wave,
+        const vecReal &onsetsInSeconds,
+        RunLoopStatus& rls,
+        const ShouldExitFn &shouldExit) const;
 	
-	std::optional<vecVecReal> calculatePCA(std::vector<FeatureContainer<EventwiseStats>> const &allFeatures,
-	    const std::vector<Features> &featuresToUse, Statistic statToUse) const;
+	std::optional<vecVecReal> calculatePCA(
+	    const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
+	    const std::vector<Features> &featuresToUse,
+	    Statistic statToUse) const;
 	
 	float getAnalyzedFileSampleRate() const;
 
@@ -120,6 +130,8 @@ public:
     juce::String getSettingsHash() const {
         return _settingsHash;
     }
+
+    //====================================================================================
 	nvs::ess::EssentiaHolder ess_hold;
 private:
 	AnalyzerSettings settings;

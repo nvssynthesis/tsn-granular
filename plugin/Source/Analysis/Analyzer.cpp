@@ -109,7 +109,7 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vec
 
     return EventwisePitchDescription {
         .pitch = {
-            EventwiseStatistics<float> {
+            EventwiseStats {
                 .mean = p_mean,
                 .median = essentia::median(pitches),
                 .variance = essentia::variance(pitches, p_mean),
@@ -118,7 +118,7 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vec
             }
         },
         .confidence = {
-            EventwiseStatistics<float> {
+            EventwiseStats {
                 .mean = c_mean,
                 .median = essentia::median(confidences),
                 .variance = essentia::variance(confidences, c_mean),
@@ -161,7 +161,7 @@ EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(const vecRe
     const vecReal  kurtoses = essentia::kurtosisFrames(b_tmp);
 
     size_t N = b_tmp[0].size();
-    std::vector<EventwiseStatistics<Real>> descriptions;
+    std::vector<EventwiseStats> descriptions;
     descriptions.reserve(N);
 
     for (size_t i = 0; i < N; ++i) {
@@ -177,10 +177,11 @@ EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(const vecRe
     return descriptions;
 }
 
-std::optional<std::vector<FeatureContainer<EventwiseStatistics<Real>>>>
-Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
+auto Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
                                         const std::vector<float> &onsetsInSeconds,
-                                        RunLoopStatus& rls, const ShouldExitFn &shouldExit) const {
+                                        RunLoopStatus& rls, const ShouldExitFn &shouldExit)
+const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
+{
     if ((wave.empty()) || (onsetsInSeconds.empty())){
         return std::nullopt;
     }
@@ -192,9 +193,9 @@ Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
     rls.set("Splitting Wave into Events...");
 
     const vecVecReal events = splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settings, rls, shouldExit);
-#pragma message("probably need some normalization, possibly based on variance")
+#pragma message("probably could benefit from some normalization, possibly based on variance")
 
-    std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points;
+    std::vector<FeatureContainer<EventwiseStats>> timbre_points;
 
     rls.set("Calculating timbre descriptions per event...");
     for (size_t i = 0; i < events.size(); ++i) {
@@ -202,7 +203,7 @@ Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
             return std::nullopt;
         }
         const auto &e = events[i];
-        FeatureContainer<EventwiseStatistics<Real>> f;
+        FeatureContainer<EventwiseStats> f;
 
         f.bfccs = calculateEventwiseBFCCDescription(e);
         const auto [pitch, confidence] = calculateEventwisePitchDescription(e);
