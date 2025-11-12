@@ -124,21 +124,32 @@ PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
 	}
 }
 
-vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings const& settings)
+vecReal calculateLoudnesses(const std::span<Real const> waveSpan, AnalyzerSettings const& settings)
 {
-    vecReal wave(waveSpan.begin(), waveSpan.end());
+    auto const filteredWave = [&settings](std::span<Real const> _waveSpan) {
+        const vecReal wave(_waveSpan.begin(), _waveSpan.end());
+        if (!settings.loudness.equalizeLoudness) {
+            return wave;
+        }
 
-    [[maybe_unused]] float sampleRate = settings.analysis.sampleRate;
+        [[maybe_unused]] const float sampleRate = settings.analysis.sampleRate;
 
-    const int frameSize  = settings.analysis.frameSize;
-    const int hopSize    = settings.analysis.hopSize;
+        const auto equalLoudnessFilter = std::unique_ptr<standard::Algorithm>(standardFactory::create(
+        "EqualLoudness",
+        "sampleRate", sampleRate
+        )); // not using yet
 
-    auto equalLoudnessFilter = std::unique_ptr<standard::Algorithm>(standardFactory::create(
-       "EqualLoudness",
-       "sampleRate", sampleRate
-    )); // not using yet
+        // apply equal loudness filter to entire wave first
+        vecReal w;
+        equalLoudnessFilter->input("signal").set(wave);
+        equalLoudnessFilter->output("signal").set(w);
+        equalLoudnessFilter->compute();
+        return w;
+    }(waveSpan);
 
-    auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+    const int frameSize = settings.analysis.frameSize;
+    const int hopSize = settings.analysis.hopSize;
+    const auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
        "FrameCutter",
        "frameSize",               frameSize,
        "hopSize",                 hopSize,
@@ -147,7 +158,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings con
        "validFrameThresholdRatio", 0.0
     ));
 
-    auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+    const auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
        "Windowing",
          "normalized",  false,
          "size",        frameSize,
@@ -156,7 +167,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings con
          "zeroPhase",   false
     ));
 
-    auto loudness = std::unique_ptr<standard::Algorithm>(standardFactory::create("Loudness"));
+    const auto loudness = std::unique_ptr<standard::Algorithm>(standardFactory::create("Loudness"));
 
     vecReal loudnesses; // NOLINT
 
@@ -165,7 +176,7 @@ vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings con
         vecReal frame;
 
         // get next frame
-        frameCutter->input("signal").set(wave);
+        frameCutter->input("signal").set(filteredWave);
         frameCutter->output("frame").set(frame);
         frameCutter->compute();
 

@@ -98,6 +98,11 @@ const std::map<juce::String, AnySpec> pitchSpecs
 	{ axiom::tolerance,                RangedSettingsSpec<double>{ {0.0, 1.0,  0.001f, 1.0},   0.15 } }
 };
 
+const std::map<juce::String, AnySpec> loudnessSpecs
+{
+    {axiom::equalizeLoudness, BoolSettingsSpec{true}}
+};
+
 const std::map<juce::String, AnySpec> splitSpecs
 {
 	{ axiom::fadeInSamps,  RangedSettingsSpec<int>{ {0,10000,1,1}, 5 } },
@@ -112,6 +117,7 @@ const std::map<juce::String, const std::map<juce::String,AnySpec>*>
 	{ axiom::Onset,    &onsetSpecs    },
 	{ axiom::sBic,     &sBicSpecs     },
 	{ axiom::Pitch,    &pitchSpecs    },
+	{ axiom::Loudness,  &loudnessSpecs    },
 	{ axiom::Split,    &splitSpecs    },
 };
 
@@ -296,7 +302,21 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	settings.pitch.minFrequency = pitchNode.getProperty(axiom::minFrequency);
 	settings.pitch.pitchDetectionAlgorithm = pitchNode.getProperty(axiom::pitchDetectionAlgorithm).toString();
 	settings.pitch.tolerance = pitchNode.getProperty(axiom::tolerance);
-	
+
+    // Loudness settings
+    auto loudnessNode = settingsTree.getChildWithName(axiom::Loudness);
+    if (!loudnessNode.isValid()) {
+        std::cerr << "Loudness node missing\n";
+        jassertfalse;
+        return false;
+    }
+    if (!loudnessNode.hasProperty(axiom::equalizeLoudness)) {
+        std::cerr << "Loudness node missing required properties\n";
+        jassertfalse;
+        return false;
+    }
+    settings.loudness.equalizeLoudness = loudnessNode.getProperty(axiom::equalizeLoudness);
+
 	// Split settings
 	auto splitNode = settingsTree.getChildWithName(axiom::Split);
 	if (!splitNode.isValid()) {

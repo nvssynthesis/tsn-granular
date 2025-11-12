@@ -92,6 +92,10 @@ struct AnalyzerSettings {
 		juce::String pitchDetectionAlgorithm = "yin";
 		double tolerance = 0.15;
 	} pitch;
+
+    struct Loudness {
+        bool equalizeLoudness = true;
+    } loudness;
 	
 	struct Split {
 		int fadeInSamps = 5;
