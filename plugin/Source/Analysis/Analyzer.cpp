@@ -100,7 +100,7 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
 
 
 EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent) const {
-    const auto [pitches, confidences] = calculatePitchesAndConfidences(waveEvent, ess_hold.factory, settings);
+    const auto [pitches, confidences] = calculatePitchesAndConfidences(waveEvent, settings);
 #pragma message("not using confidences yet")
 
     // weightedMeanFrames()
@@ -130,7 +130,7 @@ EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vec
 }
 
 EventwiseLoudnessDescription Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent) const {
-    const vecReal l_tmp = calculateLoudnesses(waveEvent, ess_hold.factory, settings);
+    const vecReal l_tmp = calculateLoudnesses(waveEvent, settings);
 
     const auto l_mean = mean(l_tmp);
 
@@ -145,7 +145,7 @@ EventwiseLoudnessDescription Analyzer::calculateEventwiseLoudness(const vecReal 
 }
 
 EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(const vecReal &waveEvent) const {
-    const vecVecReal b_tmp = calculateBFCCs(waveEvent, ess_hold.factory, settings);	// bfccs per frame
+    const vecVecReal b_tmp = calculateBFCCs(waveEvent, settings);	// bfccs per frame
 
     // const vecReal means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
     vecReal frameWeights; frameWeights.reserve(b_tmp.size());
@@ -195,29 +195,55 @@ const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
     const vecVecReal events = splitWaveIntoEvents(wave, onsetsInSeconds, ess_hold.factory, settings, rls, shouldExit);
 #pragma message("probably could benefit from some normalization, possibly based on variance")
 
-    std::vector<FeatureContainer<EventwiseStats>> timbre_points;
+    const size_t numEvents = events.size();
+    std::vector<FeatureContainer<EventwiseStatistics<Real>>> timbre_points(numEvents);
+
+    const auto threadPoolOptions = ThreadPoolOptions()
+        .withNumberOfThreads(settings.analysis.numThreads)
+        .withDesiredThreadPriority(Thread::Priority::high)
+        .withThreadName("TimbreAnalysis")
+        .withThreadStackSizeBytes(Thread::osDefaultStackSize);
+    ThreadPool pool(threadPoolOptions);
+
+    std::atomic<size_t> completed {0};
+    std::atomic<bool> cancelled {false};
 
     rls.set("Calculating timbre descriptions per event...");
-    for (size_t i = 0; i < events.size(); ++i) {
-        if (shouldExit()) {
-            return std::nullopt;
-        }
-        const auto &e = events[i];
-        FeatureContainer<EventwiseStats> f;
+    for (size_t i = 0; i < numEvents; ++i) {
+        pool.addJob([&, i] {
+            if (cancelled.load(std::memory_order_relaxed) || shouldExit()) {
+                return;
+            }
+            const auto &e = events[i];
+            FeatureContainer<EventwiseStats> f;
 
-        f.bfccs = calculateEventwiseBFCCDescription(e);
-        const auto [pitch, confidence] = calculateEventwisePitchDescription(e);
-        f.f0 = pitch;
-        f.periodicity = confidence;
-        f.loudness = calculateEventwiseLoudness(e);
+            f.bfccs = calculateEventwiseBFCCDescription(e);
+            const auto [pitch, confidence] = calculateEventwisePitchDescription(e);
+            f.f0 = pitch;
+            f.periodicity = confidence;
+            f.loudness = calculateEventwiseLoudness(e);
 
-        timbre_points.push_back(f);
+            timbre_points[i] = std::move(f);
 
-        std::cout << "got timbre description #" << i << "/" << events.size() << "\n";
-
-        rls.set((double)i / (double)events.size());
+            if (const auto numDone = ++completed;
+                numDone % 4 == 0)
+            {
+                rls.set(static_cast<double>(numDone) / numEvents);
+            }
+            if (shouldExit()) {
+                cancelled.store(true, std::memory_order_relaxed);
+            }
+        });
     }
+    while (pool.getNumJobs() > 0) {
+        Thread::sleep(10);  // sleep between checks
+    }
+
     std::cout << "calculated all BFCCs\n";
+
+    if (cancelled.load() || shouldExit()) {
+        return std::nullopt;
+    }
 
     const double endMs   = juce::Time::getMillisecondCounterHiRes();
     const auto   endTimeStr   = juce::Time::getCurrentTime().toString (true, true);
@@ -231,8 +257,7 @@ const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
 
 std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
                                                  const std::vector<Features> &featuresToUse,
-                                                 const Statistic statToUse) const
-{
+                                                 const Statistic statToUse) {
     if (allFeatures.size() < 2){	// can't perform PCA with 1 sample
         return std::nullopt;
     }
@@ -244,7 +269,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContai
         V.push_back(extractFeatures(f, featuresToUse, statToUse));
     }
 
-    vecVecReal pca = PCA(V, ess_hold.standardFactory, 6);
+    vecVecReal pca = PCA(V, 6);
     std::cout << "calculated PCAs\n";
     return pca;
 }

@@ -117,11 +117,11 @@ public:
         const vecReal &onsetsInSeconds,
         RunLoopStatus& rls,
         const ShouldExitFn &shouldExit) const;
-	
-	std::optional<vecVecReal> calculatePCA(
+
+    static std::optional<vecVecReal> calculatePCA(
 	    const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
 	    const std::vector<Features> &featuresToUse,
-	    Statistic statToUse) const;
+	    Statistic statToUse);
 	
 	float getAnalyzedFileSampleRate() const;
 

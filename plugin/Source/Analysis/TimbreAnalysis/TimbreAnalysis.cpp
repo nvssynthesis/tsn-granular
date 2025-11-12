@@ -15,84 +15,77 @@ namespace analysis {
 
 namespace {
 
-PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings){
-	size_t const waveSize = waveSpan.size();
-	vecReal wave(waveSize);
-	wave.assign(waveSpan.begin(), waveSpan.end());
-	
-	vectorInput *inVec = new vectorInput(&wave);
-	
+PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, AnalyzerSettings const& settings){
+    vecReal wave(waveSpan.begin(), waveSpan.end());
+
 	int const frameSize = settings.analysis.frameSize;
-	int const hopSize = settings.analysis.hopSize;
-	
 	int const zeroPadding = frameSize;
 
-	constexpr double validFrameThresholdRatio = 0.f;
-	
-	Algorithm* frameCutter = nvs::analysis::streamingFactory::create ("FrameCutter",
+	auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create ("FrameCutter",
 		"frameSize",            frameSize,
-		"hopSize",              hopSize,
+		"hopSize",              settings.analysis.hopSize,
 		"lastFrameToEndOfFile", true,
-		"silentFrames",         "keep",
 		"startFromZero",        true,
-		"validFrameThresholdRatio", validFrameThresholdRatio
-	);
+		"validFrameThresholdRatio", 0.f
+	));
 	
 
-	Algorithm* windowing = nvs::analysis::streamingFactory::create ("Windowing",
+	auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Windowing",
 		"normalized", false,
 		"size",        frameSize,
 		"zeroPadding", zeroPadding,
 		"type",        settings.analysis.windowingType.toStdString(),
 		"zeroPhase",   false
-	);
-	
-	const auto sr = static_cast<float>(settings.analysis.sampleRate);
-	jassert (sr > 20000.f);
-	const auto maxFrequency = settings.pitch.maxFrequency;
-	const auto minFrequency = settings.pitch.minFrequency;
-	const auto tolerance = settings.pitch.tolerance;
-	
-	std::string pitchAlgoStr = settings.pitch.pitchDetectionAlgorithm.toStdString();
-	
+	));
+
 	std::map<std::string, std::string> pitchAlgoNicknameMap {
 		{"yin", "PitchYin"}
 	};	// for now we only handle this
 	
-	Algorithm* pitchDet = nvs::analysis::streamingFactory::create (pitchAlgoNicknameMap[pitchAlgoStr],
+	auto pitchDet = std::unique_ptr<standard::Algorithm>(standardFactory::create (pitchAlgoNicknameMap[settings.pitch.pitchDetectionAlgorithm.toStdString()],
 		"frameSize",   frameSize,
 		"interpolate",  settings.pitch.interpolate,
-		"maxFrequency", maxFrequency,
-		"minFrequency", minFrequency,
-		"sampleRate",   sr,
-		"tolerance",    tolerance
-	);
-	
-	Algorithm* pitchFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
-	Algorithm* pitchConfidenceFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
-	
-	std::vector<vecReal> frequencies, confidences;
-	auto *frequencyAccumOutput = new VectorOutput<vecReal>(&frequencies);
-	auto *confidenceAccumOutput = new VectorOutput<vecReal>(&confidences);
-	
-	*inVec												>>		frameCutter->input("signal");
-	frameCutter->output("frame")						>>		windowing->input("frame");
-	windowing->output("frame")							>>		pitchDet->input("signal");
-	pitchDet->output("pitch")							>>		pitchFrameAccumulator->input("data");
-	pitchDet->output("pitchConfidence")					>>		pitchConfidenceFrameAccumulator->input("data");
-	pitchFrameAccumulator->output("array")				>>		frequencyAccumOutput->input("data");
-	pitchConfidenceFrameAccumulator->output("array")	>>		confidenceAccumOutput->input("data");
-	
-	Network n(inVec);
-	n.run();
-	n.clear();
+		"maxFrequency", settings.pitch.maxFrequency,
+		"minFrequency", settings.pitch.minFrequency,
+		"sampleRate",   settings.analysis.sampleRate,
+		"tolerance",    settings.pitch.tolerance
+	));
+
+    vecReal frequencies, confidences; // accumulate results manually
+    while (true) {
+        vecReal frame;
+
+        // get next frame
+        frameCutter->input("signal").set(wave);
+        frameCutter->output("frame").set(frame);
+        frameCutter->compute();
+
+        // check if done
+        if (frame.empty()) break;
+
+        // apply windowing
+        vecReal windowedFrame;
+        windowing->input("frame").set(frame);
+        windowing->output("frame").set(windowedFrame);
+        windowing->compute();
+
+        // detect pitch
+        Real pitch, pitchConfidence;
+        pitchDet->input("signal").set(windowedFrame);
+        pitchDet->output("pitch").set(pitch);
+        pitchDet->output("pitchConfidence").set(pitchConfidence);
+        pitchDet->compute();
+
+        // accumulate results
+        frequencies.push_back(pitch);
+        confidences.push_back(pitchConfidence);
+    }
 	
 	assert(frequencies.size() == confidences.size());
-	assert(frequencies.size() == 1);
-
     {
-        vecReal pitches = std::move(frequencies[0]);
-	    assert(pitches.size() == confidences[0].size());
+        // convert frequency to pitch
+        vecReal pitches = std::move(frequencies);
+	    assert(pitches.size() == confidences.size());
 
 	    std::ranges::transform(pitches, pitches.begin(),
                                [](const float x) {
@@ -102,19 +95,18 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, stre
                                    return 69.f + 12.f * std::log2(x / 440.f);
                                }
                 );
-	    return PitchesAndConfidences{pitches, confidences[0]};
+	    return PitchesAndConfidences{pitches, confidences};
     }
 }
 }	// anonymous namespace
 
 PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
-													 streamingFactory const& factory,
 													 AnalyzerSettings const& settings)
 {
 	auto const algo      = settings.pitch.pitchDetectionAlgorithm.toStdString();
 
 	if (algo == "yin") {
-		return calculatePitchesEssentiaYin (waveEvent, factory, settings);
+		return calculatePitchesEssentiaYin (waveEvent, settings);
 	}
 	else if (algo == "pYin") {
 		jassertfalse;  // not implemented
@@ -132,194 +124,204 @@ PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
 	}
 }
 
-vecReal calculateLoudnesses(std::span<Real const> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings)
+vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings const& settings)
 {
-	size_t const waveSize = waveSpan.size();
-	vecReal wave(waveSize);
-	wave.assign(waveSpan.begin(), waveSpan.end());
-	
-	float sampleRate  = settings.analysis.sampleRate;
+    vecReal wave(waveSpan.begin(), waveSpan.end());
 
-	int    frameSize  = settings.analysis.frameSize;
-	int    hopSize    = settings.analysis.hopSize;
+    [[maybe_unused]] float sampleRate = settings.analysis.sampleRate;
 
-	vectorInput *inVec = new vectorInput(&wave);
-//	Algorithm* equalLoudnessFilter = factory.create(
-//		"EqualLoudness",
-//		"sampleRate", sampleRate
-//	);	// not using yet 
-	Algorithm* frameCutter = nvs::analysis::streamingFactory::create (
-		"FrameCutter",
-		"frameSize",               frameSize,
-		"hopSize",                 hopSize,
-		"lastFrameToEndOfFile",    true,
-		"silentFrames",            "keep",
-		"startFromZero",           true,
-		"validFrameThresholdRatio", 0.0
-	);
-	
-	Algorithm* windowing = nvs::analysis::streamingFactory::create (
-		"Windowing",
-		  "normalized",  false,
-		  "size",        frameSize,
-		  "zeroPadding", frameSize,
-		  "type",        settings.analysis.windowingType.toStdString(),
-		  "zeroPhase",   false
-	);
-	Algorithm* loudness = nvs::analysis::streamingFactory::create("Loudness");
-	
-	Algorithm* loudnessFrameAccumulator = nvs::analysis::streamingFactory::create("RealAccumulator");
-	
-	std::vector<vecReal> loudnesses;
-	auto *pitchAccumOutput = new VectorOutput<vecReal>(&loudnesses);
-	
-	*inVec												>>		frameCutter->input("signal");
-	frameCutter->output("frame")						>>		windowing->input("frame");
-	windowing->output("frame")							>>		loudness->input("signal");
-	loudness->output("loudness")						>>		loudnessFrameAccumulator->input("data");
-	loudnessFrameAccumulator->output("array")			>>		pitchAccumOutput->input("data");
-	
-	Network n(inVec);
-	n.run();
-	n.clear();
-	
-	assert(loudnesses.size() == 1);
-	
-	return loudnesses[0];
+    const int frameSize  = settings.analysis.frameSize;
+    const int hopSize    = settings.analysis.hopSize;
+
+    auto equalLoudnessFilter = std::unique_ptr<standard::Algorithm>(standardFactory::create(
+       "EqualLoudness",
+       "sampleRate", sampleRate
+    )); // not using yet
+
+    auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+       "FrameCutter",
+       "frameSize",               frameSize,
+       "hopSize",                 hopSize,
+       "lastFrameToEndOfFile",    true,
+       "startFromZero",           true,
+       "validFrameThresholdRatio", 0.0
+    ));
+
+    auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+       "Windowing",
+         "normalized",  false,
+         "size",        frameSize,
+         "zeroPadding", frameSize,
+         "type",        settings.analysis.windowingType.toStdString(),
+         "zeroPhase",   false
+    ));
+
+    auto loudness = std::unique_ptr<standard::Algorithm>(standardFactory::create("Loudness"));
+
+    vecReal loudnesses; // NOLINT
+
+    // Process frame by frame
+    while (true) {
+        vecReal frame;
+
+        // get next frame
+        frameCutter->input("signal").set(wave);
+        frameCutter->output("frame").set(frame);
+        frameCutter->compute();
+
+        // check if done
+        if (frame.empty()) break;
+
+        // apply windowing
+        vecReal windowedFrame;
+        windowing->input("frame").set(frame);
+        windowing->output("frame").set(windowedFrame);
+        windowing->compute();
+
+        // calculate loudness
+        Real loudnessValue;
+        loudness->input("signal").set(windowedFrame);
+        loudness->output("loudness").set(loudnessValue);
+        loudness->compute();
+
+        // accumulate result
+        loudnesses.push_back(loudnessValue);
+    }
+
+    return loudnesses;
 }
 
-vecVecReal calculateBFCCs(std::span<Real const> waveSpan, streamingFactory const &factory, AnalyzerSettings const& settings)
+vecVecReal calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const& settings)
 {
-	size_t const waveSize = waveSpan.size();
-	vecReal wave(waveSize);
-	wave.assign(waveSpan.begin(), waveSpan.end());
-	
-	float const sampleRate  = settings.analysis.sampleRate;
-	
-	int const  frameSize  = settings.analysis.frameSize;
-	int const  hopSize    = settings.analysis.hopSize;
+    vecReal wave(waveSpan.begin(), waveSpan.end());
 
-	// Compute the spectrum→algorithm mapping from the BFCC tree:
-	auto const spectrumTypeStr = settings.bfcc.spectrumType.toStdString();
-	// If your stored property is e.g. "power" or "magnitude", branch on that:
-	bool const isPower = (spectrumTypeStr == "power");
+    int const  frameSize  = settings.analysis.frameSize;
+    int const  hopSize    = settings.analysis.hopSize;
+    auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+        "FrameCutter",
+          "frameSize",               frameSize,
+          "hopSize",                 hopSize,
+          "lastFrameToEndOfFile",    true,
+          "startFromZero",           true,
+          "validFrameThresholdRatio", 0.0
+    ));
+    auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+        "Windowing",
+          "normalized",  false,
+          "size",        frameSize,
+          "zeroPadding", frameSize, // why am i even zero padding?
+          "type",        settings.analysis.windowingType.toStdString(),
+          "zeroPhase",   false
+    ));
+    auto const spectrumTypeStr = settings.bfcc.spectrumType.toStdString();
+    bool const isPower = (spectrumTypeStr == "power");
+    std::string const specAlgoStr = isPower ? "PowerSpectrum" : "Spectrum";
+    auto spectrum = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+        specAlgoStr,
+          "size", frameSize * 2
+    ));
+    std::map<juce::String, int> dctTypeStringToInt {
+		{ "typeII",  2 },
+        { "typeIII", 3 }
+    };
+    std::map<std::string, std::string> logTypeMap {
+		{"PowerSpectrum", "dbpow"},
+        {"Spectrum", "dbamp"}
+    };
+    float const sampleRate  = settings.analysis.sampleRate;
+    auto bfcc = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+        "BFCC",
+          "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
+          "highFrequencyBound",  settings.bfcc.highFrequencyBound,
+          "inputSize",           frameSize + 1,
+          "liftering",           settings.bfcc.liftering,
+          "logType",             logTypeMap.at(specAlgoStr),
 
-	std::string const specAlgoStr   = isPower ? "PowerSpectrum" : "Spectrum";
+          "lowFrequencyBound",   settings.bfcc.lowFrequencyBound,
+          "normalize",           settings.bfcc.normalize.toStdString(),
+          "numberBands",         settings.bfcc.numBands,
+          "numberCoefficients",  settings.bfcc.numCoefficients,
+          "sampleRate",          sampleRate,
+          "type",                spectrumTypeStr,
+          "weighting",           settings.bfcc.weightingType.toStdString()
+    ));
+
 	std::string const specInputStr  = isPower ? "signal"        : "frame";
 	std::string const specOutputStr = isPower ? "powerSpectrum" : "spectrum";
-	
-	
-	vectorInput *inVec = new vectorInput(&wave);
-	
-	Algorithm* frameCutter = nvs::analysis::streamingFactory::create (
-		"FrameCutter",
-		  "frameSize",               frameSize,
-		  "hopSize",                 hopSize,
-		  "lastFrameToEndOfFile",    true,
-		  "silentFrames",            "keep",
-		  "startFromZero",           true,
-		  "validFrameThresholdRatio", 0.0
-	);
-	
-	Algorithm* windowing = nvs::analysis::streamingFactory::create (
-		"Windowing",
-		  "normalized",  false,
-		  "size",        frameSize,
-		  "zeroPadding", frameSize,
-		  "type",        settings.analysis.windowingType.toStdString(),
-		  "zeroPhase",   false
-	);
-	
-	Algorithm* spectrum = nvs::analysis::streamingFactory::create (
-		specAlgoStr,
-		  "size", frameSize * 2
-	);
-	
-	
-	std::map<juce::String, int> dctTypeStringToInt {
-		{ "typeII",  2 },
-		{ "typeIII", 3 }
-	};
-	std::map<std::string, std::string> logTypeMap {
-		{"PowerSpectrum", "dbpow"},
-		{"Spectrum", "dbamp"}
-	};
-	
-	Algorithm* bfcc = nvs::analysis::streamingFactory::create (
-		"BFCC",
-		  "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
-		  "highFrequencyBound",  settings.bfcc.highFrequencyBound,
-		  "inputSize",           frameSize + 1,
-		  "liftering",           settings.bfcc.liftering,
-		  "logType",             logTypeMap.at(specAlgoStr),
-									  
-		  "lowFrequencyBound",   settings.bfcc.lowFrequencyBound,
-		  "normalize",           settings.bfcc.normalize.toStdString(),
-		  "numberBands",         settings.bfcc.numBands,
-		  "numberCoefficients",  settings.bfcc.numCoefficients,
-		  "sampleRate",          sampleRate,
-		  "type",                spectrumTypeStr,
-		  "weighting",           settings.bfcc.weightingType.toStdString()
-	);
-	
-	Algorithm* barkFrameAccumulator = nvs::analysis::streamingFactory::create("VectorRealAccumulator");
-	Algorithm* bfccFrameAccumulator = nvs::analysis::streamingFactory::create("VectorRealAccumulator");
-	
-	// for some reason, to get this working in as a connection to FrameAccumulator,
-	// these must be vector<vector<vector<Real>>>, and the 1st dimension only has size of 1...
-	std::vector<std::vector<vecReal>> barkBands, BFCCs;
-	auto *barkAccumOutput = new VectorOutput<std::vector<vecReal>>(&barkBands);
-	auto *bfccAccumOutput = new VectorOutput<std::vector<vecReal>>(&BFCCs);
-	
-	*inVec									>>		frameCutter->input("signal");
-	frameCutter->output("frame")			>>		windowing->input("frame");
-	windowing->output("frame")				>>		spectrum->input(specInputStr);
-	spectrum->output(specOutputStr)			>>		bfcc->input("spectrum");
-	bfcc->output("bands")					>>		barkFrameAccumulator->input("data");
-	bfcc->output("bfcc")					>>		bfccFrameAccumulator->input("data");
-	barkFrameAccumulator->output("array")	>>		*barkAccumOutput;
-	bfccFrameAccumulator->output("array")	>>		*bfccAccumOutput;
-	
-	Network n(inVec);
-	
-	n.run();
-	n.clear();
-	
-	assert(BFCCs.size() == 1);
-	assert(!BFCCs[0].empty());
-	assert(!BFCCs[0][0].empty());
 
-	// truncate by removing 1st BFCC (which just encodes overall energy)
+    std::vector<std::vector<float>> barkBandsVV, BFCCsVV;
+
+    // Process frame by frame
+    int frameCounter = 0;
+    while (true) {
+        vecReal frame;
+
+        // get next frame
+        frameCutter->input("signal").set(wave);
+        frameCutter->output("frame").set(frame);
+        frameCutter->compute();
+
+        // check if done
+        if (frame.empty()) break;
+
+        // apply windowing
+        vecReal windowedFrame;
+        windowing->input("frame").set(frame);
+        windowing->output("frame").set(windowedFrame);
+        windowing->compute();
+
+        // compute spectrum
+        vecReal spectrumVec;
+        spectrum->input(specInputStr).set(windowedFrame);
+        spectrum->output(specOutputStr).set(spectrumVec);
+        spectrum->compute();
+
+        // compute BFCC
+        vecReal bandsVec, bfccVec;
+        bfcc->input("spectrum").set(spectrumVec);
+        bfcc->output("bands").set(bandsVec);
+        bfcc->output("bfcc").set(bfccVec);
+        bfcc->compute();
+
+        // accumulate results
+        barkBandsVV.push_back(bandsVec);
+        BFCCsVV.push_back(bfccVec);
+
+        frameCounter++;
+    }
+
+	assert(!BFCCsVV.empty());
+	assert(!BFCCsVV[0].empty());
+
 #if 0
-	for (auto &frame : BFCCs){
+	// truncate by removing 1st BFCC (which just encodes overall energy)
+	for (auto &frame : BFCCsVV){
 		size_t const preSz = frame.size();
 		frame.erase(frame.begin());
 		assert(frame.size() < preSz);
 	}
 #endif
-	// normalize by 0th BFCC
 #if 0
-	for (std::vector<float> &frame : BFCCs[0]){
+	// normalize by 0th BFCC
+	for (std::vector<float> &frame : BFCCsVV[0]){
 		for (int i=1; i < frame.size(); ++i){
 			frame[i] /= frame[0];
 		}
 	}
 #endif
-	return BFCCs[0];	// the only dimension that was used
+	return BFCCsVV;
 }
 
-vecVecReal PCA(vecVecReal const &V, standardFactory const &factory, int num_features_out){
-	namespace ess_std = essentia::standard;
-	
+vecVecReal PCA(vecVecReal const &V, int num_features_out){
 	const std::string namespaceIn {"data"};
 	const std::string namespaceOut {"pca"};
 
-	ess_std::Algorithm* PCA = nvs::analysis::standardFactory::create("PCA",
+	standard::Algorithm* PCA = nvs::analysis::standardFactory::create("PCA",
 											 "dimensions", num_features_out,
 											 "namespaceIn", namespaceIn,
 											 "namespaceOut", namespaceOut);
 	
-	essentia::Pool inPool, outPool;
+	Pool inPool, outPool;
 	for (auto v : V){
 		inPool.add(namespaceIn, v);
 	}

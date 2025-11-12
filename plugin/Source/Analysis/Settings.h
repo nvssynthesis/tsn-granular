@@ -59,6 +59,7 @@ struct AnalyzerSettings {
 		int frameSize = 1024;
 		int hopSize = 1024;
 		juce::String windowingType = "hann";
+	    int numThreads = 2;
 	} analysis;
 	
 	struct BFCC {

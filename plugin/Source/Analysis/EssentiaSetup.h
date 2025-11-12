@@ -28,7 +28,8 @@ struct EssentiaHolder {
 	EssentiaInitializer &initializer;
 	essentia::streaming::AlgorithmFactory& factory;
 	essentia::standard::AlgorithmFactory& standardFactory;
-	EssentiaHolder(EssentiaInitializer &init) :
+
+    explicit EssentiaHolder(EssentiaInitializer &init) :
 		initializer(init),
 		factory(essentia::streaming::AlgorithmFactory::instance()),
 		standardFactory(essentia::standard::AlgorithmFactory::instance())
