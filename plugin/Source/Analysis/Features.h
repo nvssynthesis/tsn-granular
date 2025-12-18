@@ -10,7 +10,8 @@
 
 #pragma once
 #include "../../slicer_granular/Source/misc_util.h"
-
+// #include "Statistics.h"
+#include <span>
 
 namespace nvs::analysis {
 
@@ -28,14 +29,23 @@ enum class Features {
 	bfcc10,
 	bfcc11,
 	bfcc12,
-	
+
+    SpectralCentroid,
+    SpectralDecrease,
+    SpectralFlatness,
+    SpectralCrest,
+    SpectralComplexity,
+    StrongPeak,
+
 	Periodicity,
 	Loudness,
 	f0,
 	
 	NumFeatures
 };
-constexpr int NumBFCC = 13;
+static constexpr int NumBFCC = 13;
+static constexpr auto NumTimbralFeatures = static_cast<int>(Features::StrongPeak);
+static_assert(NumTimbralFeatures == 18);
 
 typedef nvs::util::Iterator<Features, Features::bfcc0, Features::f0> featuresIterator;
 
@@ -46,6 +56,18 @@ inline juce::String toString(Features f){
 		return s;
 	}
 	switch (f) {
+	    case Features::SpectralCentroid:
+	        return "SpectralCentroid";
+	    case Features::SpectralDecrease:
+	        return "SpectralDecrease";
+	    case Features::SpectralFlatness:
+	        return "SpectralFlatness";
+	    case Features::SpectralCrest:
+	        return "SpectralCrest";
+	    case Features::SpectralComplexity:
+	        return "SpectralComplexity";
+	    case Features::StrongPeak:
+	        return "StrongPeak";
 		case Features::Periodicity:
 			return "Periodicity";
 		case Features::Loudness:
@@ -110,12 +132,21 @@ inline bool isBFCC(Features f) {
 }
 
 
-template <typename T>	// T can foreseeably be either single Real or EventwiseStatistics
+template <typename T>	// T can foreseeably be either single Real, vecReal, or EventwiseStatistics
 struct FeatureContainer {
-	std::vector<T> bfccs {};
-	T periodicity {};
-	T loudness {};
-	T f0 {};
+    std::array<T, static_cast<size_t>(Features::NumFeatures)> features {};
+
+    T& operator[](Features f) { return features[static_cast<size_t>(f)]; }
+    const T& operator[](Features f) const { return features[static_cast<size_t>(f)]; }
+
+    std::span<T> bfccs() { return {features.data(), NumBFCC}; }
+    std::span<const T> bfccs() const { return {features.data(), NumBFCC}; }
 };
+inline void pushBFCCFrame(FeatureContainer<std::vector<float>>& container, std::span<const float> bfccFrame) {
+    assert(bfccFrame.size() == NumBFCC);
+    for (size_t i = 0; i < NumBFCC; ++i) {
+        container[static_cast<Features>(i)].push_back(bfccFrame[i]);
+    }
+}
 
 }	// namespace nvs::analysis

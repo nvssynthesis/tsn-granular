@@ -59,11 +59,4 @@ struct EventwiseStatistics {
 	T skewness	{};
 	T kurtosis	{};
 };
-struct EventwisePitchDescription {
-    EventwiseStatistics<float> pitch;
-    EventwiseStatistics<float> confidence;
-};
-using EventwiseLoudnessDescription = EventwiseStatistics<float>;
-using EventwiseBFCCDescription = std::vector<EventwiseStatistics<float>>;
-
 }

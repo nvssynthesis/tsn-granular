@@ -220,31 +220,28 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		ValueTree timbreMeasurements("TimbreMeasurements");
 		
 		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
-			const auto &[bfccs, periodicity, loudness, f0] = fullTimbreSpace[frameIdx];
+			const auto &timbreFrame = fullTimbreSpace[frameIdx];
 			
 			ValueTree frameTree(axiom::Frame);
 			
 			ValueTree bfccsTree(axiom::BFCCs);
-			for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
-				ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
-				addEventwiseStatistics(bfccTree, bfccs[bfccIdx]);
-				bfccsTree.addChild(bfccTree, bfccIdx, nullptr);
-			}
+		    {
+			    const auto &bfccs = timbreFrame.bfccs();
+		        for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
+		            ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
+		            addEventwiseStatistics(bfccTree, bfccs[bfccIdx]);
+		            bfccsTree.addChild(bfccTree, bfccIdx, nullptr);
+		        }
+		    }
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
-			ValueTree periodicityTree(axiom::Periodicity);
-			addEventwiseStatistics(periodicityTree, periodicity);
-			frameTree.addChild(periodicityTree, -1, nullptr);
-			
-			ValueTree loudnessTree(axiom::Loudness);
-			addEventwiseStatistics(loudnessTree, loudness);
-			frameTree.addChild(loudnessTree, -1, nullptr);
-			
-			ValueTree f0Tree(axiom::F0);
-			addEventwiseStatistics(f0Tree, f0);
-			frameTree.addChild(f0Tree, -1, nullptr);
-			
+		    for (auto feature : nvs::util::Iterator<analysis::Features, static_cast<analysis::Features>(analysis::NumBFCC), analysis::Features::f0>()) {
+		        ValueTree featureTree(analysis::toString(feature));
+		        addEventwiseStatistics(featureTree, timbreFrame[feature]);
+		        frameTree.addChild(featureTree, -1, nullptr);
+		    }
+
 			timbreMeasurements.addChild(frameTree, frameIdx, nullptr);
 			
 			vt.addChild(timbreMeasurements, 1, nullptr);
@@ -255,7 +252,9 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 }
 std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> valueTreeToTimbreSpace(juce::ValueTree const &vt)
 {
-	std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> timbreSpace;
+    using namespace analysis;
+
+	std::vector<FeatureContainer<TimbreSpace::EventwiseStatisticsF>> timbreSpace;
 	
 	auto timbreMeasurements = vt.getChildWithName(axiom::TimbreMeasurements);
 	if (!timbreMeasurements.isValid())
@@ -263,42 +262,34 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 	
 	// Reserve space for efficiency
 	timbreSpace.reserve(timbreMeasurements.getNumChildren());
-	
+
+    static_assert(static_cast<Features>(0) == Features::bfcc0); // we will be casting ints to Features for the BFCCs
+    static_assert(static_cast<Features>(12) == Features::bfcc12);
 	for (int frameIdx = 0; frameIdx < timbreMeasurements.getNumChildren(); ++frameIdx)
 	{
 		auto frameTree = timbreMeasurements.getChild(frameIdx);
-		nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF> frame;
+		FeatureContainer<TimbreSpace::EventwiseStatisticsF> frame;
 		
 		// Extract BFCCs
 		if (auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
 		    bfccsTree.isValid())
 		{
-			frame.bfccs.reserve(bfccsTree.getNumChildren());
-			
 			for (int bfccIdx = 0; bfccIdx < bfccsTree.getNumChildren(); ++bfccIdx)
 			{
 				auto bfccTree = bfccsTree.getChild(bfccIdx);
-				frame.bfccs.push_back(toEventwiseStatistics(bfccTree));
+				frame[static_cast<Features>(bfccIdx)] = (toEventwiseStatistics(bfccTree));
 			}
 		}
 		
 		// Extract single-value features
-        if (auto periodicityTree = frameTree.getChildWithName(axiom::Periodicity);
-            periodicityTree.isValid())
-        {
-            frame.periodicity = toEventwiseStatistics(periodicityTree);
-        }
-        if (auto loudnessTree = frameTree.getChildWithName(axiom::Loudness);
-            loudnessTree.isValid())
-        {
-            frame.loudness = toEventwiseStatistics(loudnessTree);
-        }
-        if (auto f0Tree = frameTree.getChildWithName(axiom::F0);
-            f0Tree.isValid())
-        {
-            frame.f0 = toEventwiseStatistics(f0Tree);
-        }
-		
+	    for (auto const feature :  nvs::util::Iterator<Features, static_cast<Features>(NumBFCC), Features::f0>()) {
+	        if (auto featureTree = frameTree.getChildWithName(toString(feature));
+                featureTree.isValid())
+	        {
+	            frame[feature] = toEventwiseStatistics(featureTree);
+	        }
+	    }
+
 		timbreSpace.push_back(std::move(frame));
 	}
 	
@@ -487,9 +478,15 @@ extractFeatures(const juce::ValueTree &frameTree,
 			// It's one of the scalars
 			juce::String childName;
 			switch (f) {
-				case Features::Periodicity: childName = axiom::Periodicity; break;
-				case Features::Loudness:    childName = axiom::Loudness;    break;
-				case Features::f0:          childName = axiom::F0;          break;
+			    case Features::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
+			    case Features::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
+			    case Features::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
+			    case Features::SpectralCrest:       childName = axiom::SpectralCrest; break;
+			    case Features::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
+			    case Features::StrongPeak:          childName = axiom::StrongPeak; break;
+				case Features::Periodicity:         childName = axiom::Periodicity; break;
+				case Features::Loudness:            childName = axiom::Loudness;    break;
+				case Features::f0:                  childName = axiom::F0;          break;
 				default: jassertfalse;
 			}
 

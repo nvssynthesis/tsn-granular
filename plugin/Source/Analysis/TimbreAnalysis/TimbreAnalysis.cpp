@@ -10,46 +10,44 @@
 
 #include "TimbreAnalysis.h"
 
-namespace nvs {
-namespace analysis {
+namespace nvs::analysis {
 
 namespace {
-
 PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, AnalyzerSettings const& settings){
     vecReal wave(waveSpan.begin(), waveSpan.end());
 
-	int const frameSize = settings.analysis.frameSize;
-	int const zeroPadding = frameSize;
+    int const frameSize = settings.analysis.frameSize;
+    int const zeroPadding = frameSize;
 
-	auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create ("FrameCutter",
-		"frameSize",            frameSize,
-		"hopSize",              settings.analysis.hopSize,
-		"lastFrameToEndOfFile", true,
-		"startFromZero",        true,
-		"validFrameThresholdRatio", 0.f
-	));
-	
+    auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create ("FrameCutter",
+                "frameSize",            frameSize,
+                "hopSize",              settings.analysis.hopSize,
+                "lastFrameToEndOfFile", true,
+                "startFromZero",        true,
+                "validFrameThresholdRatio", 0.f
+            ));
 
-	auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Windowing",
-		"normalized", false,
-		"size",        frameSize,
-		"zeroPadding", zeroPadding,
-		"type",        settings.analysis.windowingType.toStdString(),
-		"zeroPhase",   false
-	));
 
-	std::map<std::string, std::string> pitchAlgoNicknameMap {
-		{"yin", "PitchYin"}
-	};	// for now we only handle this
-	
-	auto pitchDet = std::unique_ptr<standard::Algorithm>(standardFactory::create (pitchAlgoNicknameMap[settings.pitch.pitchDetectionAlgorithm.toStdString()],
-		"frameSize",   frameSize,
-		"interpolate",  settings.pitch.interpolate,
-		"maxFrequency", settings.pitch.maxFrequency,
-		"minFrequency", settings.pitch.minFrequency,
-		"sampleRate",   settings.analysis.sampleRate,
-		"tolerance",    settings.pitch.tolerance
-	));
+    auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Windowing",
+                "normalized", false,
+                "size",        frameSize,
+                "zeroPadding", zeroPadding,
+                "type",        settings.analysis.windowingType.toStdString(),
+                "zeroPhase",   false
+            ));
+
+    std::map<std::string, std::string> pitchAlgoNicknameMap {
+            {"yin", "PitchYin"}
+    };	// for now we only handle this
+
+    auto pitchDet = std::unique_ptr<standard::Algorithm>(standardFactory::create (pitchAlgoNicknameMap[settings.pitch.pitchDetectionAlgorithm.toStdString()],
+                "frameSize",   frameSize,
+                "interpolate",  settings.pitch.interpolate,
+                "maxFrequency", settings.pitch.maxFrequency,
+                "minFrequency", settings.pitch.minFrequency,
+                "sampleRate",   settings.analysis.sampleRate,
+                "tolerance",    settings.pitch.tolerance
+            ));
 
     vecReal frequencies, confidences; // accumulate results manually
     while (true) {
@@ -80,14 +78,14 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, Anal
         frequencies.push_back(pitch);
         confidences.push_back(pitchConfidence);
     }
-	
-	assert(frequencies.size() == confidences.size());
+
+    assert(frequencies.size() == confidences.size());
     {
         // convert frequency to pitch
         vecReal pitches = std::move(frequencies);
-	    assert(pitches.size() == confidences.size());
+        assert(pitches.size() == confidences.size());
 
-	    std::ranges::transform(pitches, pitches.begin(),
+        std::ranges::transform(pitches, pitches.begin(),
                                [](const float x) {
                                    if (x == 0.f) {
                                        return 0.0f;
@@ -95,33 +93,31 @@ PitchesAndConfidences calculatePitchesEssentiaYin(std::span<Real> waveSpan, Anal
                                    return 69.f + 12.f * std::log2(x / 440.f);
                                }
                 );
-	    return PitchesAndConfidences{pitches, confidences};
+        return PitchesAndConfidences{pitches, confidences};
     }
 }
 }	// anonymous namespace
 
 PitchesAndConfidences calculatePitchesAndConfidences (vecReal waveEvent,
-													 AnalyzerSettings const& settings)
+                                                      AnalyzerSettings const& settings)
 {
-	auto const algo      = settings.pitch.pitchDetectionAlgorithm.toStdString();
+    auto const algo      = settings.pitch.pitchDetectionAlgorithm.toStdString();
 
-	if (algo == "yin") {
-		return calculatePitchesEssentiaYin (waveEvent, settings);
-	}
-	else if (algo == "pYin") {
-		jassertfalse;  // not implemented
-		return {};
-//		return calculatePitchesEssentiaPYin (waveEvent, factory, settingsTree);
-	}
-	else if (algo == "chroma") {
-		jassertfalse;  // not implemented
-		return {};
-//		return calculatePitchesEssentiaChroma (waveEvent, factory, settingsTree);
-	}
-	else {
-		jassertfalse;  // unknown algorithm
-		return {};
-	}
+    if (algo == "yin") {
+        return calculatePitchesEssentiaYin (waveEvent, settings);
+    }
+    if (algo == "pYin") {
+        jassertfalse;  // not implemented
+        return {};
+        //		return calculatePitchesEssentiaPYin (waveEvent, factory, settingsTree);
+    }
+    if (algo == "chroma") {
+        jassertfalse;  // not implemented
+        return {};
+        //		return calculatePitchesEssentiaChroma (waveEvent, factory, settingsTree);
+    }
+    jassertfalse;  // unknown algorithm
+    return {};
 }
 
 vecReal calculateLoudnesses(const std::span<Real const> waveSpan, AnalyzerSettings const& settings)
@@ -135,9 +131,9 @@ vecReal calculateLoudnesses(const std::span<Real const> waveSpan, AnalyzerSettin
         [[maybe_unused]] const float sampleRate = settings.analysis.sampleRate;
 
         const auto equalLoudnessFilter = std::unique_ptr<standard::Algorithm>(standardFactory::create(
-        "EqualLoudness",
-        "sampleRate", sampleRate
-        )); // not using yet
+                "EqualLoudness",
+                "sampleRate", sampleRate
+                )); // not using yet
 
         // apply equal loudness filter to entire wave first
         vecReal w;
@@ -150,22 +146,22 @@ vecReal calculateLoudnesses(const std::span<Real const> waveSpan, AnalyzerSettin
     const int frameSize = settings.analysis.frameSize;
     const int hopSize = settings.analysis.hopSize;
     const auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
-       "FrameCutter",
-       "frameSize",               frameSize,
-       "hopSize",                 hopSize,
-       "lastFrameToEndOfFile",    true,
-       "startFromZero",           true,
-       "validFrameThresholdRatio", 0.0
-    ));
+            "FrameCutter",
+            "frameSize",               frameSize,
+            "hopSize",                 hopSize,
+            "lastFrameToEndOfFile",    true,
+            "startFromZero",           true,
+            "validFrameThresholdRatio", 0.0
+            ));
 
     const auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
-       "Windowing",
-         "normalized",  false,
-         "size",        frameSize,
-         "zeroPadding", frameSize,
-         "type",        settings.analysis.windowingType.toStdString(),
-         "zeroPhase",   false
-    ));
+            "Windowing",
+            "normalized",  false,
+            "size",        frameSize,
+            "zeroPadding", frameSize,
+            "type",        settings.analysis.windowingType.toStdString(),
+            "zeroPhase",   false
+            ));
 
     const auto loudness = std::unique_ptr<standard::Algorithm>(standardFactory::create("Loudness"));
 
@@ -202,13 +198,19 @@ vecReal calculateLoudnesses(const std::span<Real const> waveSpan, AnalyzerSettin
     return loudnesses;
 }
 
-vecVecReal calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const& settings)
+FeatureContainer<vecReal> calculateTimbres(std::span<Real const> waveSpan, AnalyzerSettings const& settings)
 {
     vecReal wave(waveSpan.begin(), waveSpan.end());
 
-    int const  frameSize  = settings.analysis.frameSize;
-    int const  hopSize    = settings.analysis.hopSize;
-    auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+    const int frameSize  = settings.analysis.frameSize;
+
+    for (auto &e : wave) {
+        const float normFactor = 1.f;   // settings.analysis.frameSize;
+        e *= normFactor;
+    }
+
+    const int hopSize = settings.analysis.hopSize;
+    const auto frameCutter = std::unique_ptr<standard::Algorithm>(standardFactory::create (
         "FrameCutter",
           "frameSize",               frameSize,
           "hopSize",                 hopSize,
@@ -216,7 +218,7 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const
           "startFromZero",           true,
           "validFrameThresholdRatio", 0.0
     ));
-    auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+    const auto windowing = std::unique_ptr<standard::Algorithm>(standardFactory::create (
         "Windowing",
           "normalized",  false,
           "size",        frameSize,
@@ -227,40 +229,51 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const
     auto const spectrumTypeStr = settings.bfcc.spectrumType.toStdString();
     bool const isPower = (spectrumTypeStr == "power");
     std::string const specAlgoStr = isPower ? "PowerSpectrum" : "Spectrum";
-    auto spectrum = std::unique_ptr<standard::Algorithm>(standardFactory::create (
-        specAlgoStr,
-          "size", frameSize * 2
-    ));
+    const auto spectrum = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+            specAlgoStr,
+            "size", frameSize * 2
+            ));
     std::map<juce::String, int> dctTypeStringToInt {
-		{ "typeII",  2 },
-        { "typeIII", 3 }
+            { "typeII",  2 },
+            { "typeIII", 3 }
     };
     std::map<std::string, std::string> logTypeMap {
-		{"PowerSpectrum", "dbpow"},
-        {"Spectrum", "dbamp"}
+            {"PowerSpectrum", "dbpow"},
+            {"Spectrum", "dbamp"}
     };
-    float const sampleRate  = settings.analysis.sampleRate;
-    auto bfcc = std::unique_ptr<standard::Algorithm>(standardFactory::create (
-        "BFCC",
-          "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
-          "highFrequencyBound",  settings.bfcc.highFrequencyBound,
-          "inputSize",           frameSize + 1,
-          "liftering",           settings.bfcc.liftering,
-          "logType",             logTypeMap.at(specAlgoStr),
+    const auto sampleRate  = static_cast<float>(settings.analysis.sampleRate);
+    const auto bfcc = std::unique_ptr<standard::Algorithm>(standardFactory::create (
+    "BFCC",
+    "dctType",             dctTypeStringToInt.at(settings.bfcc.dctType.toStdString()),
+    "highFrequencyBound",  settings.bfcc.highFrequencyBound,
+    "inputSize",           frameSize + 1,
+    "liftering",           settings.bfcc.liftering,
+    "logType",             logTypeMap.at(specAlgoStr),
 
-          "lowFrequencyBound",   settings.bfcc.lowFrequencyBound,
-          "normalize",           settings.bfcc.normalize.toStdString(),
-          "numberBands",         settings.bfcc.numBands,
-          "numberCoefficients",  settings.bfcc.numCoefficients,
-          "sampleRate",          sampleRate,
-          "type",                spectrumTypeStr,
-          "weighting",           settings.bfcc.weightingType.toStdString()
+    "lowFrequencyBound",   settings.bfcc.lowFrequencyBound,
+    "normalize",           settings.bfcc.normalize.toStdString(),
+    "numberBands",         settings.bfcc.numBands,
+    "numberCoefficients",  settings.bfcc.numCoefficients,
+    "sampleRate",          sampleRate,
+    "type",                spectrumTypeStr,
+    "weighting",           settings.bfcc.weightingType.toStdString()
     ));
+    const auto centroid_a = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Centroid",
+        "range", sampleRate * 0.5));
+    const auto decrease_a = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Decrease",
+        "range", sampleRate * 0.5));
+    const auto flatnessDB_a = std::unique_ptr<standard::Algorithm>(standardFactory::create ("FlatnessDB"));
+    const auto crest_a = std::unique_ptr<standard::Algorithm>(standardFactory::create ("Crest"));
+    const auto spectralComplexity_a = std::unique_ptr<standard::Algorithm>(standardFactory::create ("SpectralComplexity",
+        "magnitudeThreshold", settings.spectralComplexity.magnitudeThreshold));
+    const auto strongPeakinesses_a = std::unique_ptr<standard::Algorithm>(standardFactory::create("StrongPeak"));
 
-	std::string const specInputStr  = isPower ? "signal"        : "frame";
-	std::string const specOutputStr = isPower ? "powerSpectrum" : "spectrum";
+    std::string const specInputStr  = isPower ? "signal"        : "frame";
+    std::string const specOutputStr = isPower ? "powerSpectrum" : "spectrum";
 
-    std::vector<std::vector<float>> barkBandsVV, BFCCsVV;
+    // std::vector<std::vector<float>> barkBandsVV, BFCCsVV;
+
+    FeatureContainer<vecReal> timbres;
 
     // Process frame by frame
     int frameCounter = 0;
@@ -288,85 +301,102 @@ vecVecReal calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const
         spectrum->compute();
 
         // compute BFCC
-        vecReal bandsVec, bfccVec;
+        vecReal _, bfccVec;
         bfcc->input("spectrum").set(spectrumVec);
-        bfcc->output("bands").set(bandsVec);
+        bfcc->output("bands").set(_);
         bfcc->output("bfcc").set(bfccVec);
         bfcc->compute();
+        pushBFCCFrame(timbres, bfccVec);
 
-        // accumulate results
-        barkBandsVV.push_back(bandsVec);
-        BFCCsVV.push_back(bfccVec);
+        Real centroid;
+        centroid_a->input("array").set(spectrumVec);
+        centroid_a->output("centroid").set(centroid);
+        centroid_a->compute();
+        timbres[Features::SpectralCentroid].push_back(centroid);
+
+        Real decrease;
+        decrease_a->input("array").set(spectrumVec);
+        decrease_a->output("decrease").set(decrease);
+        decrease_a->compute();
+        timbres[Features::SpectralDecrease].push_back(decrease);
+
+        Real flatness;
+        flatnessDB_a->input("array").set(spectrumVec);
+        flatnessDB_a->output("flatnessDB").set(flatness);
+        flatnessDB_a->compute();
+        timbres[Features::SpectralFlatness].push_back(flatness);
+
+        Real crest;
+        crest_a->input("array").set(spectrumVec);
+        crest_a->output("crest").set(crest);
+        crest_a->compute();
+        timbres[Features::SpectralCrest].push_back(crest);
+
+        Real spectralComplexity;
+        spectralComplexity_a->input("spectrum").set(spectrumVec);
+        spectralComplexity_a->output("spectralComplexity").set(spectralComplexity);
+        timbres[Features::SpectralComplexity].push_back(spectralComplexity);
 
         frameCounter++;
     }
 
-	assert(!BFCCsVV.empty());
-	assert(!BFCCsVV[0].empty());
+    assert(!timbres.bfccs().empty());
+    assert(!timbres.bfccs()[0].empty());
+    const size_t expected_len = timbres.features[0].size();
+    assert(std::ranges::all_of(
+        timbres.features.begin(),
+        timbres.features.begin() + NumTimbralFeatures,
+        [expected_len](const auto &v)
+    {
+        return (v.size() == expected_len);
+    }));
 
-#if 0
-	// truncate by removing 1st BFCC (which just encodes overall energy)
-	for (auto &frame : BFCCsVV){
-		size_t const preSz = frame.size();
-		frame.erase(frame.begin());
-		assert(frame.size() < preSz);
-	}
-#endif
-#if 0
-	// normalize by 0th BFCC
-	for (std::vector<float> &frame : BFCCsVV[0]){
-		for (int i=1; i < frame.size(); ++i){
-			frame[i] /= frame[0];
-		}
-	}
-#endif
-	return BFCCsVV;
+    return timbres;
 }
 
 vecVecReal PCA(vecVecReal const &V, int num_features_out){
-	const std::string namespaceIn {"data"};
-	const std::string namespaceOut {"pca"};
+    const std::string namespaceIn {"data"};
+    const std::string namespaceOut {"pca"};
 
-	standard::Algorithm* PCA = nvs::analysis::standardFactory::create("PCA",
-											 "dimensions", num_features_out,
-											 "namespaceIn", namespaceIn,
-											 "namespaceOut", namespaceOut);
-	
-	Pool inPool, outPool;
-	for (auto v : V){
-		inPool.add(namespaceIn, v);
-	}
-	
-	PCA->input("poolIn").set(inPool);
-	PCA->output("poolOut").set(outPool);
-	PCA->compute();
-	
-	auto const &vecRealPool = outPool.getVectorRealPool();
-	vecVecReal PCAmat = vecRealPool.at(namespaceOut);
-	
-	return PCAmat;
+    standard::Algorithm* PCA = nvs::analysis::standardFactory::create("PCA",
+                                                                      "dimensions", num_features_out,
+                                                                      "namespaceIn", namespaceIn,
+                                                                      "namespaceOut", namespaceOut);
+
+    Pool inPool, outPool;
+    for (auto v : V){
+        inPool.add(namespaceIn, v);
+    }
+
+    PCA->input("poolIn").set(inPool);
+    PCA->output("poolOut").set(outPool);
+    PCA->compute();
+
+    auto const &vecRealPool = outPool.getVectorRealPool();
+    vecVecReal PCAmat = vecRealPool.at(namespaceOut);
+
+    return PCAmat;
 }
 
 std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, const size_t dim){
-	Real min {std::numeric_limits<Real>::max()};
-	Real max {std::numeric_limits<Real>::lowest()};
-	
-	for (auto const &v : V){
-		auto const val = v[dim];
-		if (val < min){
-			min = val;
-		}
-		if (val > max){
-			max = val;
-		}
-	}
-	
-	return std::make_pair(min, max);
+    Real min {std::numeric_limits<Real>::max()};
+    Real max {std::numeric_limits<Real>::lowest()};
+
+    for (auto const &v : V){
+        auto const val = v[dim];
+        if (val < min){
+            min = val;
+        }
+        if (val > max){
+            max = val;
+        }
+    }
+
+    return std::make_pair(min, max);
 }
 
 Real calculateNormalizationMultiplier(const std::pair<Real, Real> &range){
-	return 1.f / std::max(std::abs(range.first), std::abs(range.second));
+    return 1.f / std::max(std::abs(range.first), std::abs(range.second));
 }
 
-}	// namespace analysis
-}	// namespace nvs
+}

@@ -33,7 +33,7 @@ const std::map<juce::String, AnySpec> analysisSpecs
 	{ axiom::windowingType,  ChoiceSettingsSpec{ 	{axiom::hann, axiom::hamming, axiom::hannnsgcq,
 		axiom::triangular, axiom::square, axiom::blackmanharris62, axiom::blackmanharris70,
 		axiom::blackmanharris74, 	axiom::blackmanharris92}, /* default: */		axiom::hann 		} },
-    { axiom::numThreads, RangedSettingsSpec<int>{NormalisableRange<double>(1, SystemStats::getNumCpus()), 2,
+    { axiom::numThreads, RangedSettingsSpec<int>{NormalisableRange<double>(1, SystemStats::getNumCpus()), SystemStats::getNumPhysicalCpus(),
         "The number of threads used for timbral analysis. Higher # of threads => faster analysis, but limited testing has been done for greater than 1 thread."}}
 };
 
@@ -52,6 +52,10 @@ const std::map<juce::String, AnySpec> bfccSpecs
 	{ axiom::normalize,           ChoiceSettingsSpec{
 	    {axiom::unit_sum, axiom::unit_max},axiom::unit_sum,
 	    "'unit_max' makes the vertex of all the triangles equal to 1, 'unit_sum' makes the area of all the triangles equal to 1." } },
+    { axiom::BFCC0_frameNormalizationFactor, RangedSettingsSpec<double>{{0.0, 1.0, 0.0, 1.0}, 1.0/20.0,
+        "Per frame, normalize the BFCC vector based on the 0th BFCC, which represents overall energy. This adjusts the frame's contribution to the overall event's BFCC calculation."}},
+    { axiom::BFCC0_eventNormalize, BoolSettingsSpec{true,
+        "Per event, normalize the BFCC vector based on the 0th BFCC, which represents overall energy. This normalizes the overall event's BFCCs based on the 0th."}},
 	{ axiom::spectrumType,        ChoiceSettingsSpec{ {axiom::magnitude, axiom::power},axiom::power,
 	    "use magnitude or power spectrum"} },
 	{ axiom::weightingType,       ChoiceSettingsSpec{ {axiom::warping,  axiom::linear},axiom::warping,
@@ -243,7 +247,9 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 		!bfccNode.hasProperty(axiom::liftering) || !bfccNode.hasProperty(axiom::lowFrequencyBound) ||
 		!bfccNode.hasProperty(axiom::normalize) || !bfccNode.hasProperty(axiom::numBands) ||
 		!bfccNode.hasProperty(axiom::numCoefficients) || !bfccNode.hasProperty(axiom::spectrumType) ||
-		!bfccNode.hasProperty(axiom::weightingType)) {
+		!bfccNode.hasProperty(axiom::weightingType)
+		|| !bfccNode.hasProperty(axiom::BFCC0_frameNormalizationFactor) || !bfccNode.hasProperty(axiom::BFCC0_eventNormalize))
+	{
 		std::cerr << "BFCC node missing required properties\n";
 		jassertfalse;
 		return false;
@@ -257,6 +263,8 @@ bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTr
 	settings.bfcc.numCoefficients = bfccNode.getProperty(axiom::numCoefficients);
 	settings.bfcc.spectrumType = bfccNode.getProperty(axiom::spectrumType).toString();
 	settings.bfcc.weightingType = bfccNode.getProperty(axiom::weightingType).toString();
+    settings.bfcc.BFCC0_frameNormalizationFactor = bfccNode.getProperty(axiom::BFCC0_frameNormalizationFactor);
+    settings.bfcc.BFCC0_eventNormalize = bfccNode.getProperty(axiom::BFCC0_eventNormalize);
 	
 	// Onset settings
 	auto onsetNode = settingsTree.getChildWithName(axiom::Onset);

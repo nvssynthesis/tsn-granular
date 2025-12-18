@@ -13,6 +13,7 @@
 #include "Analysis/AnalysisUsing.h"
 #include "Analysis/Settings.h"
 #include <span>
+#include "../Features.h"
 
 namespace nvs::analysis {
 
@@ -24,8 +25,7 @@ PitchesAndConfidences calculatePitchesAndConfidences(vecReal waveEvent, Analyzer
 
 vecReal calculateLoudnesses(std::span<Real const> waveSpan, AnalyzerSettings const& settings);
 
-vecVecReal
-calculateBFCCs(std::span<Real const> waveSpan, AnalyzerSettings const& settings);
+FeatureContainer<vecReal> calculateTimbres(std::span<Real const> waveSpan, AnalyzerSettings const& settings);
 
 vecVecReal PCA(vecVecReal const &V, int num_features_out);
 

@@ -10,6 +10,7 @@
 
 #include "Analysis/Analyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
+#include "../plugin/slicer_granular/Source/algo_util.h"
 #include <concepts>
 
 namespace nvs::analysis {
@@ -99,82 +100,87 @@ static std::vector<T> weightedMeanFrames(const std::vector<std::vector<T>>& fram
 }
 
 
-EventwisePitchDescription Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent) const {
+void Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent, FeatureContainer<EventwiseStats> &features) const {
     const auto [pitches, confidences] = calculatePitchesAndConfidences(waveEvent, settings);
 #pragma message("not using confidences yet")
 
-    // weightedMeanFrames()
     const auto p_mean = mean(pitches);
     const auto c_mean = mean(confidences);
 
-    return EventwisePitchDescription {
-        .pitch = {
-            EventwiseStats {
-                .mean = p_mean,
-                .median = essentia::median(pitches),
-                .variance = essentia::variance(pitches, p_mean),
-                .skewness = essentia::skewness(pitches, p_mean),
-                .kurtosis = essentia::kurtosis(pitches, p_mean)
-            }
-        },
-        .confidence = {
-            EventwiseStats {
-                .mean = c_mean,
-                .median = essentia::median(confidences),
-                .variance = essentia::variance(confidences, c_mean),
-                .skewness = essentia::skewness(confidences, c_mean),
-                .kurtosis = essentia::kurtosis(confidences, c_mean)
-            }
+    features[Features::f0] = {
+        EventwiseStats {
+            .mean = p_mean,
+            .median = essentia::median(pitches),
+            .variance = essentia::variance(pitches, p_mean),
+            .skewness = essentia::skewness(pitches, p_mean),
+            .kurtosis = essentia::kurtosis(pitches, p_mean)
+        }
+    };
+    features[Features::Periodicity] = {
+        EventwiseStats {
+            .mean = c_mean,
+            .median = essentia::median(confidences),
+            .variance = essentia::variance(confidences, c_mean),
+            .skewness = essentia::skewness(confidences, c_mean),
+            .kurtosis = essentia::kurtosis(confidences, c_mean)
         }
     };
 }
 
-EventwiseLoudnessDescription Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent) const {
+void Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent, FeatureContainer<EventwiseStats> &features) const {
     const vecReal l_tmp = calculateLoudnesses(waveEvent, settings);
 
     const auto l_mean = mean(l_tmp);
 
-    const EventwiseLoudnessDescription descr {
-            .mean = l_mean,
-            .median = essentia::median(l_tmp),
-            .variance = essentia::variance(l_tmp, l_mean),
-            .skewness = essentia::skewness(l_tmp, l_mean),
-            .kurtosis = essentia::kurtosis(l_tmp, l_mean)
+    features[Features::Loudness] = {
+        .mean = l_mean,
+        .median = essentia::median(l_tmp),
+        .variance = essentia::variance(l_tmp, l_mean),
+        .skewness = essentia::skewness(l_tmp, l_mean),
+        .kurtosis = essentia::kurtosis(l_tmp, l_mean)
     };
-    return descr;
 }
 
-EventwiseBFCCDescription Analyzer::calculateEventwiseBFCCDescription(const vecReal &waveEvent) const {
-    const vecVecReal b_tmp = calculateBFCCs(waveEvent, settings);	// bfccs per frame
+void Analyzer::calculateEventwiseTimbreDescription(const vecReal &waveEvent, FeatureContainer<EventwiseStats> &features) const {
+    const FeatureContainer<vecReal> timbres_tmp = calculateTimbres(waveEvent, settings);
 
     // const vecReal means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
-    vecReal frameWeights; frameWeights.reserve(b_tmp.size());
-    for (auto const &frame : b_tmp) {
-        const Real bfcc0 = frame[0]; // bfcc #0 is energy
-        const Real weight = std::exp(bfcc0 * settings._statistics.BFCC0_normalizationFactor);
+    vecReal frameWeights;
+    frameWeights.reserve(timbres_tmp.features.size());
+    for (auto const &bfcc0: timbres_tmp[Features::bfcc0]) {
+        const Real weight = std::exp(bfcc0 * settings.bfcc.BFCC0_frameNormalizationFactor);
         frameWeights.push_back(weight);
     }
-    const vecReal means = weightedMeanFrames(b_tmp, frameWeights);
-    const vecReal  medians = essentia::medianFrames(b_tmp);
-    const vecReal  variances = essentia::varianceFrames(b_tmp);
-    const vecReal  skewnesses = essentia::skewnessFrames(b_tmp);
-    const vecReal  kurtoses = essentia::kurtosisFrames(b_tmp);
+    const vecVecReal featurewiseFrames = transpose(std::span(timbres_tmp.features).first(NumTimbralFeatures));
 
-    size_t N = b_tmp[0].size();
-    std::vector<EventwiseStats> descriptions;
-    descriptions.reserve(N);
+    const vecReal means = weightedMeanFrames(featurewiseFrames, frameWeights);
+    const vecReal  medians = medianFrames(featurewiseFrames);
+    const vecReal  variances = varianceFrames(featurewiseFrames);
+    const vecReal  skewnesses = skewnessFrames(featurewiseFrames);
+    const vecReal  kurtoses = kurtosisFrames(featurewiseFrames);
 
-    for (size_t i = 0; i < N; ++i) {
-        descriptions.push_back({
-                .mean 	   = means[i],
-                .median    = medians[i],
-                .variance  = variances[i],
-                .skewness  = skewnesses[i],
-                .kurtosis  = kurtoses[i]
-        });
+    jassert(static_cast<size_t>(Features::bfcc0) == 0); // because we're going to be editing the array of features from here
+    const auto stats = std::array {
+        &means,
+        &medians,
+        &variances,
+        &skewnesses,
+        &kurtoses
+    };
+    const auto supposedSize = means.size();
+    std::ranges::all_of(stats, [supposedSize](const vecReal *v) {
+        return v->size() < static_cast<size_t>(Features::NumFeatures) && v->size() == supposedSize;
+    });
+
+    for (size_t i = 0; i < means.size(); ++i) { // end at size of stats because that should be number of timbral features
+        features.features[i] = {
+            .mean = means[i],
+            .median = medians[i],
+            .variance = variances[i],
+            .skewness = skewnesses[i],
+            .kurtosis = kurtoses[i]
+        };
     }
-
-    return descriptions;
 }
 
 auto Analyzer::calculateOnsetwiseTimbreSpace(const vecReal &wave,
@@ -216,13 +222,9 @@ const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
             }
             const auto &e = events[i];
             FeatureContainer<EventwiseStats> f;
-
-            f.bfccs = calculateEventwiseBFCCDescription(e);
-            const auto [pitch, confidence] = calculateEventwisePitchDescription(e);
-            f.f0 = pitch;
-            f.periodicity = confidence;
-            f.loudness = calculateEventwiseLoudness(e);
-
+            calculateEventwiseTimbreDescription(e, f);
+            calculateEventwisePitchDescription(e, f);
+            calculateEventwiseLoudness(e, f);
             timbre_points[i] = std::move(f);
 
             if (const auto numDone = ++completed;
@@ -270,7 +272,7 @@ std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContai
     }
 
     vecVecReal pca = PCA(V, 6);
-    std::cout << "calculated PCAs\n";
+    DBG("calculated PCAs\n");
     return pca;
 }
 
@@ -285,7 +287,7 @@ vecVecReal truncate(const vecVecReal &V, const size_t trunc){
     return Vtrunc;
 };
 
-vecVecReal transpose(const vecVecReal &V){
+vecVecReal transpose(const std::span<const vecReal> V){
     size_t const D0 = V.size();
     size_t const D1 = V[0].size();
     for (const auto &v : V){
@@ -300,6 +302,10 @@ vecVecReal transpose(const vecVecReal &V){
         }
     }
     return Vtranspose;
+}
+
+vecVecReal transpose(const vecVecReal &V){
+    return transpose(std::span(V));
 }
 
 void writeEventsToWav(const vecReal &wave,

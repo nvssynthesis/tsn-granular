@@ -25,17 +25,32 @@ template<typename T>
 using FeatureContainerMemberPtr = T FeatureContainer<T>::*;
 
 template<typename T>
-auto makeScalarLookup() {
+constexpr auto makeScalarLookup() {
 	// index this array by (enumValue - NumBFCC)
 	// so scalarIndex = enumValue - NumBFCC must be 0..ScalarCount-1
-	static_assert(static_cast<int>(Features::Periodicity) == NumBFCC + 0);
-	static_assert(static_cast<int>(Features::Loudness) == NumBFCC + 1);
-	static_assert(static_cast<int>(Features::f0) == NumBFCC + 2);
-	constexpr int ScalarCount = 3;
-	std::array<FeatureContainerMemberPtr<T>, ScalarCount> table {
-		&FeatureContainer<T>::periodicity, // index 0
-		&FeatureContainer<T>::loudness,    // index 1
-		&FeatureContainer<T>::f0           // index 2
+	static_assert(static_cast<int>(Features::SpectralCentroid) == NumBFCC + 0);
+	static_assert(static_cast<int>(Features::SpectralDecrease) == NumBFCC + 1);
+	static_assert(static_cast<int>(Features::SpectralFlatness) == NumBFCC + 2);
+    static_assert(static_cast<int>(Features::SpectralCrest) == NumBFCC + 3);
+    static_assert(static_cast<int>(Features::SpectralComplexity) == NumBFCC + 4);
+    static_assert(static_cast<int>(Features::StrongPeak) == NumBFCC + 5);
+
+    static_assert(static_cast<int>(Features::Periodicity) == NumBFCC + 6);
+    static_assert(static_cast<int>(Features::Loudness) == NumBFCC + 7);
+    static_assert(static_cast<int>(Features::f0) == NumBFCC + 8);
+
+	constexpr int ScalarCount = 9;
+	static constexpr std::array<FeatureContainerMemberPtr<T>, ScalarCount> table {
+	    &FeatureContainer<T>::features[Features::SpectralCentroid],
+	    &FeatureContainer<T>::spectralDecrease,
+	    &FeatureContainer<T>::spectralFlatness,
+	    &FeatureContainer<T>::spectralCrest,
+	    &FeatureContainer<T>::spectralComplexity,
+	    &FeatureContainer<T>::strongPeak,
+
+		&FeatureContainer<T>::periodicity,
+		&FeatureContainer<T>::loudness,
+		&FeatureContainer<T>::f0
 	};
 	return table;
 }
@@ -51,25 +66,16 @@ extractFeatures(const FeatureContainer<T> & allFeatures,
 	v.reserve(featuresToUse.size());
 
 	// one lookup table for the scalars
-	auto const & scalarTable = makeScalarLookup<T>();
+	auto const & scalarTable = allFeatures.features;
 
 	for (auto f : featuresToUse) {
-		int idx = static_cast<int>(f);
-		if (0 <= idx && idx < NumBFCC) {
-			// it's a BFCC
-			v.push_back(allFeatures.bfccs[idx]);
-		}
-		else {
-			// it's one of the scalars
-			int scalarIndex = idx - NumBFCC; // 0=>periodicity,1=>loudness,2=>f0
-			v.push_back(allFeatures.*(scalarTable[scalarIndex]));
-		}
+		v.push_back(allFeatures.features[static_cast<size_t>(f)]);
 	}
 	return v;
 }
 
 [[nodiscard]]
-inline std::vector<Real>
+inline vecReal
 extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
 				const std::vector<Features> &featuresToUse,
 				const Statistic statisticToUse)
@@ -107,9 +113,9 @@ public:
         RunLoopStatus& rls,
 	    const ShouldExitFn &shouldExit) const;
 	
-	EventwisePitchDescription calculateEventwisePitchDescription(vecReal const &waveEvent) const;
-	EventwiseBFCCDescription calculateEventwiseBFCCDescription(vecReal const &waveEvent) const;
-	EventwiseStats calculateEventwiseLoudness(vecReal const &waveEvent) const;
+	void calculateEventwisePitchDescription(vecReal const &waveEvent, FeatureContainer<EventwiseStats> &features) const;
+	void calculateEventwiseTimbreDescription(vecReal const &waveEvent, FeatureContainer<EventwiseStats> &features) const;
+	void calculateEventwiseLoudness(vecReal const &waveEvent, FeatureContainer<EventwiseStats> &features) const;
 
 	std::optional<std::vector<FeatureContainer<EventwiseStats>>>
     calculateOnsetwiseTimbreSpace(
@@ -145,6 +151,7 @@ double getLengthInSeconds(auto lengthInSamples, auto sampleRate){
 
 vecVecReal truncate(vecVecReal const &V, size_t trunc);
 vecVecReal transpose(vecVecReal const &V);
+vecVecReal transpose(std::span<const vecReal> V);
 
 template <typename Func>
 concept StatisticVectorFunction = requires(Func f, vecReal const &v) {
