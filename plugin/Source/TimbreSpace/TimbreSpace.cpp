@@ -847,7 +847,7 @@ std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint&
 	// Compute barycentric weights
 	const auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
     for (auto & w : weights) {
-        jassert (w > 0.0);
+        jassert (w >= 0.0);
     }
 	
 	// Create result vector
