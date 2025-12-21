@@ -16,11 +16,26 @@ namespace nvs::timbrespace {
 std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points){
 	std::vector<double> coords;
 	coords.reserve(points.size() * 2);
+    const auto p0x = points[0][0];
+    const auto p0y = points[0][1];
+    bool allXSame = true;
+    bool allYSame = true;
 	for (auto const & p : points){
-		coords.push_back(p[0]);
-		coords.push_back(p[1]);
+        const auto x = p[0];
+	    const auto y = p[1];
+	    if (x != p0x) {
+	        allXSame = false;
+	    }
+	    if (y != p0y) {
+	        allYSame = false;
+	    }
+	    coords.push_back(x);
+		coords.push_back(y);
 	}
-	assert(coords.size() == static_cast<size_t>(points.size() * 2));
+	assert(coords.size() == points.size() * 2);
+    if(allXSame || allYSame) {
+        DBG("At least 1 dimension has no variance; these coordinates will cause an invalid triangulation\n");
+    }
 	return coords;
 }
 

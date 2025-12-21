@@ -418,7 +418,11 @@ void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
     }
     const auto coords2D = make2dCoordinates(_timbres5D_pending);
     try {
-        _delaunator_pending = std::make_unique<delaunator::Delaunator>(coords2D);
+        _delaunator_pending = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
+    }
+    catch (std::exception &e) {
+        DBG(e.what());
+        return;
     }
     catch (...) {
         return;
@@ -426,9 +430,11 @@ void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
     _pendingUpdate.store(true, std::memory_order_release);
 }
 void TimbreSpace::TimbreDataManager::swapIfPending(const bool verbose) {
-    if (_pendingUpdate.exchange(false, std::memory_order_acq_rel)) {
-        if (verbose)
+    if (_pendingUpdate.exchange(false, std::memory_order_acq_rel))
+    {
+        if (verbose) {
             DBG("TimbreDataManager::swapIfPending exchanging state\n");
+        }
         _timbres5D = std::move(_timbres5D_pending);
         _delaunator = std::move(_delaunator_pending);
     }
