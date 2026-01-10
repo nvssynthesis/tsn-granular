@@ -144,7 +144,10 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	g.setGradientFill (radialGrad);
 	g.fillRect (r_bounds);
 
-	g.setColour(Colours::snow.withAlpha(0.2f));
+    // static const auto snowColour = Colours::snow.withAlpha(0.2f);   // wish it could be constexpr
+    static constexpr std::string_view snowColourStr {"33fffafa"};
+	g.setColour(Colour::fromString(std::string(snowColourStr)));
+
 	g.drawRect(getLocalBounds(), 1);
 	
 	auto const w = r_bounds.getWidth();
@@ -230,9 +233,9 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	}
 	// draw navigator
     {
-        const auto& history = nav.getHistory();
-
-        if (!history.empty()) {
+        if (const auto& history = nav.getHistory();
+            !history.empty())
+        {
             // Collect all points
             std::vector<juce::Point<float>> points;
             points.push_back(p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h)));
