@@ -65,6 +65,8 @@ const std::map<juce::String, AnySpec> bfccSpecs
 
 const std::map<juce::String, AnySpec> onsetSpecs
 {
+    { axiom::segmentation, ChoiceSettingsSpec {{axiom::Event, axiom::Uniform}, axiom::Event,
+        "whether to segment by detected events or uniform frames"} },
 	{ axiom::silenceThreshold,         RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f,
 	    "the threshold for silence"} },
 	{ axiom::alpha,                    RangedSettingsSpec<double>{ {0.0,1.0,0.01f,0.4}, 0.1f,
@@ -196,92 +198,99 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 }
 
 bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree) {
-	// Verify tree structure first
+    // Verify tree structure first
     if (bool const valid = verifySettingsStructure(settingsTree);
         !valid)
     {
-		std::cerr << "settings tree invalid\n";
-		jassertfalse;
-		return false;
-	}
-	
-	auto parent = settingsTree.getParent();
-	auto const fileInfoTree = parent.getChildWithName(axiom::FileInfo);
-	settings.info.sampleFilePath = fileInfoTree.getProperty(axiom::sampleFilePath).toString();
-	// settings.info.author = parent.getProperty("author").toString();
-	if (!fileInfoTree.hasProperty(axiom::sampleRate)) {
-		std::cerr << "Parent node missing required properties\n";
-		jassertfalse;
-		return false;
-	}
-	settings.analysis.sampleRate = fileInfoTree.getProperty(axiom::sampleRate);
-	jassert(0.0 < settings.analysis.sampleRate);
+        std::cerr << "settings tree invalid\n";
+        jassertfalse;
+        return false;
+    }
+
+    auto parent = settingsTree.getParent();
+    auto const fileInfoTree = parent.getChildWithName(axiom::FileInfo);
+    settings.info.sampleFilePath = fileInfoTree.getProperty(axiom::sampleFilePath).toString();
+    // settings.info.author = parent.getProperty("author").toString();
+    if (!fileInfoTree.hasProperty(axiom::sampleRate)) {
+        std::cerr << "Parent node missing required properties\n";
+        jassertfalse;
+        return false;
+    }
+    settings.analysis.sampleRate = fileInfoTree.getProperty(axiom::sampleRate);
+    jassert(0.0 < settings.analysis.sampleRate);
 
 
-	auto analysisNode = settingsTree.getChildWithName(axiom::Analysis);
+    auto analysisNode = settingsTree.getChildWithName(axiom::Analysis);
 
-	if (!analysisNode.isValid()) {
-		std::cerr << "Analysis node missing\n";
-		jassertfalse;
-		return false;
-	}
-	if (!analysisNode.hasProperty(axiom::frameSize) || !analysisNode.hasProperty(axiom::hopSize)
-		|| !analysisNode.hasProperty(axiom::windowingType)) {
-		std::cerr << "Analysis node missing required properties\n";
-		jassertfalse;
-		return false;
-	}
-	settings.analysis.frameSize = analysisNode.getProperty(axiom::frameSize);
-	settings.analysis.hopSize = analysisNode.getProperty(axiom::hopSize);
-	settings.analysis.windowingType = analysisNode.getProperty(axiom::windowingType).toString();
-	settings.analysis.numThreads = analysisNode.getProperty(axiom::numThreads);
+    if (!analysisNode.isValid()) {
+        std::cerr << "Analysis node missing\n";
+        jassertfalse;
+        return false;
+    }
+    if (!analysisNode.hasProperty(axiom::frameSize) || !analysisNode.hasProperty(axiom::hopSize)
+        || !analysisNode.hasProperty(axiom::windowingType)) {
+        std::cerr << "Analysis node missing required properties\n";
+        jassertfalse;
+        return false;
+        }
+    settings.analysis.frameSize = analysisNode.getProperty(axiom::frameSize);
+    settings.analysis.hopSize = analysisNode.getProperty(axiom::hopSize);
+    settings.analysis.windowingType = analysisNode.getProperty(axiom::windowingType).toString();
+    settings.analysis.numThreads = analysisNode.getProperty(axiom::numThreads);
 
-	// BFCC settings
-	auto bfccNode = settingsTree.getChildWithName(axiom::BFCC);
-	if (!bfccNode.isValid()) {
-		std::cerr << "BFCC node missing\n";
-		jassertfalse;
-		return false;
-	}
-	if (!bfccNode.hasProperty(axiom::dctType) || !bfccNode.hasProperty(axiom::highFrequencyBound) ||
-		!bfccNode.hasProperty(axiom::liftering) || !bfccNode.hasProperty(axiom::lowFrequencyBound) ||
-		!bfccNode.hasProperty(axiom::normalize) || !bfccNode.hasProperty(axiom::numBands) ||
-		!bfccNode.hasProperty(axiom::numCoefficients) || !bfccNode.hasProperty(axiom::spectrumType) ||
-		!bfccNode.hasProperty(axiom::weightingType)
-		|| !bfccNode.hasProperty(axiom::BFCC0_frameNormalizationFactor) || !bfccNode.hasProperty(axiom::BFCC0_eventNormalize))
-	{
-		std::cerr << "BFCC node missing required properties\n";
-		jassertfalse;
-		return false;
-	}
-	settings.bfcc.dctType = bfccNode.getProperty(axiom::dctType).toString();
-	settings.bfcc.highFrequencyBound = bfccNode.getProperty(axiom::highFrequencyBound);
-	settings.bfcc.liftering = bfccNode.getProperty(axiom::liftering);
-	settings.bfcc.lowFrequencyBound = bfccNode.getProperty(axiom::lowFrequencyBound);
-	settings.bfcc.normalize = bfccNode.getProperty(axiom::normalize).toString();
-	settings.bfcc.numBands = bfccNode.getProperty(axiom::numBands);
-	settings.bfcc.numCoefficients = bfccNode.getProperty(axiom::numCoefficients);
-	settings.bfcc.spectrumType = bfccNode.getProperty(axiom::spectrumType).toString();
-	settings.bfcc.weightingType = bfccNode.getProperty(axiom::weightingType).toString();
+    // BFCC settings
+    auto bfccNode = settingsTree.getChildWithName(axiom::BFCC);
+    if (!bfccNode.isValid()) {
+        std::cerr << "BFCC node missing\n";
+        jassertfalse;
+        return false;
+    }
+    if (!bfccNode.hasProperty(axiom::dctType) || !bfccNode.hasProperty(axiom::highFrequencyBound) ||
+        !bfccNode.hasProperty(axiom::liftering) || !bfccNode.hasProperty(axiom::lowFrequencyBound) ||
+        !bfccNode.hasProperty(axiom::normalize) || !bfccNode.hasProperty(axiom::numBands) ||
+        !bfccNode.hasProperty(axiom::numCoefficients) || !bfccNode.hasProperty(axiom::spectrumType) ||
+        !bfccNode.hasProperty(axiom::weightingType)
+        || !bfccNode.hasProperty(axiom::BFCC0_frameNormalizationFactor) || !bfccNode.hasProperty(axiom::BFCC0_eventNormalize))
+    {
+        std::cerr << "BFCC node missing required properties\n";
+        jassertfalse;
+        return false;
+    }
+    settings.bfcc.dctType = bfccNode.getProperty(axiom::dctType).toString();
+    settings.bfcc.highFrequencyBound = bfccNode.getProperty(axiom::highFrequencyBound);
+    settings.bfcc.liftering = bfccNode.getProperty(axiom::liftering);
+    settings.bfcc.lowFrequencyBound = bfccNode.getProperty(axiom::lowFrequencyBound);
+    settings.bfcc.normalize = bfccNode.getProperty(axiom::normalize).toString();
+    settings.bfcc.numBands = bfccNode.getProperty(axiom::numBands);
+    settings.bfcc.numCoefficients = bfccNode.getProperty(axiom::numCoefficients);
+    settings.bfcc.spectrumType = bfccNode.getProperty(axiom::spectrumType).toString();
+    settings.bfcc.weightingType = bfccNode.getProperty(axiom::weightingType).toString();
     settings.bfcc.BFCC0_frameNormalizationFactor = bfccNode.getProperty(axiom::BFCC0_frameNormalizationFactor);
     settings.bfcc.BFCC0_eventNormalize = bfccNode.getProperty(axiom::BFCC0_eventNormalize);
-	
-	// Onset settings
-	auto onsetNode = settingsTree.getChildWithName(axiom::Onset);
-	if (!onsetNode.isValid()) {
-		std::cerr << "Onset node missing\n";
-		jassertfalse;
-		return false;
-	}
-	if (!onsetNode.hasProperty(axiom::alpha) || !onsetNode.hasProperty(axiom::numFrames_shortOnsetFilter) ||
-		!onsetNode.hasProperty(axiom::silenceThreshold) || !onsetNode.hasProperty(axiom::weight_complex) ||
-		!onsetNode.hasProperty(axiom::weight_complexPhase) || !onsetNode.hasProperty(axiom::weight_flux) ||
-		!onsetNode.hasProperty(axiom::weight_hfc) || !onsetNode.hasProperty(axiom::weight_rms))
-	{
-		std::cerr << "Onset node missing required properties\n";
-		jassertfalse;
-		return false;
-	}
+
+    // Onset settings
+    auto onsetNode = settingsTree.getChildWithName(axiom::Onset);
+    if (!onsetNode.isValid()) {
+        std::cerr << "Onset node missing\n";
+        jassertfalse;
+        return false;
+    }
+    if (!onsetNode.hasProperty(axiom::alpha) || !onsetNode.hasProperty(axiom::numFrames_shortOnsetFilter) ||
+        !onsetNode.hasProperty(axiom::silenceThreshold) || !onsetNode.hasProperty(axiom::weight_complex) ||
+        !onsetNode.hasProperty(axiom::weight_complexPhase) || !onsetNode.hasProperty(axiom::weight_flux) ||
+        !onsetNode.hasProperty(axiom::weight_hfc) || !onsetNode.hasProperty(axiom::weight_rms))
+    {
+        std::cerr << "Onset node missing required properties\n";
+        jassertfalse;
+        return false;
+    }
+    if (onsetNode.hasProperty(axiom::segmentation)) {
+        const auto segmentationStr = onsetNode.getProperty(axiom::segmentation).toString();
+        settings.onset.segmentation = segmentationStr == axiom::Uniform ? AnalyzerSettings::Onset::Segmentation::Uniform : AnalyzerSettings::Onset::Segmentation::Event;
+    } else {
+        settings.onset.segmentation = AnalyzerSettings::Onset::Segmentation::Event;
+        DBG(juce::String("No property ") + axiom::segmentation + " found in settingsTree\n");
+    }
 	settings.onset.alpha = onsetNode.getProperty(axiom::alpha);
 	settings.onset.numFrames_shortOnsetFilter = onsetNode.getProperty(axiom::numFrames_shortOnsetFilter);
 	settings.onset.silenceThreshold = onsetNode.getProperty(axiom::silenceThreshold);
