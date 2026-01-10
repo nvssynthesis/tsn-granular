@@ -75,7 +75,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 
     setLookAndFeel(&laf);
 
-    startTimerHz(60);
+    startTimerHz(33);
 
 	getConstrainer()->setMinimumSize(240, 360);
 }
@@ -129,7 +129,7 @@ void TsnGranularAudioProcessorEditor::mouseDown(const juce::MouseEvent &) {}
 void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 //==============================================================================
 void TsnGranularAudioProcessorEditor::timerCallback() {
-    timbreSpaceComponent.repaint();
+    timbreSpaceComponent.repaint(); // EXPENSIVE
     jassert (waveformComponent != nullptr);
     waveformComponent->highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
 }
