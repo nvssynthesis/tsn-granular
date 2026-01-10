@@ -36,6 +36,8 @@ public:
     //================================================================================================================================================
 private:
     SharedOnsets _onsets;
+
+    std::vector<WeightedReadBounds> _weightedReadBounds;    // member to avoid reallocations
 };
 
 }   // namespace nvs::gran

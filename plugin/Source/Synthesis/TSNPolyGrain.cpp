@@ -13,12 +13,13 @@
 #include "../slicer_granular/Source/algo_util.h"
 #include "../slicer_granular/Source/misc_util.h"
 
-namespace nvs	{
-namespace gran	{
+namespace nvs::gran {
 
 TSNPolyGrain::TSNPolyGrain(GranularSynthSharedState *const synth_shared_state, GranularVoiceSharedState *const voice_shared_state)
-:	PolyGrain(synth_shared_state, voice_shared_state)
-{}
+    :	PolyGrain(synth_shared_state, voice_shared_state)
+{
+    _weightedReadBounds.reserve(3); // this will be storing 3 weights
+}
 //====================================================================================
 
 void TSNPolyGrain::loadOnsets(const SharedOnsets onsets){ // NOLINT: intentional copy for shared ownership
@@ -43,24 +44,25 @@ void TSNPolyGrain::setWaveEvents(const std::vector<WeightedIdx> &weightedIndices
         DBG("TSNPolyGrain: onsets not ready, returning\n");
         return;
     }
-	
-	std::vector<WeightedReadBounds> wrbs;
-	wrbs.reserve(weightedIndices.size());
-	for (auto wi : weightedIndices){
-		const auto index = wi.idx;
-		if (index >= static_cast<int>(_onsets->onsets.size())){
-			return; // invalid
-		}
-		auto const nextIdx = (index + 1) % _onsets->onsets.size();
-		
-		wrbs.emplace_back(
-			 ReadBounds {
-				.begin = _onsets->onsets[index],
-				.end = _onsets->onsets[nextIdx]
-			 }, wi.weight);
-	}
-	setMultiReadBounds(wrbs);
+
+    jassert(weightedIndices.size() <= 3);
+    jassert(_weightedReadBounds.capacity() >= weightedIndices.size());
+
+    _weightedReadBounds.clear();
+    for (auto const &wi : weightedIndices){
+        const auto index = wi.idx;
+        if (index >= static_cast<int>(_onsets->onsets.size())){
+            return; // invalid
+        }
+        auto const nextIdx = (index + 1) % _onsets->onsets.size();
+
+        _weightedReadBounds.emplace_back(
+                ReadBounds {
+                        .begin = _onsets->onsets[index],
+                        .end = _onsets->onsets[nextIdx]
+                }, wi.weight);
+    }
+    setMultiReadBounds(_weightedReadBounds);
 }
 
-}	// namespace gran
-}	// namespace nvs
+}
