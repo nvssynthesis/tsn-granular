@@ -48,6 +48,17 @@ std::optional<vecReal> Analyzer::calculateOnsetsInSeconds(const vecReal &wave, R
         return std::nullopt;
     }
 
+    if (settings.onset.segmentation == AnalyzerSettings::Onset::Segmentation::Uniform) {
+        // make a vecReal of evenly distributed onsets
+        const float dt = 0.05f;
+        const auto L_sec = getLengthInSeconds(wave.size(), settings.analysis.sampleRate);
+        vecReal onsets (static_cast<size_t>(L_sec / dt));
+        for (size_t i = 0; i < onsets.size(); ++i) {
+            onsets[i] = static_cast<Real>(i) * dt;
+        }
+        return onsets;
+    }
+
     const analysis::array2dReal onsets2d = calculateOnsetsMatrix(wave, ess_hold.factory, settings, rls, shouldExit);
     std::cout << "analyzed onsets\n";
     const essentia::standard::AlgorithmFactory &tmpStFac = essentia::standard::AlgorithmFactory::instance();
@@ -225,7 +236,7 @@ const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
             calculateEventwiseTimbreDescription(e, f);
             calculateEventwisePitchDescription(e, f);
             calculateEventwiseLoudness(e, f);
-            timbre_points[i] = std::move(f);
+            timbre_points[i] = f;
 
             if (const auto numDone = ++completed;
                 numDone % 4 == 0)

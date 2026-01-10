@@ -80,6 +80,11 @@ struct AnalyzerSettings {
     } spectralComplexity;
 
     struct Onset {
+        enum class Segmentation {
+            Event,  // use proper onset detection, making 1 event per onset
+            Uniform // use uniformly distributed segments, specified by analysis.hopSize and analysis.frameSize
+        } segmentation {Segmentation::Uniform};
+
         double alpha = 0.1;
         int numFrames_shortOnsetFilter = 5;
         double silenceThreshold = 0.1;
