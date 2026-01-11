@@ -127,10 +127,10 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	_analyzer.updateStoredAudio(std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples())),
 		getSampleFilePath());
 	
-	auto const settingsVT = apvts.state.getChildWithName("Settings");
+	auto settingsVT = apvts.state.getChildWithName("Settings");
 	auto const par = settingsVT.getParent();
 	jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
-	_analyzer.updateSettings(settingsVT);
+	_analyzer.updateSettings(settingsVT, true);
 	
 	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis
 		writeToLog("analyzer onset thread started");
@@ -160,8 +160,8 @@ void TSNGranularAudioProcessor::writeEvents(){
 		return;
 	}
 
-    auto const settingsVT = apvts.state.getChildWithName(nvs::axiom::Settings);
-    _analyzer.updateSettings(settingsVT);
+    auto settingsVT = apvts.state.getChildWithName(nvs::axiom::Settings);
+    _analyzer.updateSettings(settingsVT, true);
 
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
 	auto const waveSpan = std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples()));

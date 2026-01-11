@@ -42,7 +42,7 @@ public:
     ~ThreadedAnalyzer() override;
     //===============================================================================
     void updateStoredAudio(std::span<float const> wave, const juce::String &audioFileAbsPath);
-    void updateSettings(const juce::ValueTree &settingsTree);
+    void updateSettings(juce::ValueTree &settingsTree, bool attemptFix);
     //===============================================================================
     void run() override;
     void stopAnalysis() { signalThreadShouldExit(); }

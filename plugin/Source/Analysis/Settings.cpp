@@ -133,23 +133,23 @@ void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT,
 
 	if (const auto it = specsByBranch.find (branchName); it != specsByBranch.end()) {
         for (auto const& specMap = *it->second; const auto&[fst, snd] : specMap) {
-			auto prop = fst;
-			auto const& anySpec = snd;
+			auto propName = fst;
+			auto const& branchSpec = snd;
 
 			std::visit ([&]<typename T0>(T0&& spec){
 				using SpecT = std::decay_t<T0>;
 
 				if constexpr (std::is_same_v<SpecT, RangedSettingsSpec<int>> ||
 							  std::is_same_v<SpecT, RangedSettingsSpec<double>>) {
-					branchVT.setProperty (prop, spec.defaultValue, nullptr);
+					branchVT.setProperty (propName, spec.defaultValue, nullptr);
 				}
 				else if constexpr (std::is_same_v<SpecT, ChoiceSettingsSpec>) {
-					branchVT.setProperty (prop, spec.defaultValue, nullptr);
+					branchVT.setProperty (propName, spec.defaultValue, nullptr);
 				}
 				else if constexpr (std::is_same_v<SpecT, BoolSettingsSpec>) {
-					branchVT.setProperty (prop, spec.defaultValue, nullptr);
+					branchVT.setProperty (propName, spec.defaultValue, nullptr);
 				}
-			}, anySpec);
+			}, branchSpec);
 		}
 	}
 }
@@ -196,17 +196,52 @@ bool verifySettingsStructure (const juce::ValueTree& settingsVT)
 
 	return true;
 }
-
-bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree) {
-    // Verify tree structure first
-    if (bool const valid = verifySettingsStructure(settingsTree);
-        !valid)
-    {
-        std::cerr << "settings tree invalid\n";
+bool verifySettingsStructureWithAttemptedFix (juce::ValueTree& settingsVT)
+{
+    if (! settingsVT.isValid()){
         jassertfalse;
         return false;
     }
+    for (auto const& [branchName, specMapPtr] : specsByBranch) {
+        auto branchId = juce::Identifier (branchName);
+        auto branchVT = settingsVT.getChildWithName (branchId);
 
+        // check branch validity
+        if (! branchVT.isValid()) {
+            ensureBranchAndInitializeDefaults (settingsVT, branchName);
+            branchVT = settingsVT.getChildWithName (branchId);
+            jassert(branchVT.isValid());
+        }
+
+        // check every parameter key inside that branch
+        for (auto const& [fst, spec] : *specMapPtr) {
+            const auto propertyName = fst;  // copy because structured bindings aren't lambda-captured in C++20
+            if (juce::Identifier propertyId (propertyName);
+                !branchVT.hasProperty(propertyId))
+            {
+                const auto it = specsByBranch.find (branchName);
+                if (it == specsByBranch.end()) {
+                    jassertfalse;
+                    return false;
+                }
+                const std::map<juce::String, AnySpec> branchSpecs = *it->second;
+                auto thing = branchSpecs.find(propertyName);
+                if (thing == branchSpecs.end()) {
+                    jassertfalse;
+                    return false;
+                }
+                auto propSpec = thing->second;
+                std::visit ([&]<typename T0>(T0&& anySpec){
+                    using SpecT = std::decay_t<T0>;
+                    branchVT.setProperty (propertyName, anySpec.defaultValue, nullptr);
+                }, propSpec);
+            }
+        }
+    }
+    return true;
+}
+
+bool updateSettingsFromValueTree(AnalyzerSettings& settings, const juce::ValueTree& settingsTree) {
     auto parent = settingsTree.getParent();
     auto const fileInfoTree = parent.getChildWithName(axiom::FileInfo);
     settings.info.sampleFilePath = fileInfoTree.getProperty(axiom::sampleFilePath).toString();

@@ -17,6 +17,7 @@ namespace nvs::analysis {
 void ensureBranchAndInitializeDefaults (juce::ValueTree& settingsVT, const juce::String& branchName);
 void initializeSettingsBranches(juce::ValueTree& settingsVT, bool dbg=true);
 bool verifySettingsStructure (const juce::ValueTree& settingsVT);
+bool verifySettingsStructureWithAttemptedFix (juce::ValueTree& settingsVT);
 
 template<typename T>
 struct RangedSettingsSpec

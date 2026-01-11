@@ -20,9 +20,14 @@ Analyzer::Analyzer()
 ,	ess_hold(ess_init)
 {}
 
-bool Analyzer::updateSettings(const juce::ValueTree &newSettings){
+bool Analyzer::updateSettings(juce::ValueTree &newSettings, const bool attemptFix){
     // verify tree structure
-    const bool valid = verifySettingsStructure(newSettings);
+    bool valid {false};
+    if (!attemptFix) {
+       valid = verifySettingsStructure(newSettings);
+    } else {
+        valid = verifySettingsStructureWithAttemptedFix(newSettings);
+    }
     jassert (newSettings.getParent().getChildWithName("FileInfo").hasProperty("sampleRate"));
 
     if (valid){

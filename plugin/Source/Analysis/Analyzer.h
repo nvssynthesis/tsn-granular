@@ -131,7 +131,7 @@ public:
 	
 	float getAnalyzedFileSampleRate() const;
 
-	bool updateSettings(const juce::ValueTree &newSettings);
+	bool updateSettings(juce::ValueTree &newSettings, bool attemptFix);
 	AnalyzerSettings const &getSettings() const;
     juce::String getSettingsHash() const {
         return _settingsHash;
