@@ -110,9 +110,6 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
 
     jassert(p5D.norm() < 100.f);
 
-    selector.updateFilters(midiNote, guiParams); // only recomputes if changed
-    auto weightedIndices = selector.selectPointsForTarget(p5D);
-
     _timbreSpace.setTargetPoint(p5D);
     _timbreSpace.computeExistingPointsFromTarget();
 
