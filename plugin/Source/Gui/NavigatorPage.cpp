@@ -24,6 +24,9 @@ NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts,
             components.push_back(std::move(slider));
         }
         else if (p.getParameterType() == nvs::param::ParameterType::Choice) {
+            if (p.ID == nvs::axiom::statistic) {
+                continue;
+            }
             auto cb = std::make_unique<AttachedComboBox>(apvts, p);
             addAndMakeVisible(cb.get());
             components.push_back(std::move(cb));
@@ -38,8 +41,8 @@ void NavigatorPanel::resized()
     if (horizontal) {
         // Left to right layout
         int const allottedCompHeight = localBounds.getHeight();
-        auto const sliderHeight = allottedCompHeight * 0.8;
-        auto const labelHeight = allottedCompHeight - sliderHeight;
+        // auto const sliderHeight = allottedCompHeight * 0.8;
+        // auto const labelHeight = allottedCompHeight - sliderHeight;
         int const allottedCompWidth = localBounds.getWidth() / components.size();
 
         for (size_t i = 0; i < components.size(); ++i){
@@ -78,6 +81,9 @@ NavigatorPage::NavigatorPage(juce::AudioProcessorValueTreeState &apvts)
 
     navCommonParamsPanel = std::make_unique<NavigatorPanel>(_apvts, "nav_common", true);
     addAndMakeVisible(navCommonParamsPanel.get());
+
+    timbreSpaceCullPanel = std::make_unique<NavigatorPanel>(_apvts, "timbre_space_cull", false);
+    addAndMakeVisible(timbreSpaceCullPanel.get());
 
     navigatorTypeMenu._comboBox.addListener(this);
     updateDisplayedParameters();
@@ -144,10 +150,15 @@ void NavigatorPage::resized() {
 	        rightW,
 	        bounds.getHeight()
 	    };
-		
+
+	    const auto leftTop = left.withTrimmedBottom(static_cast<int>(static_cast<double>(left.getHeight()) * 0.35));
 		if (timbreSpaceParamsPanel != nullptr){
-			timbreSpaceParamsPanel->setBounds(left);
+			timbreSpaceParamsPanel->setBounds(leftTop);
 		}
+	    const auto leftBottom = left.withTop(leftTop.getBottom());
+        if (timbreSpaceCullPanel != nullptr) {
+            timbreSpaceCullPanel->setBounds(leftBottom);
+        }
 
 	    navParamsPanelBounds = middle;
 

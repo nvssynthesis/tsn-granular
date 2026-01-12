@@ -42,6 +42,7 @@ private:
     void updateDisplayedParameters();
 
 	std::unique_ptr<NavigatorPanel> timbreSpaceParamsPanel;
+    std::unique_ptr<NavigatorPanel> timbreSpaceCullPanel;
 	std::unique_ptr<NavigatorPanel> navigatorParamsPanel;
     std::unique_ptr<NavigatorPanel> navCommonParamsPanel;
     juce::Rectangle<int> navParamsPanelBounds;
