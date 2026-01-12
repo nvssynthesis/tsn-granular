@@ -371,43 +371,46 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
         updateStatistic();
     }
 }
+void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
+    // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
+    // ========================================ONSETS========================================
+    const auto onsetsResult = a.shareOnsetAnalysis();
+    if (!onsetsResult) {
+        DBG("Onsets somehow null; returning\n");
+        return;
+    }
+    auto const &onsets = onsetsResult->onsets;
+    if (onsets.empty()) {
+        DBG("Onsets have 0 length");
+        return;
+    }
+
+    // ===================================TIMBRE ANALYSIS====================================
+    const auto analysisResult = a.stealTimbreSpaceRepresentation();
+    if (!analysisResult.has_value()){
+        DBG("No analysis available\n");
+        return;
+    }
+    auto const &tspace = analysisResult.value().timbreMeasurements;
+
+    const String waveformHash = onsetsResult->waveformHash;
+    const String absFilePath = onsetsResult->audioFileAbsPath;
+
+    if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
+        DBG("Discrepancy between onsets and timbre analysis\n");
+    }
+    setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
+
+    setSavePending(true);
+    signalSaveAnalysisOption();
+    signalOnsetsAvailable();
+}
 
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but
 	// what if the rest of this func fails? do we want a cleared tree at that point?
 	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-	    // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
-	    // ========================================ONSETS========================================
-	    const auto onsetsResult = a->shareOnsetAnalysis();
-	    if (!onsetsResult) {
-            DBG("Onsets somehow null; returning\n");
-            return;
-        }
-	    auto const &onsets = onsetsResult->onsets;
-        if (onsets.empty()) {
-            DBG("Onsets have 0 length");
-            return;
-        }
-
-	    // ===================================TIMBRE ANALYSIS====================================
-		const auto analysisResult = a->stealTimbreSpaceRepresentation();
-		if (!analysisResult.has_value()){
-			DBG("No analysis available\n");
-			return;
-		}
-		auto const &tspace = analysisResult.value().timbreMeasurements;
-
-	    const String waveformHash = onsetsResult->waveformHash;
-	    const String absFilePath = onsetsResult->audioFileAbsPath;
-
-	    if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
-	        DBG("Discrepancy between onsets and timbre analysis\n");
-	    }
-		setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
-
-	    setSavePending(true);
-        signalSaveAnalysisOption();
-		signalOnsetsAvailable();
+	    analyzerUpdated(*a);
 	}
 }
 void TimbreSpace::TimbreDataManager::triangulatePendingData(const bool verbose) {
@@ -443,7 +446,7 @@ void TimbreSpace::TimbreDataManager::swapIfPending(const bool verbose) {
 }
 
 void TimbreSpace::fullSelfUpdate(const bool verbose){
-	extract(verbose);
+	extractTimbralFeatures(verbose);
 	computeHistogramEqualizedPoints(verbose);
 	reshape(verbose);
 	_timbreDataManager.triangulatePendingData(verbose);
@@ -511,14 +514,14 @@ extractFeatures(const juce::ValueTree &frameTree,
 	return out;
 }
 
-void TimbreSpace::extract(const bool verbose) {
+void TimbreSpace::extractTimbralFeatures(const bool verbose) {
     if (verbose)
         DBG("Extracting timbre points\n");
 
 	auto const &featuresToExtract = settings.dimensionwiseFeatures;
 	if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){
 		if (verbose)
-		    DBG("TimbreSpace::extract: timbre space empty, early exit\n");
+		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
 		return;
 	}
 	_eventwiseExtractedTimbrePoints.clear();

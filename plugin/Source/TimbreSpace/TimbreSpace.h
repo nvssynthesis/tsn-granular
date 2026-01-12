@@ -37,8 +37,8 @@ public:
 	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const;
 	std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> shareOnsets() const;
 	//=============================================================================================================================
-	void setTargetPoint(const Timbre5DPoint& target);
-    void computeExistingPointsFromTarget();
+	[[deprecated]] void setTargetPoint(const Timbre5DPoint& target);
+    [[deprecated]] void computeExistingPointsFromTarget();
 	//=============================================================================================================================
 	using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
 	using ValueTree = juce::ValueTree;
@@ -56,7 +56,8 @@ public:
 private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
-	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
+	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally calls analyzerUpdated
+    void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
 
     void updateDimensionwiseFeature(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
@@ -145,7 +146,7 @@ private:
 	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
 	
 	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
-	void extract(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
+	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
 	void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
 };
