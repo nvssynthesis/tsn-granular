@@ -58,8 +58,8 @@ private:
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override;
 
-    void updateDimensionwiseFeature(const juce::String& paramID);
-    void updateAllDimensionwiseFeatures();
+    void updateDimensionwiseFeature(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
+    void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
     void updateStatistic();
 
 	struct Settings {
@@ -78,12 +78,12 @@ private:
 	//=============================================================================================================================
     class TimbreDataManager {
     public:
-        void updateData(bool verbose=false);
+        void triangulatePendingData(bool verbose=false);
         void swapIfPending(bool verbose=false);
 
         // Audio thread: read current stable data
         const std::vector<Timbre5DPoint>& getTimbres() const;
-        void setPoints(const std::vector<Timbre5DPoint>& points);
+        void setPoints(const std::vector<Timbre5DPoint>& points); // only gets called downstream from reshape()
         void clear();
         bool isReadyForTriangulation() const;
 
@@ -116,10 +116,11 @@ private:
     void setPoints(std::vector<Timbre5DPoint> const &points);
     void clearPoints();
 	//=============================================================================================================================
+	// the following are used in reshape():
 	typedef std::pair<float, float> Range;
-	std::vector<Range> _ranges {}; // min, max per dimension
+	std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
 	std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
-
+    //=============================================================================================================================
 	class TreeManager {
 	public:
 	    TreeManager(AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace);
@@ -131,7 +132,7 @@ private:
 	    const AudioProcessorValueTreeState &getAPVTS() const { return _apvts; }
 		int getNumFrames() const;
 	private:
-	    ValueTree _timbreSpaceTree;
+	    ValueTree _timbreSpaceTree; // the most raw, unaffected version of the timbre space data. it gets populated from outside by an Analyzer class.
 	    AudioProcessorValueTreeState &_apvts;
 	    TimbreSpace &_timbreSpace;  // just for adding/removing as listener
 	} _treeManager;
@@ -143,10 +144,10 @@ private:
 	
 	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
 	
-	void fullSelfUpdate(bool verbose);	// simply calls the following 3 functions:	
-	void extract(bool verbose=false);
-	void updateTimbreSpacePoints(bool verbose=false);
-	void reshape(bool verbose=false);
+	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
+	void extract(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
+	void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
+	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
 };
 
 //=============================================================================================================================

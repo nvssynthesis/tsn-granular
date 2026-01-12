@@ -410,10 +410,12 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 		signalOnsetsAvailable();
 	}
 }
-void TimbreSpace::TimbreDataManager::updateData(const bool verbose) {
+void TimbreSpace::TimbreDataManager::triangulatePendingData(const bool verbose) {
     if (verbose)
-        DBG("TimbreDataManager::updateData computing _delaunator & storing _pendingUpdate flag\n");
+        DBG("TimbreDataManager::triangulatePendingData computing _delaunator & storing _pendingUpdate flag\n");
     if (_timbres5D_pending.empty()) {
+        if (verbose)
+            DBG("TimbreDataManager::triangulatePendingData timbres5D empty; returning\n");
         return;
     }
     const auto coords2D = make2dCoordinates(_timbres5D_pending);
@@ -442,9 +444,9 @@ void TimbreSpace::TimbreDataManager::swapIfPending(const bool verbose) {
 
 void TimbreSpace::fullSelfUpdate(const bool verbose){
 	extract(verbose);
-	updateTimbreSpacePoints(verbose);
+	computeHistogramEqualizedPoints(verbose);
 	reshape(verbose);
-	_timbreDataManager.updateData(verbose);
+	_timbreDataManager.triangulatePendingData(verbose);
 }
 
 [[nodiscard]]
@@ -555,7 +557,7 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	return vecOut;
 }
 
-void TimbreSpace::updateTimbreSpacePoints(const bool verbose)
+void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
 {	/** to be called when the actual analyzed timbre space changes  */
 
     if(verbose)
@@ -589,8 +591,6 @@ void TimbreSpace::updateTimbreSpacePoints(const bool verbose)
 }
 void TimbreSpace::reshape(const bool verbose)
 {   /** to be called when we only want to change the VIEW of the timbre points (which will also need to happen when the timbre space itself changes) */
-
-
     if (verbose)
         DBG("reshaping timbre space\n");
 
