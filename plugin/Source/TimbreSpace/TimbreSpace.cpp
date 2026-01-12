@@ -121,7 +121,7 @@ static const std::map<juce::String, size_t> pidToDimensionMap {
     {nvs::axiom::v_axis, 4},
 };
 
-void TimbreSpace::updateDimensionwiseFeature(const juce::String& paramID) {
+void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramID) {
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
             settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Features>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
@@ -159,7 +159,7 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             fullSelfUpdate(true);
             return;
         }
-        updateDimensionwiseFeature(paramID);
+        updateDimensionwiseFeatureFromParam(paramID);
     }
 }
 

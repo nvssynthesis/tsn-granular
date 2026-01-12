@@ -59,7 +59,7 @@ private:
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally calls analyzerUpdated
     void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
 
-    void updateDimensionwiseFeature(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
+    void updateDimensionwiseFeatureFromParam(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
     void updateStatistic();
 
