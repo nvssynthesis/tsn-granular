@@ -16,6 +16,7 @@
 #include <ranges>
 #include "fmt/core.h"
 #include "StringAxiom.h"
+#include "dsp_util.h"
 
 namespace nvs::timbrespace {
 
@@ -137,9 +138,7 @@ void TimbreSpace::updateAllDimensionwiseFeatures(){
         settings.dimensionwiseFeatures[i] = feat;
     }
 }
-void TimbreSpace::updateStatistic() {
-    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
-}
+
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
     if (alteredTree.hasType(nvs::axiom::PARAM) && property == juce::Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
@@ -147,28 +146,47 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
 
         if (paramID == nvs::axiom::histogram_equalization) {
             DBG("Histogram equalization changed to: " + juce::String(newValue));
-            settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
-            std::cout << "tree changed! redrawing points...\n";
-
+            updateHistogramEqualization();
+            DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(true);
             return;
         }
         if (paramID == nvs::axiom::statistic) {
             updateStatistic();
-            std::cout << "tree changed! redrawing points...\n";
+            DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(true);
             return;
         }
         if (paramID == nvs::axiom::filtered_feature) {
-            // set which feature gets filtered
+            updateFilteredFeature();
+            fullSelfUpdate(true);
+            return;
         }
-        if (paramID == nvs::axiom::filtered_feature_min) {
-            // set minimum for filtering
-        }
-        if (paramID == nvs::axiom::filtered_feature_max) {
-            // set maximum for filtering
+        if ((paramID == nvs::axiom::filtered_feature_min) || (paramID == nvs::axiom::filtered_feature_max)) {
+            // ideally we should only update these when their slider is RELEASED, not as it drags!
+            updateFilteredFeature();
+            fullSelfUpdate(true);
+            return;
         }
         updateDimensionwiseFeatureFromParam(paramID);
+    }
+}
+void TimbreSpace::updateHistogramEqualization() {
+    settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
+}
+void TimbreSpace::updateStatistic() {
+    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
+}
+void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
+    if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceTree()){
+        signalOnsetsAvailable();
+    } else if (&treeWhichHasBeenChanged == &_treeManager.getAPVTS().state) {
+        // if we get here, the plugin state has been loaded. we need to deal with setting internal params from those of the state.
+        updateHistogramEqualization();
+        updateStatistic();
+
+        updateAllDimensionwiseFeatures();
+        updateStatistic();
     }
 }
 
@@ -371,15 +389,6 @@ void TimbreSpace::signalSaveAnalysisOption() const {
 void TimbreSpace::signalOnsetsAvailable() const {
 	sendActionMessage(axiom::onsetsAvailable);	// who needs it? SegmentedWaveformComponent, TsnGranularPluginProcessor (for calling synth->loadOnsets())
 }
-void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
-	if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceTree()){
-		signalOnsetsAvailable();
-	} else if (&treeWhichHasBeenChanged == &_treeManager.getAPVTS().state) {
-        // if we get here, the plugin state has been loaded. we need to deal with setting dimensionwise features from state.
-        updateAllDimensionwiseFeatures();
-        updateStatistic();
-    }
-}
 void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
     // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
     // ========================================ONSETS========================================
@@ -463,7 +472,7 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
 
 [[nodiscard]]
 inline std::vector<analysis::Real>
-extractFeatures(const juce::ValueTree &frameTree,
+extractFeaturesFromTree(const juce::ValueTree &frameTree,
                 const std::vector<analysis::Feature_e> &featuresToUse,
                 const analysis::Statistic statisticToUse)
 {
@@ -523,6 +532,55 @@ extractFeatures(const juce::ValueTree &frameTree,
 	return out;
 }
 
+void TimbreSpace::updateFilteredFeature() {
+    _filteredFeature = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature)->load());
+    _filteredFeatureTargetRangeNormalized.first = _treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature_min)->load();
+    _filteredFeatureTargetRangeNormalized.second = _treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature_max)->load();
+
+
+    auto const s = nvs::analysis::toString(_filteredFeature);
+    DBG("Filtered feature changed to: " + s);
+
+    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){ return; }
+
+    auto const featureToExtract = std::vector { _filteredFeature };    // just using vector because that's what extractFeaturesFromTree accepts
+
+    auto const &timbreTree = _treeManager.getTimbralFramesTree();
+
+    std::vector<float> extractedFramewiseFeatureValues;
+
+    for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
+        ValueTree const &frame = timbreTree.getChild(feat_idx);
+        std::vector<float> v = extractFeaturesFromTree(frame, featureToExtract, settings.statistic);
+        jassert (v.size() == 1);
+        extractedFramewiseFeatureValues.push_back(v[0]);
+    }
+    _filteredFeatureSourceRange = {1e+15, -1e+15}; // min initialized to ridiculously high, max to ridiculously low
+    for (const auto f : extractedFramewiseFeatureValues) {
+        if (f < _filteredFeatureSourceRange.first) {
+            _filteredFeatureSourceRange.first = f;
+        }
+        if (f > _filteredFeatureSourceRange.second) {
+            _filteredFeatureSourceRange.second = f;
+        }
+        if (_filteredFeatureSourceRange.first == _filteredFeatureSourceRange.second) {
+            _filteredFeatureSourceRange = {0.0, 1.0};
+            DBG("SETTING RANGE TO [0..1]");
+        }
+    }
+    _indicesToFilter.clear();
+    for (size_t frameIdx = 0; frameIdx < extractedFramewiseFeatureValues.size(); ++frameIdx) {
+        auto x = extractedFramewiseFeatureValues[frameIdx];
+        // scale raw feature value to [0..1] range
+        x = nvs::util::scale(x, _filteredFeatureSourceRange.first, _filteredFeatureSourceRange.second - _filteredFeatureSourceRange.first);
+        jassert((0.f <= _filteredFeatureTargetRangeNormalized.first) && (_filteredFeatureTargetRangeNormalized.second <= 1.f));
+        if (x < _filteredFeatureTargetRangeNormalized.first || _filteredFeatureTargetRangeNormalized.second < x) {
+            _indicesToFilter.push_back(frameIdx);
+        }
+    }
+    DBG("bye\n");
+}
+
 void TimbreSpace::extractTimbralFeatures(const bool verbose) {
     if (verbose)
         DBG("Extracting timbre points\n");
@@ -536,10 +594,13 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 	_eventwiseExtractedTimbrePoints.clear();
 	_eventwiseExtractedTimbrePoints.reserve(_treeManager.getNumFrames());
 	
-	auto const &timbreTree = _treeManager.getTimbralFramesTree();
-	for (int i = 0; i < timbreTree.getNumChildren(); ++i) {
-		ValueTree const &frame = timbreTree.getChild(i);
-		std::vector<float> v = extractFeatures(frame, featuresToExtract, settings.statistic);
+	auto const &timbralFramesTree = _treeManager.getTimbralFramesTree();
+	for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
+	    if (std::ranges::find(_indicesToFilter, frameIdx) != _indicesToFilter.end()) {
+	        continue;   // exclude filtered out points from the set
+	    }
+		ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
+		std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
 		_eventwiseExtractedTimbrePoints.push_back(v);
 	}
 }

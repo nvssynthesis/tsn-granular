@@ -61,6 +61,7 @@ private:
 
     void updateDimensionwiseFeatureFromParam(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
+    void updateHistogramEqualization();
     void updateStatistic();
 
 	struct Settings {
@@ -137,6 +138,8 @@ private:
 	
 	void signalSaveAnalysisOption() const;
 	void signalOnsetsAvailable() const;
+
+    typedef std::pair<float, float> Range;
     //=============================================================================================================================
 	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
 	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
@@ -144,11 +147,14 @@ private:
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
-    nvs::analysis::Feature_e filteredFeature;
+    nvs::analysis::Feature_e _filteredFeature {nvs::analysis::Feature_e::SpectralFlatness};
+    void updateFilteredFeature();
+    Range _filteredFeatureSourceRange {};
+    Range _filteredFeatureTargetRangeNormalized {0.f, 1.f}; // ugh, we WANT to filter within extractTimbralFeatures, but need the _range for the given feature so we can filter based on NORMALIZED version. i guess we just have to compute it in extractTimbralFeatures
+    std::vector<size_t> _indicesToFilter {};
     std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
     //=============================================================================================================================
     // the following are used in reshape():
-    typedef std::pair<float, float> Range;
     std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
     std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================
