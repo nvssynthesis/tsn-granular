@@ -34,13 +34,17 @@ public:
 	void askForAnalysis();
 	//==============================================================================
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
+    using TimbreSpacePointSelector = nvs::timbrespace::TimbreSpacePointSelector;
 	using ThreadedAnalyzer = nvs::analysis::ThreadedAnalyzer;
     using TSNGranularSynth = nvs::gran::TSNGranularSynthesizer;
 
 	ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
 	}
-	TimbreSpace &getTimbreSpace() const { return _tsnGranularSynth->getTimbreSpace(); }
+	[[deprecated("theory: the only valid reasons to get timbreSpace from here would be saving, writing, and validation. create helper methods instead.")]]
+    TimbreSpace &getTimbreSpace() const { return _tsnGranularSynth->getTimbreSpace(); }
+    TimbreSpacePointSelector &getTimbreSpacePointSelector() const { return _tsnGranularSynth->getTimbreSpacePointSelector(); }
+
     TSNGranularSynth *getTsnGranularSynthesizer() const {
 	    jassert(_tsnGranularSynth);
 		return _tsnGranularSynth;

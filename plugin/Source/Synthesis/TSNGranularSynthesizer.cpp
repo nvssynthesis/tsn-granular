@@ -45,6 +45,8 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
 
+    _timbreSpacePointSelector.setTimbreSpace(_timbreSpace);
+
     _navigator.setNavigationPeriod(5.0);
 }
 TSNGranularSynthesizer::~TSNGranularSynthesizer() {
@@ -85,7 +87,7 @@ void TSNGranularSynthesizer::setReadBoundsFromChosenPoint() {
      However, since setWaveEvents happens based on a separate timer, the processing currently just exits
      early if the weighted indices exceed the numOnsets
     */
-    auto const &pIndices = _timbreSpace.getCurrentPointIndices();
+    auto const &pIndices = _timbreSpacePointSelector.getCurrentPointIndices();
     constexpr auto numVoices = getNumVoices();
     for (int voiceIdx = 0; voiceIdx < numVoices; ++voiceIdx){
         if (const auto granularVoice = dynamic_cast<GranularVoice*>(getVoice(voiceIdx))){
@@ -110,8 +112,7 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
 
     jassert(p5D.norm() < 100.f);
 
-    _timbreSpace.setTargetPoint(p5D);
-    _timbreSpace.computeExistingPointsFromTarget();
+    _timbreSpacePointSelector.computeExistingPointsFromTarget(p5D);
 
     setReadBoundsFromChosenPoint();
 

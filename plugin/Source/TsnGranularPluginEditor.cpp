@@ -131,7 +131,7 @@ void TsnGranularAudioProcessorEditor::mouseDrag(const juce::MouseEvent &) {}
 void TsnGranularAudioProcessorEditor::timerCallback() {
     timbreSpaceComponent.repaint(); // EXPENSIVE
     jassert (waveformComponent != nullptr);
-    waveformComponent->highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpace().getCurrentPointIndices());
+    waveformComponent->highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpacePointSelector().getCurrentPointIndices());
 }
 
 //==============================================================================

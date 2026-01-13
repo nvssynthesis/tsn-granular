@@ -173,18 +173,18 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
     }
     g.addTransform(AffineTransform::verticalFlip(h));
     {
-        auto &timbreSpace = _proc->getTimbreSpace();
-        auto const &timbres5D = timbreSpace.getTimbreSpace();
+        auto &timbreSpacePS = _proc->getTimbreSpacePointSelector();
+        auto const &timbres5D = timbreSpacePS.getTimbreSpacePoints();
 	    if (timbres5D.empty()) {
 	        return;
 	    }
         std::vector<Timbre5DPoint> current_points;
-		current_points.reserve(timbreSpace.getCurrentPointIndices().size());
-		for (auto & p : timbreSpace.getCurrentPointIndices()){
+		current_points.reserve(timbreSpacePS.getCurrentPointIndices().size());
+		for (auto & p : timbreSpacePS.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[p.idx]);
 		}
 
-	    setNavigatorPoint(get2D(timbreSpace.getTargetPoint()));
+	    setNavigatorPoint(get2D(timbreSpacePS.getTargetPoint()));
 		
 		for (const auto& p5 : timbres5D){
 			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
@@ -421,8 +421,8 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 }
 
 std::vector<nvs::util::WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
-	const auto &ts = _proc->getTimbreSpace();
-	return ts.getCurrentPointIndices();
+	const auto &tsps = _proc->getTimbreSpacePointSelector();
+	return tsps.getCurrentPointIndices();
 }
 
 juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(const juce::Point<int> pos) const {

@@ -1,7 +1,7 @@
 /*
   ==============================================================================
 
-    TimbreSpaceHolder.h
+    TimbreSpace.h
     Created: 2 Jul 2025 2:02:13pm
     Author:  Nicholas Solem
 
@@ -13,7 +13,6 @@
 #include "../Analysis/Features.h"
 #include "../Analysis/Statistics.h"
 #include "../Analysis/ThreadedAnalyzer.h"   // just for OnsetAnalysisResult
-#include "../../slicer_granular/Source/misc_util.h"
 #include "TimbrePointTypes.h"
 #include "../../delaunator-cpp/include/delaunator.hpp"
 
@@ -32,34 +31,27 @@ public:
 	TimbreSpace(TimbreSpace&&) noexcept = delete;
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
-	std::vector<Timbre5DPoint> const &getTimbreSpace() const;
-    Timbre5DPoint getTargetPoint() const;
-	std::vector<util::WeightedIdx> const &getCurrentPointIndices() const;
+	std::vector<Timbre5DPoint> const &getTimbreSpacePoints() const;
 	std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> shareOnsets() const;
-	//=============================================================================================================================
-	[[deprecated]] void setTargetPoint(const Timbre5DPoint& target);
-    [[deprecated]] void computeExistingPointsFromTarget();
-	//=============================================================================================================================
-	using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
-	using ValueTree = juce::ValueTree;
-	using String = juce::String;
-	//=============================================================================================================================
-	bool hasValidAnalysisFor(juce::String const &waveformHash) const;
-	//=============================================================================================================================
-	juce::String getAudioAbsolutePath() const;
 	//=============================================================================================================================
 	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
 	ValueTree getTimbreSpaceTree() const { return _treeManager.getTimbreSpaceTree(); }
 	//=============================================================================================================================
+	bool hasValidAnalysisFor(String const &waveformHash) const;
+    String getAudioAbsolutePath() const;
+    //=============================================================================================================================
     void setSavePending(const bool saveIsPending) { _analysisSavePending = saveIsPending; }
     bool isSavePending() const { return _analysisSavePending; }
+    //=============================================================================================================================
+    void updateInternals(); // calls dataManager.swapIfPending(), internally updating to the latest points. Swap is necessary for thread safety.
+    //=============================================================================================================================
 private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally calls analyzerUpdated
     void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
 
-    void updateDimensionwiseFeatureFromParam(const juce::String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
+    void updateDimensionwiseFeatureFromParam(const String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
     void updateHistogramEqualization();
     void updateStatistic();
@@ -80,40 +72,26 @@ private:
 	//=============================================================================================================================
     class TimbreDataManager {
     public:
-        void triangulatePendingData(bool verbose=false);
-        void swapIfPending(bool verbose=false);
+        void swapIfPending();
 
-        // Audio thread: read current stable data
-        const std::vector<Timbre5DPoint>& getTimbres() const;
+        // audio thread: read current stable data
+        const std::vector<Timbre5DPoint>& getTimbreSpacePoints() const;
         void setPoints(const std::vector<Timbre5DPoint>& points); // only gets called downstream from reshape()
         void clear();
-        bool isReadyForTriangulation() const;
 
-        const delaunator::Delaunator* getDelaunator() const {
-            return _delaunator.get();
-        }
+        bool isEmpty() const { return _timbres5D.empty(); }
+        size_t size() const { return _timbres5D.size(); }
 
-        bool isEmpty() const {
-            return _timbres5D.empty();
-        }
-
-        size_t size() const {
-            return _timbres5D.size();
-        }
-
+        void updateData();
     private:
-        // Current stable data (audio thread reads)
+        // current stable data (audio thread reads)
         std::vector<Timbre5DPoint> _timbres5D;
-        std::unique_ptr<delaunator::Delaunator> _delaunator;
-
-        // Pending data (message thread writes)
+        // pending data (message thread writes)
         std::vector<Timbre5DPoint> _timbres5D_pending;
-        std::unique_ptr<delaunator::Delaunator> _delaunator_pending;
-
+        // for thread synchronization
         std::atomic<bool> _pendingUpdate { false };
     } _timbreDataManager;
-    Timbre5DPoint _target {};
-	std::vector<util::WeightedIdx> _currentPointIndices {{},{},{}};
+
     //=============================================================================================================================
     void setPoints(std::vector<Timbre5DPoint> const &points);
     void clearPoints();
@@ -138,6 +116,7 @@ private:
 	
 	void signalSaveAnalysisOption() const;
 	void signalOnsetsAvailable() const;
+    void signalShapedPointsAvailable() const;
 
     typedef std::pair<float, float> Range;
     //=============================================================================================================================
@@ -159,21 +138,5 @@ private:
     std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================
 };
-
-//=============================================================================================================================
-std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
-												    const juce::Array<Timbre5DPoint>&  database,
-												    int K,
-												    int numToPick,
-												    double sharpness,
-												    float higher3Dweight);
-
-std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
-															const std::vector<Timbre5DPoint>& database,
-															const delaunator::Delaunator &d);
-
-std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
-														 const std::vector<Timbre5DPoint>& database,
-														 const delaunator::Delaunator& d);
 
 }	// namespace nvs::timbrespace
