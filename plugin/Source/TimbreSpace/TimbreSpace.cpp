@@ -97,7 +97,7 @@ void TimbreSpace::updateAllDimensionwiseFeatures(){
         settings.dimensionwiseFeatures[i] = feat;
     }
 }
-
+//=============================================================================================================================
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
     if (alteredTree.hasType(nvs::axiom::PARAM) && property == juce::Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
@@ -130,12 +130,6 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
         updateDimensionwiseFeatureFromParam(paramID);
     }
 }
-void TimbreSpace::updateHistogramEqualization() {
-    settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
-}
-void TimbreSpace::updateStatistic() {
-    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
-}
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
     if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceTree()){
         signalOnsetsAvailable();
@@ -148,6 +142,22 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
         updateStatistic();
     }
 }
+void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
+    // could there be any reason to clear the tree? re-assigning it wouldn't need that, but
+    // what if the rest of this func fails? do we want a cleared tree at that point?
+    if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+        analyzerUpdated(*a);
+    }
+}
+//=============================================================================================================================
+
+void TimbreSpace::updateHistogramEqualization() {
+    settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
+}
+void TimbreSpace::updateStatistic() {
+    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
+}
+
 
 void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
 	tree.setProperty(axiom::mean, stats.mean, nullptr);
@@ -388,13 +398,6 @@ void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
     signalOnsetsAvailable();
 }
 
-void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
-	// could there be any reason to clear the tree? re-assigning it wouldn't need that, but
-	// what if the rest of this func fails? do we want a cleared tree at that point?
-	if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-	    analyzerUpdated(*a);
-	}
-}
 void TimbreSpace::updateInternals() {
     _timbreDataManager.swapIfPending();
 }
