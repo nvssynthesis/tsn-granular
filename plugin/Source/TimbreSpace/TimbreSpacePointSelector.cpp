@@ -42,9 +42,8 @@ void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoi
         DBG("computeExistingPointsFromTarget: _timbreSpace null; returning...\n");
         return;
     }
-    // assumes we've already computed delaunay triangulation
-    if (!isReadyForTriangulation()) {
-        DBG("computeExistingPointsFromTarget: not ready for triangulation; returning...\n");
+    swapIfPending();
+    if (_delaunator == nullptr) {
         return;
     }
 
@@ -94,15 +93,6 @@ void TimbreSpacePointSelector::swapIfPending() {
         DBG("TimbreSpacePointSelector::swapIfPending exchanging delaunator\n");
         _delaunator = std::move(_delaunator_pending);
     }
-}
-
-bool TimbreSpacePointSelector::isReadyForTriangulation() const {
-    if (_timbreSpace->getTimbreSpacePoints().empty())
-        return false;
-    if (_delaunator.get() == nullptr)
-        return false;
-
-    return true;
 }
 
 

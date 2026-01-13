@@ -28,7 +28,6 @@ private:
 
     void computeDelaunay();
     void swapIfPending();
-    bool isReadyForTriangulation() const;
 
     std::unique_ptr<delaunator::Delaunator> _delaunator;
     std::unique_ptr<delaunator::Delaunator> _delaunator_pending;
