@@ -116,11 +116,6 @@ private:
     //=============================================================================================================================
     void setPoints(std::vector<Timbre5DPoint> const &points);
     void clearPoints();
-	//=============================================================================================================================
-	// the following are used in reshape():
-	typedef std::pair<float, float> Range;
-	std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
-	std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================
 	class TreeManager {
 	public:
@@ -142,13 +137,20 @@ private:
 	
 	void signalSaveAnalysisOption() const;
 	void signalOnsetsAvailable() const;
-	
-	std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
-	
+    //=============================================================================================================================
 	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
 	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
 	void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
+    //=============================================================================================================================
+    // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
+    std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
+    //=============================================================================================================================
+    // the following are used in reshape():
+    typedef std::pair<float, float> Range;
+    std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
+    std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
+    //=============================================================================================================================
 };
 
 //=============================================================================================================================
