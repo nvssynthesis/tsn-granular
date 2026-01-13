@@ -28,20 +28,20 @@ template<typename T>
 constexpr auto makeScalarLookup() {
 	// index this array by (enumValue - NumBFCC)
 	// so scalarIndex = enumValue - NumBFCC must be 0..ScalarCount-1
-	static_assert(static_cast<int>(Features::SpectralCentroid) == NumBFCC + 0);
-	static_assert(static_cast<int>(Features::SpectralDecrease) == NumBFCC + 1);
-	static_assert(static_cast<int>(Features::SpectralFlatness) == NumBFCC + 2);
-    static_assert(static_cast<int>(Features::SpectralCrest) == NumBFCC + 3);
-    static_assert(static_cast<int>(Features::SpectralComplexity) == NumBFCC + 4);
-    static_assert(static_cast<int>(Features::StrongPeak) == NumBFCC + 5);
+	static_assert(static_cast<int>(Feature_e::SpectralCentroid) == NumBFCC + 0);
+	static_assert(static_cast<int>(Feature_e::SpectralDecrease) == NumBFCC + 1);
+	static_assert(static_cast<int>(Feature_e::SpectralFlatness) == NumBFCC + 2);
+    static_assert(static_cast<int>(Feature_e::SpectralCrest) == NumBFCC + 3);
+    static_assert(static_cast<int>(Feature_e::SpectralComplexity) == NumBFCC + 4);
+    static_assert(static_cast<int>(Feature_e::StrongPeak) == NumBFCC + 5);
 
-    static_assert(static_cast<int>(Features::Periodicity) == NumBFCC + 6);
-    static_assert(static_cast<int>(Features::Loudness) == NumBFCC + 7);
-    static_assert(static_cast<int>(Features::f0) == NumBFCC + 8);
+    static_assert(static_cast<int>(Feature_e::Periodicity) == NumBFCC + 6);
+    static_assert(static_cast<int>(Feature_e::Loudness) == NumBFCC + 7);
+    static_assert(static_cast<int>(Feature_e::f0) == NumBFCC + 8);
 
 	constexpr int ScalarCount = 9;
 	static constexpr std::array<FeatureContainerMemberPtr<T>, ScalarCount> table {
-	    &FeatureContainer<T>::features[Features::SpectralCentroid],
+	    &FeatureContainer<T>::features[Feature_e::SpectralCentroid],
 	    &FeatureContainer<T>::spectralDecrease,
 	    &FeatureContainer<T>::spectralFlatness,
 	    &FeatureContainer<T>::spectralCrest,
@@ -60,7 +60,7 @@ template<typename T>
 [[nodiscard]]
 std::vector<T>
 extractFeatures(const FeatureContainer<T> & allFeatures,
-				const std::vector<Features> featuresToUse)
+				const std::vector<Feature_e> featuresToUse)
 {
 	std::vector<T> v;
 	v.reserve(featuresToUse.size());
@@ -77,7 +77,7 @@ extractFeatures(const FeatureContainer<T> & allFeatures,
 [[nodiscard]]
 inline vecReal
 extractFeatures(FeatureContainer<EventwiseStatistics<Real>> const & allFeatures,
-				const std::vector<Features> &featuresToUse,
+				const std::vector<Feature_e> &featuresToUse,
 				const Statistic statisticToUse)
 {
 	const auto descriptions = extractFeatures(allFeatures, featuresToUse);
@@ -126,7 +126,7 @@ public:
 
     static std::optional<vecVecReal> calculatePCA(
 	    const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
-	    const std::vector<Features> &featuresToUse,
+	    const std::vector<Feature_e> &featuresToUse,
 	    Statistic statToUse);
 	
 	float getAnalyzedFileSampleRate() const;

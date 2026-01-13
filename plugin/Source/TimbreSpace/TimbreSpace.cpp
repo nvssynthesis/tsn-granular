@@ -124,7 +124,7 @@ static const std::map<juce::String, size_t> pidToDimensionMap {
 void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramID) {
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
-            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Features>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
+            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
             fullSelfUpdate(true);
             return;
         }
@@ -133,7 +133,7 @@ void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramI
 void TimbreSpace::updateAllDimensionwiseFeatures(){
     for (auto const &[s, i] : pidToDimensionMap) {
         const auto val = _treeManager.getAPVTS().getRawParameterValue(s)->load();
-        const auto feat = static_cast<nvs::analysis::Features>(val);
+        const auto feat = static_cast<nvs::analysis::Feature_e>(val);
         settings.dimensionwiseFeatures[i] = feat;
     }
 }
@@ -158,6 +158,15 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             std::cout << "tree changed! redrawing points...\n";
             fullSelfUpdate(true);
             return;
+        }
+        if (paramID == nvs::axiom::filtered_feature) {
+            // set which feature gets filtered
+        }
+        if (paramID == nvs::axiom::filtered_feature_min) {
+            // set minimum for filtering
+        }
+        if (paramID == nvs::axiom::filtered_feature_max) {
+            // set maximum for filtering
         }
         updateDimensionwiseFeatureFromParam(paramID);
     }
@@ -236,7 +245,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
-		    for (auto feature : nvs::util::Iterator<analysis::Features, static_cast<analysis::Features>(analysis::NumBFCC), analysis::Features::f0>()) {
+		    for (auto feature : nvs::util::Iterator<analysis::Feature_e, static_cast<analysis::Feature_e>(analysis::NumBFCC), analysis::Feature_e::f0>()) {
 		        ValueTree featureTree(analysis::toString(feature));
 		        addEventwiseStatistics(featureTree, timbreFrame[feature]);
 		        frameTree.addChild(featureTree, -1, nullptr);
@@ -263,8 +272,8 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 	// Reserve space for efficiency
 	timbreSpace.reserve(timbreMeasurements.getNumChildren());
 
-    static_assert(static_cast<Features>(0) == Features::bfcc0); // we will be casting ints to Features for the BFCCs
-    static_assert(static_cast<Features>(12) == Features::bfcc12);
+    static_assert(static_cast<Feature_e>(0) == Feature_e::bfcc0); // we will be casting ints to Features for the BFCCs
+    static_assert(static_cast<Feature_e>(12) == Feature_e::bfcc12);
 	for (int frameIdx = 0; frameIdx < timbreMeasurements.getNumChildren(); ++frameIdx)
 	{
 		auto frameTree = timbreMeasurements.getChild(frameIdx);
@@ -277,12 +286,12 @@ std::vector<nvs::analysis::FeatureContainer<TimbreSpace::EventwiseStatisticsF>> 
 			for (int bfccIdx = 0; bfccIdx < bfccsTree.getNumChildren(); ++bfccIdx)
 			{
 				auto bfccTree = bfccsTree.getChild(bfccIdx);
-				frame[static_cast<Features>(bfccIdx)] = (toEventwiseStatistics(bfccTree));
+				frame[static_cast<Feature_e>(bfccIdx)] = (toEventwiseStatistics(bfccTree));
 			}
 		}
 		
 		// Extract single-value features
-	    for (auto const feature :  nvs::util::Iterator<Features, static_cast<Features>(NumBFCC), Features::f0>()) {
+	    for (auto const feature :  nvs::util::Iterator<Feature_e, static_cast<Feature_e>(NumBFCC), Feature_e::f0>()) {
 	        if (auto featureTree = frameTree.getChildWithName(toString(feature));
                 featureTree.isValid())
 	        {
@@ -455,7 +464,7 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
 [[nodiscard]]
 inline std::vector<analysis::Real>
 extractFeatures(const juce::ValueTree &frameTree,
-                const std::vector<analysis::Features> &featuresToUse,
+                const std::vector<analysis::Feature_e> &featuresToUse,
                 const analysis::Statistic statisticToUse)
 {
 	using namespace analysis;
@@ -489,15 +498,15 @@ extractFeatures(const juce::ValueTree &frameTree,
 			// It's one of the scalars
 			juce::String childName;
 			switch (f) {
-			    case Features::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
-			    case Features::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
-			    case Features::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
-			    case Features::SpectralCrest:       childName = axiom::SpectralCrest; break;
-			    case Features::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
-			    case Features::StrongPeak:          childName = axiom::StrongPeak; break;
-				case Features::Periodicity:         childName = axiom::Periodicity; break;
-				case Features::Loudness:            childName = axiom::Loudness;    break;
-				case Features::f0:                  childName = axiom::F0;          break;
+			    case Feature_e::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
+			    case Feature_e::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
+			    case Feature_e::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
+			    case Feature_e::SpectralCrest:       childName = axiom::SpectralCrest; break;
+			    case Feature_e::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
+			    case Feature_e::StrongPeak:          childName = axiom::StrongPeak; break;
+				case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
+				case Feature_e::Loudness:            childName = axiom::Loudness;    break;
+				case Feature_e::f0:                  childName = axiom::F0;          break;
 				default: jassertfalse;
 			}
 

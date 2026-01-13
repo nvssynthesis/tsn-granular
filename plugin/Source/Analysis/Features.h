@@ -15,7 +15,7 @@
 
 namespace nvs::analysis {
 
-enum class Features {
+enum class Feature_e {
 	bfcc0,
 	bfcc1,
 	bfcc2,
@@ -44,58 +44,58 @@ enum class Features {
 	NumFeatures
 };
 static constexpr int NumBFCC = 13;
-static constexpr auto NumTimbralFeatures = static_cast<int>(Features::StrongPeak);
+static constexpr auto NumTimbralFeatures = static_cast<int>(Feature_e::StrongPeak);
 static_assert(NumTimbralFeatures == 18);
 
-typedef nvs::util::Iterator<Features, Features::bfcc0, Features::f0> featuresIterator;
+typedef nvs::util::Iterator<Feature_e, Feature_e::bfcc0, Feature_e::f0> featuresIterator;
 
-inline juce::String toString(Features f){
+inline juce::String toString(Feature_e f){
 	if (static_cast<int>(f) < NumBFCC){
 		juce::String s = "bfcc";
 		s += static_cast<int>(f);
 		return s;
 	}
 	switch (f) {
-	    case Features::SpectralCentroid:
+	    case Feature_e::SpectralCentroid:
 	        return "SpectralCentroid";
-	    case Features::SpectralDecrease:
+	    case Feature_e::SpectralDecrease:
 	        return "SpectralDecrease";
-	    case Features::SpectralFlatness:
+	    case Feature_e::SpectralFlatness:
 	        return "SpectralFlatness";
-	    case Features::SpectralCrest:
+	    case Feature_e::SpectralCrest:
 	        return "SpectralCrest";
-	    case Features::SpectralComplexity:
+	    case Feature_e::SpectralComplexity:
 	        return "SpectralComplexity";
-	    case Features::StrongPeak:
+	    case Feature_e::StrongPeak:
 	        return "StrongPeak";
-		case Features::Periodicity:
+		case Feature_e::Periodicity:
 			return "Periodicity";
-		case Features::Loudness:
+		case Feature_e::Loudness:
 			return "Loudness";
-		case Features::f0:
+		case Feature_e::f0:
 			return "f0";
 		default:
 			jassertfalse;
 			return "";
 	}
 }
-inline Features toFeature(const juce::String &s){
+inline Feature_e toFeature(const juce::String &s){
 	if (s.contains("bfcc")){
 		const juce::String intPart = s.removeCharacters("bfcc");
 		int i = intPart.getIntValue();
-		return static_cast<Features>(i);
+		return static_cast<Feature_e>(i);
 	}
 	if (s == "Periodicity"){
-		return Features::Periodicity;
+		return Feature_e::Periodicity;
 	}
 	else if (s == "Loudness"){
-		return Features::Loudness;
+		return Feature_e::Loudness;
 	}
 	else if (s == "f0"){
-		return Features::f0;
+		return Feature_e::f0;
 	}
 	jassertfalse;
-	return Features::bfcc0;
+	return Feature_e::bfcc0;
 }
 
 inline const juce::StringArray& getFeaturesStringArray() {
@@ -109,24 +109,24 @@ inline const juce::StringArray& getFeaturesStringArray() {
     return features;
 }
 
-const std::set<Features> bfccSet {
-	Features::bfcc0,
-	Features::bfcc1,
-	Features::bfcc2,
-	Features::bfcc3,
-	Features::bfcc4,
-	Features::bfcc5,
-	Features::bfcc6,
-	Features::bfcc7,
-	Features::bfcc8,
-	Features::bfcc9,
-	Features::bfcc10,
-	Features::bfcc11,
-	Features::bfcc12,
+const std::set<Feature_e> bfccSet {
+	Feature_e::bfcc0,
+	Feature_e::bfcc1,
+	Feature_e::bfcc2,
+	Feature_e::bfcc3,
+	Feature_e::bfcc4,
+	Feature_e::bfcc5,
+	Feature_e::bfcc6,
+	Feature_e::bfcc7,
+	Feature_e::bfcc8,
+	Feature_e::bfcc9,
+	Feature_e::bfcc10,
+	Feature_e::bfcc11,
+	Feature_e::bfcc12,
 };
 
 
-inline bool isBFCC(Features f) {
+inline bool isBFCC(Feature_e f) {
 	int i = static_cast<int>(f);
 	return (0 <= i && i < NumBFCC);
 }
@@ -134,10 +134,10 @@ inline bool isBFCC(Features f) {
 
 template <typename T>	// T can foreseeably be either single Real, vecReal, or EventwiseStatistics
 struct FeatureContainer {
-    std::array<T, static_cast<size_t>(Features::NumFeatures)> features {};
+    std::array<T, static_cast<size_t>(Feature_e::NumFeatures)> features {};
 
-    T& operator[](Features f) { return features[static_cast<size_t>(f)]; }
-    const T& operator[](Features f) const { return features[static_cast<size_t>(f)]; }
+    T& operator[](Feature_e f) { return features[static_cast<size_t>(f)]; }
+    const T& operator[](Feature_e f) const { return features[static_cast<size_t>(f)]; }
 
     std::span<T> bfccs() { return {features.data(), NumBFCC}; }
     std::span<const T> bfccs() const { return {features.data(), NumBFCC}; }
@@ -145,7 +145,7 @@ struct FeatureContainer {
 inline void pushBFCCFrame(FeatureContainer<std::vector<float>>& container, std::span<const float> bfccFrame) {
     assert(bfccFrame.size() == NumBFCC);
     for (size_t i = 0; i < NumBFCC; ++i) {
-        container[static_cast<Features>(i)].push_back(bfccFrame[i]);
+        container[static_cast<Feature_e>(i)].push_back(bfccFrame[i]);
     }
 }
 

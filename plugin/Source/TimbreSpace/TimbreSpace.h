@@ -65,12 +65,12 @@ private:
 
 	struct Settings {
 		float histogramEqualization {0.0f};
-		std::vector<nvs::analysis::Features> dimensionwiseFeatures {
-			nvs::analysis::Features::bfcc1,
-			nvs::analysis::Features::bfcc2,
-			nvs::analysis::Features::bfcc3,
-			nvs::analysis::Features::bfcc4,
-			nvs::analysis::Features::bfcc5
+		std::vector<nvs::analysis::Feature_e> dimensionwiseFeatures {
+			nvs::analysis::Feature_e::bfcc1,
+			nvs::analysis::Feature_e::bfcc2,
+			nvs::analysis::Feature_e::bfcc3,
+			nvs::analysis::Feature_e::bfcc4,
+			nvs::analysis::Feature_e::bfcc5
 		};
 	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
 	} settings;
@@ -144,6 +144,7 @@ private:
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
+    nvs::analysis::Feature_e filteredFeature;
     std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
     //=============================================================================================================================
     // the following are used in reshape():

@@ -123,7 +123,7 @@ void Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent, Feat
     const auto p_mean = mean(pitches);
     const auto c_mean = mean(confidences);
 
-    features[Features::f0] = {
+    features[Feature_e::f0] = {
         EventwiseStats {
             .mean = p_mean,
             .median = essentia::median(pitches),
@@ -132,7 +132,7 @@ void Analyzer::calculateEventwisePitchDescription(const vecReal &waveEvent, Feat
             .kurtosis = essentia::kurtosis(pitches, p_mean)
         }
     };
-    features[Features::Periodicity] = {
+    features[Feature_e::Periodicity] = {
         EventwiseStats {
             .mean = c_mean,
             .median = essentia::median(confidences),
@@ -148,7 +148,7 @@ void Analyzer::calculateEventwiseLoudness(const vecReal &waveEvent, FeatureConta
 
     const auto l_mean = mean(l_tmp);
 
-    features[Features::Loudness] = {
+    features[Feature_e::Loudness] = {
         .mean = l_mean,
         .median = essentia::median(l_tmp),
         .variance = essentia::variance(l_tmp, l_mean),
@@ -163,7 +163,7 @@ void Analyzer::calculateEventwiseTimbreDescription(const vecReal &waveEvent, Fea
     // const vecReal means = essentia::meanFrames(b_tmp);	// get mean per bfcc across all frames
     vecReal frameWeights;
     frameWeights.reserve(timbres_tmp.features.size());
-    for (auto const &bfcc0: timbres_tmp[Features::bfcc0]) {
+    for (auto const &bfcc0: timbres_tmp[Feature_e::bfcc0]) {
         const Real weight = std::exp(bfcc0 * settings.bfcc.BFCC0_frameNormalizationFactor);
         frameWeights.push_back(weight);
     }
@@ -175,7 +175,7 @@ void Analyzer::calculateEventwiseTimbreDescription(const vecReal &waveEvent, Fea
     const vecReal  skewnesses = skewnessFrames(featurewiseFrames);
     const vecReal  kurtoses = kurtosisFrames(featurewiseFrames);
 
-    jassert(static_cast<size_t>(Features::bfcc0) == 0); // because we're going to be editing the array of features from here
+    jassert(static_cast<size_t>(Feature_e::bfcc0) == 0); // because we're going to be editing the array of features from here
     const auto stats = std::array {
         &means,
         &medians,
@@ -185,7 +185,7 @@ void Analyzer::calculateEventwiseTimbreDescription(const vecReal &waveEvent, Fea
     };
     const auto supposedSize = means.size();
     std::ranges::all_of(stats, [supposedSize](const vecReal *v) {
-        return v->size() < static_cast<size_t>(Features::NumFeatures) && v->size() == supposedSize;
+        return v->size() < static_cast<size_t>(Feature_e::NumFeatures) && v->size() == supposedSize;
     });
 
     for (size_t i = 0; i < means.size(); ++i) { // end at size of stats because that should be number of timbral features
@@ -274,7 +274,7 @@ const -> std::optional<std::vector<FeatureContainer<EventwiseStats>>>
 }
 
 std::optional<vecVecReal> Analyzer::calculatePCA(const std::vector<FeatureContainer<EventwiseStats>> &allFeatures,
-                                                 const std::vector<Features> &featuresToUse,
+                                                 const std::vector<Feature_e> &featuresToUse,
                                                  const Statistic statToUse) {
     if (allFeatures.size() < 2){	// can't perform PCA with 1 sample
         return std::nullopt;

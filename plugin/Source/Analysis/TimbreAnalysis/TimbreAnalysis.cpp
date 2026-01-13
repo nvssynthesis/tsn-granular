@@ -312,30 +312,30 @@ FeatureContainer<vecReal> calculateTimbres(std::span<Real const> waveSpan, Analy
         centroid_a->input("array").set(spectrumVec);
         centroid_a->output("centroid").set(centroid);
         centroid_a->compute();
-        timbres[Features::SpectralCentroid].push_back(centroid);
+        timbres[Feature_e::SpectralCentroid].push_back(centroid);
 
         Real decrease;
         decrease_a->input("array").set(spectrumVec);
         decrease_a->output("decrease").set(decrease);
         decrease_a->compute();
-        timbres[Features::SpectralDecrease].push_back(decrease);
+        timbres[Feature_e::SpectralDecrease].push_back(decrease);
 
         Real flatness;
         flatnessDB_a->input("array").set(spectrumVec);
         flatnessDB_a->output("flatnessDB").set(flatness);
         flatnessDB_a->compute();
-        timbres[Features::SpectralFlatness].push_back(flatness);
+        timbres[Feature_e::SpectralFlatness].push_back(flatness);
 
         Real crest;
         crest_a->input("array").set(spectrumVec);
         crest_a->output("crest").set(crest);
         crest_a->compute();
-        timbres[Features::SpectralCrest].push_back(crest);
+        timbres[Feature_e::SpectralCrest].push_back(crest);
 
         Real spectralComplexity;
         spectralComplexity_a->input("spectrum").set(spectrumVec);
         spectralComplexity_a->output("spectralComplexity").set(spectralComplexity);
-        timbres[Features::SpectralComplexity].push_back(spectralComplexity);
+        timbres[Feature_e::SpectralComplexity].push_back(spectralComplexity);
 
         frameCounter++;
     }
