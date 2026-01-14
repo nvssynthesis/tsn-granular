@@ -35,7 +35,7 @@ public:
     NavigationType_e getNavigationStrategy() const {
         return _autoNavigator.getNavigationStrategy();
     }
-    Point_t process(TimbreSpace const &space, int numSamplesElapsed);
+    Point_t process(int numSamplesElapsed);
 
 private:
     const juce::AudioProcessorValueTreeState &_apvts;
@@ -48,10 +48,10 @@ private:
 
 template<>
 inline
-Timbre5DPoint NavigationManager<Timbre5DPoint>::process(TimbreSpace const &space, int numSamplesElapsed) {
+Timbre5DPoint NavigationManager<Timbre5DPoint>::process(int numSamplesElapsed) {
     const double scaling = *_apvts.getRawParameterValue("nav_scaling");
 
-    Timbre5DPoint pAuto = scaling * _autoNavigator.process(space, numSamplesElapsed);
+    Timbre5DPoint pAuto = scaling * _autoNavigator.process(numSamplesElapsed);
 
     const Eigen::Vector3f p3D = pAuto.head<3>();
     const Eigen::Vector2f p2D = pAuto.tail<2>();
@@ -62,7 +62,7 @@ Timbre5DPoint NavigationManager<Timbre5DPoint>::process(TimbreSpace const &space
 
     pAuto << rot_z * rot_y * rot_x * p3D, p2D;
 
-    const auto pManual = _manualNavigator.process(space, numSamplesElapsed);
+    const auto pManual = _manualNavigator.process(numSamplesElapsed);
 
     return pManual + pAuto;
 }

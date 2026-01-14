@@ -27,7 +27,7 @@ ManualNavigator<Point_t>::ManualNavigator()
 }
 
 template<typename Point_t>
-Point_t ManualNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint)
+Point_t ManualNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, Point_t previousPoint)
 {
     const double filterCutoff = *paramTree.getRawParameterValue("nav_manual_response");
     const double filterReso = *paramTree.getRawParameterValue("nav_manual_overshoot");
@@ -95,7 +95,7 @@ inline float randomStep1D(float previous, float stepSize,
     return previous;
 }
 template<typename Point_t>
-Point_t RandomWalkNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
+Point_t RandomWalkNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, Point_t previousPoint) {
     Point_t p{};
     for (int i = 0; i < this->Dimensions; ++i) {
         // const auto s = juce::String(std::string(navTendencyLookup[i]));
@@ -115,8 +115,7 @@ LFONavigator<Point_t>::LFONavigator()
 {}
 
 template<typename Point_t>
-Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space,
-    Point_t previousPoint)
+Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, Point_t previousPoint)
 {
     setFrequency(*paramTree.getRawParameterValue("nav_lfo_rate"));
 
@@ -169,7 +168,7 @@ enum class IntegrationMethod {
 static constexpr IntegrationMethod integrationMethod {IntegrationMethod::RK4};
 
 template<typename Point_t>
-Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
+Point_t LorenzNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, Point_t previousPoint) {
     {
         const double a = *paramTree.getRawParameterValue("nav_lorenz_a");
         const double b = *paramTree.getRawParameterValue("nav_lorenz_b");
@@ -249,7 +248,7 @@ static const double sgn(const double d) {
 };
 
 template<typename Point_t>
-Point_t HyperchaosNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, TimbreSpace const &space, Point_t previousPoint) {
+Point_t HyperchaosNavigator<Point_t>::navigate(AudioProcessorValueTreeState const &paramTree, Point_t previousPoint) {
     {
         const double a = *paramTree.getRawParameterValue("nav_hyperchaos_a");
         const double b = *paramTree.getRawParameterValue("nav_hyperchaos_b");
@@ -374,7 +373,7 @@ void Navigator<Point_t>::updateStrategyRate() {
     }
 }
 template<typename Point_t>
-Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElapsed) {
+Point_t Navigator<Point_t>::process(int numSamplesElapsed) {
     if (_navigationStrategy == nullptr) {
         return Point_t::Zero();
     }
@@ -392,7 +391,7 @@ Point_t Navigator<Point_t>::process(TimbreSpace const &space, int numSamplesElap
     }(numSamplesElapsed);
 
     for (int i = 0; i < numStepsToTake; ++i) {
-       _previousPoint = _navigationStrategy->navigate(_apvts, space, _previousPoint);
+       _previousPoint = _navigationStrategy->navigate(_apvts, _previousPoint);
     }
     jassert(_previousPoint.norm() < 100.f);
 
