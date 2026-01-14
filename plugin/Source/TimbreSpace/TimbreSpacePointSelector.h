@@ -45,7 +45,7 @@ private:
     typedef std::pair<float, float> Range;
     Range _filteredFeatureTargetRangeNormalized {0.f, 1.f};
     std::map<analysis::Feature_e, std::vector<size_t>> _featurewiseRankIndices {};
-    void updateGlobalFilter(float minFrac, float maxFrac);
+    void updateGlobalFilter();
 
     void computeDelaunay();
 

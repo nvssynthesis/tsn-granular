@@ -29,12 +29,12 @@ void TimbreSpacePointSelector::valueTreePropertyChanged (ValueTree &alteredTree,
 
         if (paramID == nvs::axiom::filtered_feature) {
             updateRanksForFilteredFeature();
-            // fullSelfUpdate(true);
+            updateGlobalFilter();
             return;
         }
         if ((paramID == nvs::axiom::filtered_feature_min) || (paramID == nvs::axiom::filtered_feature_max)) {
             // ideally we should only update these when their slider is RELEASED, not as it drags!
-            // fullSelfUpdate(true);
+            updateGlobalFilter();
             return;
         }
     }
@@ -47,7 +47,7 @@ void TimbreSpacePointSelector::actionListenerCallback(const String &message) {
         reserveWrappedPoints();
     }
     if (message == axiom::shapedPointsAvailable) {
-        updateGlobalFilter(0.2, 0.8);
+        updateGlobalFilter();
     }
 }
 
@@ -63,11 +63,24 @@ void TimbreSpacePointSelector::rebuildActivePoints() {
         _activePoints.push_back(_wrappedPoints[idx].point);
     }
 }
-void TimbreSpacePointSelector::updateGlobalFilter(float minFrac, float maxFrac) {
+void TimbreSpacePointSelector::updateGlobalFilter() {
     const auto &rawPoints = _timbreSpace.getTimbreSpacePoints();
 
-    const size_t minRank = rawPoints.size() * minFrac;
-    const size_t maxRank = rawPoints.size() * maxFrac;
+    const float minFrac = _apvts.getRawParameterValue(nvs::axiom::filtered_feature_min)->load();
+    const float maxFrac = _apvts.getRawParameterValue(nvs::axiom::filtered_feature_max)->load();
+
+    typedef signed long long SLL;
+
+    SLL minRank = rawPoints.size() * minFrac;
+    SLL maxRank = rawPoints.size() * maxFrac;
+    if (maxRank - minRank < 3) {
+        maxRank = std::min(minRank + 3, static_cast<SLL>(rawPoints.size()-1));
+        if (maxRank - minRank < 3) {    // then maxRank got clipped by rawPoints.size
+            jassert(maxRank == rawPoints.size() - 1);
+            minRank = std::max(maxRank - 3, static_cast<SLL>(0));
+        }
+        jassert (maxRank - minRank >= 3);
+    }
 
     _wrappedPoints.clear();
     _wrappedPoints.reserve(rawPoints.size());
