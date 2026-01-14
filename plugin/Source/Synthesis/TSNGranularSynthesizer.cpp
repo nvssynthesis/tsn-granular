@@ -27,6 +27,7 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
     GranularSynthesizer(apvts)  // this is bad: we are expensively constructing the stripped down granular synth voices and then redundantly creating the actually needed TSN synth voices
 ,   _navigator(apvts)
 ,   _timbreSpace(apvts)
+,   _timbreSpacePointSelector(apvts, _timbreSpace)
 {
     clearVoices();
     {
@@ -44,8 +45,6 @@ TSNGranularSynthesizer::TSNGranularSynthesizer(juce::AudioProcessorValueTreeStat
 
     apvts.state.addListener(&_timbreSpace);
     _timbreSpace.addActionListener(this);
-
-    _timbreSpacePointSelector.setTimbreSpace(_timbreSpace);
 
     _navigator.setNavigationPeriod(5.0);
 }
@@ -108,7 +107,7 @@ void TSNGranularSynthesizer::processBlock(juce::AudioBuffer<float> &buffer, juce
     {
         _navigator.setNavigationStrategy(navType);
     }
-    const auto p5D = _navigator.process(_timbreSpace, buffer.getNumSamples());
+    const auto p5D = _navigator.process(buffer.getNumSamples());
 
     jassert(p5D.norm() < 100.f);
 

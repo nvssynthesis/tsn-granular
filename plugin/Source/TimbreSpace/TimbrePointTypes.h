@@ -48,4 +48,10 @@ static constexpr bool inRangeM1_1(float x){
 	return ( (x >= -1.f) && (x <= 1.f) );
 }
 
+template<int N>
+struct WrappedPoint {
+    TimbrePoint<N> point;
+    bool active { true };
+};
+
 }	// namespace nvs::timbrespace

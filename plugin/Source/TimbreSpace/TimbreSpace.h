@@ -36,14 +36,13 @@ public:
 	//=============================================================================================================================
 	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
 	ValueTree getTimbreSpaceTree() const { return _treeManager.getTimbreSpaceTree(); }
+    std::vector<float> getRawFeatureValues(nvs::analysis::Feature_e feature) const;
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(String const &waveformHash) const;
     String getAudioAbsolutePath() const;
     //=============================================================================================================================
     void setSavePending(const bool saveIsPending) { _analysisSavePending = saveIsPending; }
     bool isSavePending() const { return _analysisSavePending; }
-    //=============================================================================================================================
-    void updateInternals(); // calls dataManager.swapIfPending(), internally updating to the latest points. Swap is necessary for thread safety.
     //=============================================================================================================================
 private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
@@ -82,7 +81,7 @@ private:
         bool isEmpty() const { return _timbres5D.empty(); }
         size_t size() const { return _timbres5D.size(); }
 
-        void updateData();
+        void setPendingReady();
     private:
         // current stable data (audio thread reads)
         std::vector<Timbre5DPoint> _timbres5D;
@@ -114,26 +113,23 @@ private:
 	
 	bool _analysisSavePending {false};
 	
+    //=============================================================================================================================
 	void signalSaveAnalysisOption() const;
 	void signalOnsetsAvailable() const;
     void signalShapedPointsAvailable() const;
-
-    typedef std::pair<float, float> Range;
+    void signalTimbreSpaceTreeChanged() const;
     //=============================================================================================================================
+
 	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
 	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
 	void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
-    nvs::analysis::Feature_e _filteredFeature {nvs::analysis::Feature_e::SpectralFlatness};
-    void updateFilteredFeature();
-    Range _filteredFeatureSourceRange {};
-    Range _filteredFeatureTargetRangeNormalized {0.f, 1.f}; // ugh, we WANT to filter within extractTimbralFeatures, but need the _range for the given feature so we can filter based on NORMALIZED version. i guess we just have to compute it in extractTimbralFeatures
-    std::vector<size_t> _indicesToFilter {};
     std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
     //=============================================================================================================================
     // the following are used in reshape():
+    typedef std::pair<float, float> Range;
     std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
     std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================

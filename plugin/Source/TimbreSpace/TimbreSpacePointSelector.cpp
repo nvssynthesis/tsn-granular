@@ -6,75 +6,152 @@
 #include "TimbreSpaceTriangulation.h"
 #include <ranges>
 
+#include "dsp_util.h"
+
 namespace nvs::timbrespace {
 
+TimbreSpacePointSelector::TimbreSpacePointSelector(juce::AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
+:   _apvts(apvts)
+,   _timbreSpace(timbreSpace)
+{
+    _apvts.state.addListener(this);
+    _timbreSpace.addActionListener(this);
+
+}
 TimbreSpacePointSelector::~TimbreSpacePointSelector() {
-    if (_timbreSpace != nullptr) {
-        _timbreSpace->removeActionListener(this);
-    }
+    _timbreSpace.removeActionListener(this);
 }
 
-void TimbreSpacePointSelector::setTimbreSpace(TimbreSpace &timbreSpace) {
-    if (_timbreSpace != nullptr) {
-        _timbreSpace->removeActionListener(this);
+void TimbreSpacePointSelector::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
+    if (alteredTree.hasType(nvs::axiom::PARAM) && property == juce::Identifier("value")) {
+        const auto paramID = alteredTree["id"].toString();
+        const float newValue = alteredTree["value"];
+
+        if (paramID == nvs::axiom::filtered_feature) {
+            updateRanksForFilteredFeature();
+            // fullSelfUpdate(true);
+            return;
+        }
+        if ((paramID == nvs::axiom::filtered_feature_min) || (paramID == nvs::axiom::filtered_feature_max)) {
+            // ideally we should only update these when their slider is RELEASED, not as it drags!
+            // fullSelfUpdate(true);
+            return;
+        }
     }
-    _timbreSpace = &timbreSpace;
-    _timbreSpace->addActionListener(this);
 }
 
 void TimbreSpacePointSelector::actionListenerCallback(const String &message) {
+    if (message == axiom::timbreSpaceTreeChanged) {
+        _featurewiseRankIndices.clear();    // first time around for new dataset, we must clear its state
+        updateRanksForFilteredFeature();    // and then fill it in for the currently selected feature
+        reserveWrappedPoints();
+    }
     if (message == axiom::shapedPointsAvailable) {
-        update();
+        updateGlobalFilter(0.2, 0.8);
     }
 }
 
-void TimbreSpacePointSelector::update() {
-    if (_timbreSpace == nullptr) {
-        return;
+void TimbreSpacePointSelector::reserveWrappedPoints() {
+    // reserves based on rank for filtered feature having been already set
+    _wrappedPoints.clear();
+    _wrappedPoints.reserve(_featurewiseRankIndices[_filteredFeature].size());
+}
+void TimbreSpacePointSelector::rebuildActivePoints() {
+    // assumes we already have wrappedPoints and activeIndices built
+    _activePoints.clear();
+    for (const size_t idx : _activeIndices) {
+        _activePoints.push_back(_wrappedPoints[idx].point);
     }
-    _timbreSpace->updateInternals();
+}
+void TimbreSpacePointSelector::updateGlobalFilter(float minFrac, float maxFrac) {
+    const auto &rawPoints = _timbreSpace.getTimbreSpacePoints();
+
+    const size_t minRank = rawPoints.size() * minFrac;
+    const size_t maxRank = rawPoints.size() * maxFrac;
+
+    _wrappedPoints.clear();
+    _wrappedPoints.reserve(rawPoints.size());
+    for (size_t i = 0; i < rawPoints.size(); ++i) {
+        const auto rawPoint = rawPoints[i];
+        const size_t rank = _featurewiseRankIndices[_filteredFeature][i];
+        bool active = (rank >= minRank && rank < maxRank);
+        _wrappedPoints.push_back({rawPoint, active});
+    }
+
+    _activeIndices.clear();
+    for (size_t i = 0; i < _wrappedPoints.size(); ++i) {
+        if (_wrappedPoints[i].active) {
+            _activeIndices.push_back(i);
+        }
+    }
+    rebuildActivePoints();
     computeDelaunay();
 }
-
 void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoint &target) {
     _target = target;
-    if (_timbreSpace == nullptr) {
-        DBG("computeExistingPointsFromTarget: _timbreSpace null; returning...\n");
-        return;
-    }
+
     swapIfPending();
     if (_delaunator == nullptr) {
         return;
     }
 
-    std::vector<util::WeightedIdx> const weightedIndices =
+    std::vector<util::WeightedIdx> weightedIndices =
         findPointsTriangulationBased(
             _target,
-            _timbreSpace->getTimbreSpacePoints(),
+            _activePoints,
             *_delaunator
         );
     jassert(weightedIndices.size() == 3);
 
     for (auto const &widx : weightedIndices) {
         jassert(0 <= widx.idx);
-        jassert((widx.idx < _timbreSpace->getTimbreSpacePoints().size()));
+        jassert((widx.idx < _activePoints.size()));
     }
 
-    _currentPointIndices = weightedIndices;
+    for (size_t i = 0; i < weightedIndices.size(); ++i) {
+        jassert(weightedIndices[i].idx < _activeIndices.size());
+
+        weightedIndices[i].idx = _activeIndices[weightedIndices[i].idx];
+        _currentPointIndices[i] = weightedIndices[i];
+    }
 }
-std::vector<Timbre5DPoint> const &TimbreSpacePointSelector::getTimbreSpacePoints() const {
-    return _timbreSpace->getTimbreSpacePoints();
+std::vector<WrappedPoint5D> const &TimbreSpacePointSelector::getTimbreSpacePoints() const {
+    return _wrappedPoints;
 }
 
+std::vector<size_t> computeRanks(const std::vector<float>& featureValues) {
+    std::vector<size_t> indices(featureValues.size());
+    std::iota(indices.begin(), indices.end(), 0);
+
+    std::ranges::sort(indices,
+                      [&featureValues](const size_t a, const size_t b) { return featureValues[a] < featureValues[b]; });
+
+    // order inversion
+    std::vector<size_t> ranks(featureValues.size());
+    for (size_t rank = 0; rank < indices.size(); ++rank) {
+        ranks[indices[rank]] = rank;
+    }
+
+    return ranks;
+}
+void TimbreSpacePointSelector::updateRanksForFilteredFeature() {
+    _filteredFeature = static_cast<nvs::analysis::Feature_e>(_apvts.getRawParameterValue(axiom::filtered_feature)->load());
+    _filteredFeatureTargetRangeNormalized.first = _apvts.getRawParameterValue(axiom::filtered_feature_min)->load();
+    _filteredFeatureTargetRangeNormalized.second = _apvts.getRawParameterValue(axiom::filtered_feature_max)->load();
+
+    const auto vals = _timbreSpace.getRawFeatureValues(_filteredFeature);
+
+    _featurewiseRankIndices[_filteredFeature] = computeRanks(vals);
+}
+
+
 void TimbreSpacePointSelector::computeDelaunay() {
-    jassert(_timbreSpace != nullptr);
     DBG("TimbreSpacePointSelector::triangulatePoints computing _delaunator & storing _pendingUpdate flag\n");
-    const auto &points = _timbreSpace->getTimbreSpacePoints(); // NOLINT just used jassert for nullptr check
-    if (points.empty()) {
+    if (_activePoints.empty()) {
         DBG("TimbreSpacePointSelector::triangulatePoints timbres5D empty; returning\n");
         return;
     }
-    const auto coords2D = make2dCoordinates(points);
+    const auto coords2D = make2dCoordinates(_activePoints);
     try {
         _delaunator_pending = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
     }

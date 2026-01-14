@@ -43,7 +43,7 @@ void TimbreSpace::TimbreDataManager::setPoints(const std::vector<Timbre5DPoint> 
 void TimbreSpace::TimbreDataManager::clear() {
     _timbres5D_pending.clear();
 }
-void TimbreSpace::TimbreDataManager::updateData() {
+void TimbreSpace::TimbreDataManager::setPendingReady() {
     if (_timbres5D_pending.empty()) {
         return;
     }
@@ -116,17 +116,6 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             fullSelfUpdate(true);
             return;
         }
-        if (paramID == nvs::axiom::filtered_feature) {
-            updateFilteredFeature();
-            fullSelfUpdate(true);
-            return;
-        }
-        if ((paramID == nvs::axiom::filtered_feature_min) || (paramID == nvs::axiom::filtered_feature_max)) {
-            // ideally we should only update these when their slider is RELEASED, not as it drags!
-            updateFilteredFeature();
-            fullSelfUpdate(true);
-            return;
-        }
         updateDimensionwiseFeatureFromParam(paramID);
     }
 }
@@ -177,6 +166,7 @@ analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueT
 }
 void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
 	_treeManager.setTimbreSpaceTree(timbreSpaceTree);
+    signalTimbreSpaceTreeChanged();
     const auto onsetsVar = timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
     if (const Array<var> *onsetsArray = onsetsVar.getArray()) {
 
@@ -363,6 +353,10 @@ void TimbreSpace::signalOnsetsAvailable() const {
 void TimbreSpace::signalShapedPointsAvailable() const {
     sendActionMessage(axiom::shapedPointsAvailable);
 }
+void TimbreSpace::signalTimbreSpaceTreeChanged() const {
+    sendActionMessage(axiom::timbreSpaceTreeChanged);   // for TimbreSpacePointSelector to know to update filtered feature
+}
+
 void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
     // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
     // ========================================ONSETS========================================
@@ -398,11 +392,6 @@ void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
     signalOnsetsAvailable();
 }
 
-void TimbreSpace::updateInternals() {
-    _timbreDataManager.swapIfPending();
-}
-
-
 void TimbreSpace::TimbreDataManager::swapIfPending() {
     if (_pendingUpdate.exchange(false, std::memory_order_acq_rel))
     {
@@ -415,84 +404,99 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
 	extractTimbralFeatures(verbose);
 	computeHistogramEqualizedPoints(verbose);
 	reshape(verbose);
-	_timbreDataManager.updateData();
+	_timbreDataManager.setPendingReady();// _pendingUpdate.store(true, std::memory_order_release);
+    _timbreDataManager.swapIfPending();
+
     signalShapedPointsAvailable();
+}
+// Internal template that works with any container
+template<typename Container>
+[[nodiscard]]
+inline std::vector<analysis::Real>
+extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
+                             const Container &featuresToUse,
+                             const analysis::Statistic statisticToUse)
+{
+    using namespace analysis;
+    std::vector<Real> out;
+
+    if constexpr (requires { featuresToUse.size(); }) {
+        out.reserve(featuresToUse.size());
+    }
+
+    juce::String statPropName;
+    switch (statisticToUse) {
+       case Statistic::Mean:     statPropName = axiom::mean;     break;
+       case Statistic::Median:   statPropName = axiom::median;   break;
+       case Statistic::Variance: statPropName = axiom::variance; break;
+       case Statistic::Skewness: statPropName = axiom::skewness; break;
+       case Statistic::Kurtosis: statPropName = axiom::kurtosis; break;
+       default: jassertfalse;
+    }
+
+    for (auto f : featuresToUse) {
+       const int idx = static_cast<int>(f);
+       Real value = 0.0f;
+
+       if (0 <= idx && idx < NumBFCC) {
+          const auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
+          if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
+             auto bfccTree = bfccsTree.getChild(idx);
+             value = bfccTree.getProperty(statPropName, 0.0f);
+          }
+       }
+       else {
+          juce::String childName;
+          switch (f) {
+            case Feature_e::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
+            case Feature_e::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
+            case Feature_e::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
+            case Feature_e::SpectralCrest:       childName = axiom::SpectralCrest; break;
+            case Feature_e::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
+            case Feature_e::StrongPeak:          childName = axiom::StrongPeak; break;
+            case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
+            case Feature_e::Loudness:            childName = axiom::Loudness;    break;
+            case Feature_e::f0:                  childName = axiom::F0;          break;
+            default: jassertfalse;
+          }
+
+            if (auto scalarTree = frameTree.getChildWithName(childName);
+                scalarTree.isValid())
+            {
+             value = scalarTree.getProperty(statPropName, 0.0f);
+          }
+       }
+
+       out.push_back(value);
+    }
+
+    return out;
 }
 
 [[nodiscard]]
 inline std::vector<analysis::Real>
 extractFeaturesFromTree(const juce::ValueTree &frameTree,
-                const std::vector<analysis::Feature_e> &featuresToUse,
-                const analysis::Statistic statisticToUse)
+                        const std::vector<analysis::Feature_e> &featuresToUse,
+                        const analysis::Statistic statisticToUse)
 {
-	using namespace analysis;
-	std::vector<Real> out;
-	out.reserve(featuresToUse.size());
-	
-	// Get the statistic property name
-	juce::String statPropName;
-	switch (statisticToUse) {
-		case Statistic::Mean:     statPropName = axiom::mean;     break;
-		case Statistic::Median:   statPropName = axiom::median;   break;
-		case Statistic::Variance: statPropName = axiom::variance; break;
-		case Statistic::Skewness: statPropName = axiom::skewness; break;
-		case Statistic::Kurtosis: statPropName = axiom::kurtosis; break;
-		default: jassertfalse;
-	}
-	
-	for (auto f : featuresToUse) {
-		const int idx = static_cast<int>(f);
-		Real value = 0.0f;
-		
-		if (0 <= idx && idx < NumBFCC) {
-			// It's a BFCC - get from BFCCs array
-			const auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
-			if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
-				auto bfccTree = bfccsTree.getChild(idx);
-				value = bfccTree.getProperty(statPropName, 0.0f);
-			}
-		}
-		else {
-			// It's one of the scalars
-			juce::String childName;
-			switch (f) {
-			    case Feature_e::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
-			    case Feature_e::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
-			    case Feature_e::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
-			    case Feature_e::SpectralCrest:       childName = axiom::SpectralCrest; break;
-			    case Feature_e::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
-			    case Feature_e::StrongPeak:          childName = axiom::StrongPeak; break;
-				case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
-				case Feature_e::Loudness:            childName = axiom::Loudness;    break;
-				case Feature_e::f0:                  childName = axiom::F0;          break;
-				default: jassertfalse;
-			}
-
-            if (auto scalarTree = frameTree.getChildWithName(childName);
-                scalarTree.isValid())
-            {
-				value = scalarTree.getProperty(statPropName, 0.0f);
-			}
-		}
-		
-		out.push_back(value);
-	}
-	
-	return out;
+    return extractFeaturesFromTreeImpl(frameTree, featuresToUse, statisticToUse);
 }
 
-void TimbreSpace::updateFilteredFeature() {
-    _filteredFeature = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature)->load());
-    _filteredFeatureTargetRangeNormalized.first = _treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature_min)->load();
-    _filteredFeatureTargetRangeNormalized.second = _treeManager.getAPVTS().getRawParameterValue(axiom::filtered_feature_max)->load();
+// Overload for single feature - wraps it in a std::array for iteration
+[[nodiscard]]
+inline std::vector<analysis::Real>
+extractFeaturesFromTree(const juce::ValueTree &frameTree,
+                        const analysis::Feature_e featureToUse,
+                        const analysis::Statistic statisticToUse)
+{
+    const std::array features{featureToUse};
+    return extractFeaturesFromTreeImpl(frameTree, features, statisticToUse);
+}
 
+std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature_e feature) const {
+    auto const s = nvs::analysis::toString(feature);
 
-    auto const s = nvs::analysis::toString(_filteredFeature);
-    DBG("Filtered feature changed to: " + s);
-
-    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){ return; }
-
-    auto const featureToExtract = std::vector { _filteredFeature };    // just using vector because that's what extractFeaturesFromTree accepts
+    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){ return {}; }
 
     auto const &timbreTree = _treeManager.getTimbralFramesTree();
 
@@ -500,34 +504,11 @@ void TimbreSpace::updateFilteredFeature() {
 
     for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
         ValueTree const &frame = timbreTree.getChild(feat_idx);
-        std::vector<float> v = extractFeaturesFromTree(frame, featureToExtract, settings.statistic);
+        std::vector<float> v = extractFeaturesFromTree(frame, feature, settings.statistic);
         jassert (v.size() == 1);
         extractedFramewiseFeatureValues.push_back(v[0]);
     }
-    _filteredFeatureSourceRange = {1e+15, -1e+15}; // min initialized to ridiculously high, max to ridiculously low
-    for (const auto f : extractedFramewiseFeatureValues) {
-        if (f < _filteredFeatureSourceRange.first) {
-            _filteredFeatureSourceRange.first = f;
-        }
-        if (f > _filteredFeatureSourceRange.second) {
-            _filteredFeatureSourceRange.second = f;
-        }
-        if (_filteredFeatureSourceRange.first == _filteredFeatureSourceRange.second) {
-            _filteredFeatureSourceRange = {0.0, 1.0};
-            DBG("SETTING RANGE TO [0..1]");
-        }
-    }
-    _indicesToFilter.clear();
-    for (size_t frameIdx = 0; frameIdx < extractedFramewiseFeatureValues.size(); ++frameIdx) {
-        auto x = extractedFramewiseFeatureValues[frameIdx];
-        // scale raw feature value to [0..1] range
-        x = nvs::util::scale(x, _filteredFeatureSourceRange.first, _filteredFeatureSourceRange.second - _filteredFeatureSourceRange.first);
-        jassert((0.f <= _filteredFeatureTargetRangeNormalized.first) && (_filteredFeatureTargetRangeNormalized.second <= 1.f));
-        if (x < _filteredFeatureTargetRangeNormalized.first || _filteredFeatureTargetRangeNormalized.second < x) {
-            _indicesToFilter.push_back(frameIdx);
-        }
-    }
-    DBG("bye\n");
+    return extractedFramewiseFeatureValues;
 }
 
 void TimbreSpace::extractTimbralFeatures(const bool verbose) {
@@ -545,9 +526,6 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 	
 	auto const &timbralFramesTree = _treeManager.getTimbralFramesTree();
 	for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
-	    if (std::ranges::find(_indicesToFilter, frameIdx) != _indicesToFilter.end()) {
-	        continue;   // exclude filtered out points from the set
-	    }
 		ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
 		std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
 		_eventwiseExtractedTimbrePoints.push_back(v);

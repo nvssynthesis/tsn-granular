@@ -180,13 +180,13 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	    }
         std::vector<Timbre5DPoint> current_points;
 		current_points.reserve(timbreSpacePS.getCurrentPointIndices().size());
-		for (auto & p : timbreSpacePS.getCurrentPointIndices()){
-			current_points.push_back(timbres5D[p.idx]);
+		for (const nvs::util::WeightedIdx &wi : timbreSpacePS.getCurrentPointIndices()){
+			current_points.push_back(timbres5D[wi.idx].point);
 		}
 
 	    setNavigatorPoint(get2D(timbreSpacePS.getTargetPoint()));
 		
-		for (const auto& p5 : timbres5D){
+		for (const auto& [p5, active] : timbres5D){
 			const auto p2 = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p5), w, h));
 			const auto p3 = get3D(p5);
 			
