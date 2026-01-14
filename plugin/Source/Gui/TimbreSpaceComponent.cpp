@@ -191,7 +191,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			const auto p3 = get3D(p5);
 			
 			const auto uni_p3 = biuni(p3);
-			Colour fillColour = p3ToColour(uni_p3);
+			Colour fillColour = p3ToColour(uni_p3, active ? 1.f : 0.1f);
 			
 			const float z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
 			const auto rect = pointToRect(p2, softclip(z_closeness));
@@ -214,8 +214,10 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 			// draw a filled circle with a different coloured outline
 			g.setColour(fillColour);
 			g.fillEllipse(rect);
-			g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
-			g.drawEllipse(rect, 0.5f);
+		    if (active) {
+		        g.setColour(fillColour.withRotatedHue(0.25f).withMultipliedLightness(2.f));
+		        g.drawEllipse(rect, 0.5f);
+		    }
 		}
 		// draw lines from target to nearby (selected, current) points 
 		for (const auto &p : current_points){
