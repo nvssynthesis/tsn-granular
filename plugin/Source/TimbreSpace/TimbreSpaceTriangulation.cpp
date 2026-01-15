@@ -114,27 +114,118 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
     return std::nullopt;
 }
 
-// Compute barycentric coordinates for interpolation weights
-// Compute barycentric coordinates for interpolation weights
+std::array<double, 3> computeDistanceWeights(const Timbre2DPoint& p,
+                                 const Timbre2DPoint& a,
+                                 const Timbre2DPoint& b,
+                                 const Timbre2DPoint& c)
+{
+    double d0 = (p - a).norm() + 1e-10;
+    double d1 = (p - b).norm() + 1e-10;
+    double d2 = (p - c).norm() + 1e-10;
+
+    double inv_d0 = 1.0 / d0;
+    double inv_d1 = 1.0 / d1;
+    double inv_d2 = 1.0 / d2;
+    double sum = inv_d0 + inv_d1 + inv_d2;
+
+    return {inv_d0 / sum, inv_d1 / sum, inv_d2 / sum};
+}
+// project point onto line segment ab
+Timbre2DPoint projectPointOntoSegment(const Timbre2DPoint& p,
+                                      const Timbre2DPoint& a,
+                                      const Timbre2DPoint& b) {
+    assert(std::isfinite(a[0]) && std::isfinite(a[1]));
+    assert(std::isfinite(b[0]) && std::isfinite(b[1]));
+    assert(std::isfinite(p[0]) && std::isfinite(p[1]));
+
+    Timbre2DPoint ab = b - a;
+    Timbre2DPoint ap = p - a;
+
+    double ab_squared = ab.dot(ab);
+    if (ab_squared < 1e-10) return a; // degenerate segment
+
+    double t = ap.dot(ab) / ab_squared;
+    t = std::clamp(t, 0.0, 1.0); // stay on segment by clamp
+
+    return Timbre2DPoint(a[0] + t * ab[0], a[1] + t * ab[1]);
+}
+
+// find which edge is closest to p and project onto it
+Timbre2DPoint clampToTriangle(const Timbre2DPoint& p,
+                               const Timbre2DPoint& a,
+                               const Timbre2DPoint& b,
+                               const Timbre2DPoint& c) {
+    // project onto each edge
+    Timbre2DPoint proj_ab = projectPointOntoSegment(p, a, b);
+    Timbre2DPoint proj_bc = projectPointOntoSegment(p, b, c);
+    Timbre2DPoint proj_ca = projectPointOntoSegment(p, c, a);
+
+    // closest projection
+    double dist_ab = (p - proj_ab).norm();
+    double dist_bc = (p - proj_bc).norm();
+    double dist_ca = (p - proj_ca).norm();
+
+    if (dist_ab <= dist_bc && dist_ab <= dist_ca) return proj_ab;
+    if (dist_bc <= dist_ca) return proj_bc;
+    return proj_ca;
+}
+
+// compute barycentric coordinates for interpolation weights
 std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
                                      const Timbre2DPoint& a,
                                      const Timbre2DPoint& b,
                                      const Timbre2DPoint& c) {
 
-    Timbre2DPoint v0 = c - a;
-    Timbre2DPoint v1 = b - a;
-    Timbre2DPoint v2 = p - a;
+    const Timbre2DPoint v0 = c - a;
+    const Timbre2DPoint v1 = b - a;
+    const Timbre2DPoint v2 = p - a;
 
-    double dot00 = v0.dot(v0);
-    double dot01 = v0.dot(v1);
-    double dot02 = v0.dot(v2);
-    double dot11 = v1.dot(v1);
-    double dot12 = v1.dot(v2);
+    const double dot00 = v0.dot(v0);
+    const double dot01 = v0.dot(v1);
+    const double dot02 = v0.dot(v2);
+    const double dot11 = v1.dot(v1);
+    const double dot12 = v1.dot(v2);
 
-    double invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
-    double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-    double w = 1.0 - u - v;
+    const double denom = dot00 * dot11 - dot01 * dot01;
+
+    if (std::abs(denom) < 1e-10) {  // degenerate triangle (collinear points)
+        // fallback to distance weighting
+        return computeDistanceWeights(p, a, b, c);
+    }
+
+    const double invDenom = 1.0 / denom;
+    const double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    const double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    const double w = 1.0 - u - v;
+
+    if (w < 0 || v < 0 || u < 0) {
+        const Timbre2DPoint clamped = clampToTriangle(p, a, b, c);
+
+        // recompute with clamped point
+        const Timbre2DPoint v0_c = c - a;
+        const Timbre2DPoint v1_c = b - a;
+        const Timbre2DPoint v2_c = clamped - a;
+
+        const double dot00_c = v0_c.dot(v0_c);
+        const double dot01_c = v0_c.dot(v1_c);
+        const double dot02_c = v0_c.dot(v2_c);
+        const double dot11_c = v1_c.dot(v1_c);
+        const double dot12_c = v1_c.dot(v2_c);
+
+        const double denom_c = dot00_c * dot11_c - dot01_c * dot01_c;
+
+        if (std::abs(denom_c) < 1e-10) {
+            return computeDistanceWeights(clamped, a, b, c);
+        }
+
+        const double invDenom_c = 1.0 / denom_c;
+        const double u_c = (dot11_c * dot02_c - dot01_c * dot12_c) * invDenom_c;
+        const double v_c = (dot00_c * dot12_c - dot01_c * dot02_c) * invDenom_c;
+        const double w_c = 1.0 - u_c - v_c;
+
+        // clamped point should be on/in triangle, but clamp weights for safety
+        return {std::max(0.0, w_c), std::max(0.0, v_c), std::max(0.0, u_c)};
+    }
 
     return {w, v, u}; // weights for vertices a, b, c respectively
 }

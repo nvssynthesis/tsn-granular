@@ -57,10 +57,10 @@ void TimbreSpacePointSelector::reserveWrappedPoints() {
     _wrappedPoints.reserve(_featurewiseRankIndices[_filteredFeature].size());
 }
 void TimbreSpacePointSelector::rebuildActivePoints() {
-    // assumes we already have wrappedPoints and activeIndices built
-    _activePoints.clear();
-    for (const size_t idx : _activeIndices) {
-        _activePoints.push_back(_wrappedPoints[idx].point);
+    // assumes we already have wrappedPoints and _activePointsPending built
+    _activePointsPending.clear();
+    for (const size_t idx : _activeIndicesPending) {
+        _activePointsPending.push_back(_wrappedPoints[idx].point);
     }
 }
 void TimbreSpacePointSelector::updateGlobalFilter() {
@@ -91,10 +91,10 @@ void TimbreSpacePointSelector::updateGlobalFilter() {
         _wrappedPoints.push_back({rawPoint, active});
     }
 
-    _activeIndices.clear();
+    _activeIndicesPending.clear();
     for (size_t i = 0; i < _wrappedPoints.size(); ++i) {
         if (_wrappedPoints[i].active) {
-            _activeIndices.push_back(i);
+            _activeIndicesPending.push_back(i);
         }
     }
     rebuildActivePoints();
@@ -160,13 +160,13 @@ void TimbreSpacePointSelector::updateRanksForFilteredFeature() {
 
 void TimbreSpacePointSelector::computeDelaunay() {
     DBG("TimbreSpacePointSelector::triangulatePoints computing _delaunator & storing _pendingUpdate flag\n");
-    if (_activePoints.empty()) {
+    if (_activePointsPending.empty()) {
         DBG("TimbreSpacePointSelector::triangulatePoints timbres5D empty; returning\n");
         return;
     }
-    const auto coords2D = make2dCoordinates(_activePoints);
+    const auto coords2D = make2dCoordinates(_activePointsPending);
     try {
-        _delaunator_pending = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
+        _delaunatorPending = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
     }
     catch (std::exception &e) {
         DBG(e.what());
@@ -180,8 +180,10 @@ void TimbreSpacePointSelector::computeDelaunay() {
 void TimbreSpacePointSelector::swapIfPending() {
     if (_pendingUpdate.exchange(false, std::memory_order_acq_rel))
     {
-        DBG("TimbreSpacePointSelector::swapIfPending exchanging delaunator\n");
-        _delaunator = std::move(_delaunator_pending);
+        DBG("TimbreSpacePointSelector::swapIfPending exchanging delaunator and active points\n");
+        _activeIndices = std::move(_activeIndicesPending);
+        _activePoints = std::move(_activePointsPending);
+        _delaunator = std::move(_delaunatorPending);
     }
 }
 
@@ -404,6 +406,7 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
 	std::array<size_t, 3> bestTriangle {0, 1, 2};
 
 	// Check all triangles and find the one with minimum distance to target
+    std::array<Timbre2DPoint, 3> bestPoints;
 	for (size_t i = 0; i < d.triangles.size(); i += 3) {
 		const size_t idx0 = d.triangles[i];
 		const size_t idx1 = d.triangles[i + 1];
@@ -421,16 +424,17 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
         {
 			minDistance = distance;
 			bestTriangle = {idx0, idx1, idx2};
+            bestPoints = {p0, p1, p2};
 		}
 	}
 
+    const auto weights = computeBarycentricWeights(targetPoint, bestPoints[0], bestPoints[1], bestPoints[2]);
 	// Use the closest triangle and project the point onto it
-	// For simplicity, we'll use equal weights, but you could do proper projection
 	std::vector<util::WeightedIdx> result;
 	result.reserve(3);
-	result.emplace_back(bestTriangle[0], 1.0/3.0);
-	result.emplace_back(bestTriangle[1], 1.0/3.0);
-	result.emplace_back(bestTriangle[2], 1.0/3.0);
+	result.emplace_back(bestTriangle[0], weights[0]);
+	result.emplace_back(bestTriangle[1], weights[1]);
+	result.emplace_back(bestTriangle[2], weights[2]);
 
 	return result;
 }

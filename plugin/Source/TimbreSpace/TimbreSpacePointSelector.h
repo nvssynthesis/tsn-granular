@@ -34,7 +34,9 @@ private:
 
     std::vector<WrappedPoint5D> _wrappedPoints {};
     std::vector<size_t> _activeIndices {};
-    std::vector<Timbre5DPoint> _activePoints {}; // Reusable buffer
+    std::vector<size_t> _activeIndicesPending {};
+    std::vector<Timbre5DPoint> _activePoints {}; // Reusable buffer THIS needs to ALSO BE SYNCHRONIZED with atomic pendingUpdate
+    std::vector<Timbre5DPoint> _activePointsPending {};
 
     void reserveWrappedPoints();
 
@@ -52,7 +54,7 @@ private:
     void swapIfPending();
 
     std::unique_ptr<delaunator::Delaunator> _delaunator;
-    std::unique_ptr<delaunator::Delaunator> _delaunator_pending;
+    std::unique_ptr<delaunator::Delaunator> _delaunatorPending;
     std::atomic<bool> _pendingUpdate { false };
 
     void actionListenerCallback(const String &message) override;
