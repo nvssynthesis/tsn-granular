@@ -57,23 +57,23 @@ inline juce::String toString(Feature_e f){
 	}
 	switch (f) {
 	    case Feature_e::SpectralCentroid:
-	        return "SpectralCentroid";
+	        return axiom::SpectralCentroid;
 	    case Feature_e::SpectralDecrease:
-	        return "SpectralDecrease";
+	        return axiom::SpectralDecrease;
 	    case Feature_e::SpectralFlatness:
-	        return "SpectralFlatness";
+	        return axiom::SpectralFlatness;
 	    case Feature_e::SpectralCrest:
-	        return "SpectralCrest";
+	        return axiom::SpectralCrest;
 	    case Feature_e::SpectralComplexity:
-	        return "SpectralComplexity";
+	        return axiom::SpectralComplexity;
 	    case Feature_e::StrongPeak:
-	        return "StrongPeak";
+	        return axiom::StrongPeak;
 		case Feature_e::Periodicity:
-			return "Periodicity";
+			return axiom::Periodicity;
 		case Feature_e::Loudness:
-			return "Loudness";
+			return axiom::Loudness;
 		case Feature_e::f0:
-			return "f0";
+			return axiom::f0;
 		default:
 			jassertfalse;
 			return "";

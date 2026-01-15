@@ -235,7 +235,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 			vt.addChild(timbreMeasurements, 1, nullptr);
 		}
 	}
-	
+
 	return vt;
 }
 std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> valueTreeToTimbreSpace(juce::ValueTree const &vt)
@@ -456,15 +456,15 @@ extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
             case Feature_e::StrongPeak:          childName = axiom::StrongPeak; break;
             case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
             case Feature_e::Loudness:            childName = axiom::Loudness;    break;
-            case Feature_e::f0:                  childName = axiom::F0;          break;
+            case Feature_e::f0:                  childName = axiom::f0;          break;
             default: jassertfalse;
           }
 
             if (auto scalarTree = frameTree.getChildWithName(childName);
                 scalarTree.isValid())
             {
-             value = scalarTree.getProperty(statPropName, 0.0f);
-          }
+                value = scalarTree.getProperty(statPropName, 0.0f);
+            }
        }
 
        out.push_back(value);

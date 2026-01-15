@@ -352,7 +352,7 @@ vecVecReal splitWaveIntoEvents(const vecReal&wave, const vecReal&onsetsInSeconds
 	assert(onsetsInSeconds[1] == endTimes[0]);
 	
     const auto sampleRate = static_cast<float>(settings.analysis.sampleRate);
-	assert (sampleRate > 22000.f);
+	assert (sampleRate > 8000.f);
 	
 	Real const endOfFile = static_cast<Real>((wave.size() - 1)) / sampleRate;
 	Real const a = onsetsInSeconds.back();
