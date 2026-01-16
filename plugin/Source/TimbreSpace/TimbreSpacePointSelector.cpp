@@ -191,88 +191,6 @@ void TimbreSpacePointSelector::swapIfPending() {
 //=============================================================================================================================
 
 
-/**
- * Finds the K nearest points to `target` in `database`,
- * builds softmax-style weights over those K,
- * then either returns them all, or samples `numToPick` **without replacement**.
- *
- * @param  target          the target point from which to find nearest points
- * @param  database        your full set of Timbre5DPoints
- * @param  K               how many nearest neighbors to consider (caps at database.size())
- * @param  numToPick       if <=0, we return all K weighted indices;
- *                         otherwise we pick exactly numToPick **without** replacement.
- * @param  sharpness       0=flat, >0 biases toward closer points
- * @param  higher3Dweight  extra weighting on the 3D portion of your distance metric
- */
-std::vector<util::WeightedIdx> findPointsDistanceBased(
-    const Timbre5DPoint&               target,
-    const juce::Array<Timbre5DPoint>&  database,
-    int                                K,
-    const int                          numToPick,
-    double                             sharpness,
-    float                              higher3Dweight)
-{
-    if (database.isEmpty()) { return {}; }
-
-    std::vector<util::WeightedIdx> weightedIndices = [&database, target, higher3Dweight, &K, sharpness](){
-       // compute squared distances
-       std::vector<util::DistanceIdx> distIdx;
-       distIdx.reserve (database.size());
-       for (int i = 0; i < database.size(); ++i) {
-          auto const& p = database.getReference(i);
-
-          // Extract 2D portions and compute difference
-          Timbre2DPoint diff2D = get2D(p) - get2D(target);
-
-          // Extract 3D portions and compute difference
-          Timbre3DPoint diff3D = get3D(p) - get3D(target);
-
-          // Compute squared distance
-          double d2 = diff2D.squaredNorm() + higher3Dweight * diff3D.squaredNorm();
-
-          distIdx.emplace_back (i, d2);
-       }
-
-       // keep only the K nearest
-       {
-          K = std::min<int> (K, (int) distIdx.size());
-          std::ranges::nth_element (distIdx, distIdx.begin() + K
-                                    ,
-                                    [](auto& a, auto& b){ return a.distance < b.distance; });
-          distIdx.resize (K);
-          assert(distIdx.size() == static_cast<size_t>(K));
-       }
-       return toWeightedIndices(distIdx, sharpness);
-    }();
-
-    /** if caller just wants the full distribution, return it: */
-    if (numToPick <= 0 || numToPick >= K) { return weightedIndices; }
-
-    /** otherwise sample numToPick *without replacement* by repeatedly drawing
-     from the discrete distribution then zeroing out that weight and re-normalizing. */
-    std::vector<util::WeightedIdx> picked;
-    picked.reserve (numToPick);
-
-    // extract weights into their own vector using views
-    auto weightView = weightedIndices | std::views::transform([](const auto& wi) { return wi.weight; });
-    std::vector<double> weightArr(weightView.begin(), weightView.end());
-
-    std::mt19937 rng { std::random_device{}() };
-    for (int pick = 0; pick < numToPick; ++pick) {
-       // construct the discrete_distribution over the weights
-       std::discrete_distribution<int> dist(weightArr.begin(), weightArr.end());
-       int choice = dist(rng);
-       picked.push_back(weightedIndices[choice]);
-       // zero out that weight so it's never picked again
-       weightArr[choice] = 0.0;
-
-       // Check if any weights remain (optional optimization)
-       if (std::ranges::all_of(weightArr, [](const double w) { return w == 0.0; })) {
-          break;
-       }
-    }
-    return picked;
-}
 std::vector<util::WeightedIdx> toWeightedIndices(
     const std::vector<util::DistanceIdx> &dv,
     const double sharpness, const double contrastPower)
@@ -438,4 +356,91 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
 
 	return result;
 }
+
+
+/**
+ * Finds the K nearest points to `target` in `database`,
+ * builds softmax-style weights over those K,
+ * then either returns them all, or samples `numToPick` **without replacement**.
+ *
+ * @param  target          the target point from which to find nearest points
+ * @param  database        your full set of Timbre5DPoints
+ * @param  K               how many nearest neighbors to consider (caps at database.size())
+ * @param  numToPick       if <=0, we return all K weighted indices;
+ *                         otherwise we pick exactly numToPick **without** replacement.
+ * @param  sharpness       0=flat, >0 biases toward closer points
+ * @param  higher3Dweight  extra weighting on the 3D portion of your distance metric
+ */
+std::vector<util::WeightedIdx> findPointsDistanceBased(
+    const Timbre5DPoint&               target,
+    const juce::Array<Timbre5DPoint>&  database,
+    int                                K,
+    const int                          numToPick,
+    double                             sharpness,
+    float                              higher3Dweight)
+{
+    if (database.isEmpty()) { return {}; }
+
+    std::vector<util::WeightedIdx> weightedIndices = [&database, target, higher3Dweight, &K, sharpness]()
+    {
+       // compute squared distances
+       std::vector<util::DistanceIdx> distIdx;
+       distIdx.reserve (database.size());
+       for (int i = 0; i < database.size(); ++i) {
+          auto const& p = database.getReference(i);
+
+          // Extract 2D portions and compute difference
+          Timbre2DPoint diff2D = get2D(p) - get2D(target);
+
+          // Extract 3D portions and compute difference
+          Timbre3DPoint diff3D = get3D(p) - get3D(target);
+
+          // Compute squared distance
+          double d2 = diff2D.squaredNorm() + higher3Dweight * diff3D.squaredNorm();
+
+          distIdx.emplace_back (i, d2);
+       }
+
+       // keep only the K nearest
+       {
+          K = std::min<int> (K, (int) distIdx.size());
+          std::ranges::nth_element (distIdx, distIdx.begin() + K
+                                    ,
+                                    [](auto& a, auto& b){ return a.distance < b.distance; });
+          distIdx.resize (K);
+          assert(distIdx.size() == static_cast<size_t>(K));
+       }
+       return toWeightedIndices(distIdx, sharpness);
+    }();
+
+    /** if caller just wants the full distribution, return it: */
+    if (numToPick <= 0 || numToPick >= K) { return weightedIndices; }
+
+    /** otherwise sample numToPick *without replacement* by repeatedly drawing
+     from the discrete distribution then zeroing out that weight and re-normalizing. */
+    std::vector<util::WeightedIdx> picked;
+    picked.reserve (numToPick);
+
+    // extract weights into their own vector using views
+    auto weightView = weightedIndices | std::views::transform([](const auto& wi) { return wi.weight; });
+    std::vector<double> weightArr(weightView.begin(), weightView.end());
+
+    std::mt19937 rng { std::random_device{}() };
+    for (int pick = 0; pick < numToPick; ++pick) {
+       // construct the discrete_distribution over the weights
+       std::discrete_distribution<int> dist(weightArr.begin(), weightArr.end());
+       int choice = dist(rng);
+       picked.push_back(weightedIndices[choice]);
+       // zero out that weight so it's never picked again
+       weightArr[choice] = 0.0;
+
+       // Check if any weights remain (optional optimization)
+       if (std::ranges::all_of(weightArr, [](const double w) { return w == 0.0; })) {
+          break;
+       }
+    }
+    return picked;
+}
+
+
 }   // namespace nvs::timbrespace
