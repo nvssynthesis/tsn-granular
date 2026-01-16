@@ -4,6 +4,7 @@ project(tsn-granular-root VERSION 0.5.0)
 
 # Global options
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
+option(BUILD_PROFILING_TOOLS "Build profiling executables" OFF)
 
 # Set up global compile options
 if(APPLE)
@@ -13,7 +14,13 @@ endif()
 # Add the plugin subdirectory
 add_subdirectory(plugin)
 
+# Add profiling tools if enabled
+if(BUILD_PROFILING_TOOLS)
+    add_subdirectory(profiling)
+endif()
+
 # Print build configuration
 message(STATUS "TSN Granular Build Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  Use system libraries: ${USE_SYSTEM_LIBRARIES}")
+message(STATUS "  Build profiling tools: ${BUILD_PROFILING_TOOLS}")
