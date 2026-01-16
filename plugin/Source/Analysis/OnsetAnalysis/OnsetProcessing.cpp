@@ -4,7 +4,7 @@
 
 #include "OnsetProcessing.h"
 #include <ranges>
-#include "essentiamath.h"
+#include "essentia/essentiamath.h"
 
 namespace nvs::analysis {
 
