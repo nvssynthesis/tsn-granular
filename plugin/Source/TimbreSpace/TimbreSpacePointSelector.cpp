@@ -190,70 +190,6 @@ void TimbreSpacePointSelector::swapIfPending() {
 
 //=============================================================================================================================
 
-
-std::vector<util::WeightedIdx> toWeightedIndices(
-    const std::vector<util::DistanceIdx> &dv,
-    const double sharpness, const double contrastPower)
-{
-	if (dv.empty()) {
-		return {};
-	}
-
-	// 1) find maximum distance for normalization
-	double dmax = 0.0;
-	for (const auto& di : dv) {
-		dmax = std::max(dmax, di.distance);
-	}
-
-	// 2) Convert distances to initial weights using softmax
-	std::vector<double> weights;
-	weights.reserve(dv.size());
-
-	if (dmax <= 0.0) {
-		// All distances are zero - uniform weights
-		const double uniformWeight = 1.0 / static_cast<double>(dv.size());
-		weights.assign(dv.size(), uniformWeight);
-	} else {
-		// Apply softmax: exp(-sharpness * (distance/dmax))
-		for (const auto& di : dv) {
-			const double normalizedDist = di.distance / dmax;
-			weights.push_back(std::exp(-sharpness * normalizedDist));
-		}
-
-		// Normalize to sum = 1
-		const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
-		for (auto& w : weights) {
-			w /= sum;
-		}
-	}
-
-	// 3) apply contrast power scaling
-	if (contrastPower != 1.0) {
-		for (auto& w : weights) {
-			w = std::pow(w, contrastPower);
-		}
-
-		// re-normalize after power scaling
-        if (const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
-            sum > 0.0)
-        {
-			for (auto& w : weights) {
-				w /= sum;
-			}
-		}
-	}
-
-	// 4) build result vector with WeightedIdx structs
-	std::vector<util::WeightedIdx> result;
-	result.reserve(dv.size());
-
-	for (size_t i = 0; i < dv.size(); ++i) {
-		result.emplace_back(dv[i].idx, weights[i]);
-	}
-
-	return result;
-}
-
 // triangulation-based point selection function
 std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
     const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d)
@@ -358,6 +294,70 @@ std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& ta
 }
 
 
+//=============================================================================================================================
+
+std::vector<util::WeightedIdx> toWeightedIndices(
+    const std::vector<util::DistanceIdx> &dv,
+    const double sharpness, const double contrastPower)
+{
+    if (dv.empty()) {
+        return {};
+    }
+
+    // 1) find maximum distance for normalization
+    double dmax = 0.0;
+    for (const auto& di : dv) {
+        dmax = std::max(dmax, di.distance);
+    }
+
+    // 2) Convert distances to initial weights using softmax
+    std::vector<double> weights;
+    weights.reserve(dv.size());
+
+    if (dmax <= 0.0) {
+        // All distances are zero - uniform weights
+        const double uniformWeight = 1.0 / static_cast<double>(dv.size());
+        weights.assign(dv.size(), uniformWeight);
+    } else {
+        // Apply softmax: exp(-sharpness * (distance/dmax))
+        for (const auto& di : dv) {
+            const double normalizedDist = di.distance / dmax;
+            weights.push_back(std::exp(-sharpness * normalizedDist));
+        }
+
+        // Normalize to sum = 1
+        const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
+        for (auto& w : weights) {
+            w /= sum;
+        }
+    }
+
+    // 3) apply contrast power scaling
+    if (contrastPower != 1.0) {
+        for (auto& w : weights) {
+            w = std::pow(w, contrastPower);
+        }
+
+        // re-normalize after power scaling
+        if (const double sum = std::accumulate(weights.begin(), weights.end(), 0.0);
+            sum > 0.0)
+        {
+            for (auto& w : weights) {
+                w /= sum;
+            }
+        }
+    }
+
+    // 4) build result vector with WeightedIdx structs
+    std::vector<util::WeightedIdx> result;
+    result.reserve(dv.size());
+
+    for (size_t i = 0; i < dv.size(); ++i) {
+        result.emplace_back(dv[i].idx, weights[i]);
+    }
+
+    return result;
+}
 /**
  * Finds the K nearest points to `target` in `database`,
  * builds softmax-style weights over those K,
