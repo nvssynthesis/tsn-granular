@@ -9,6 +9,11 @@ if(NOT TARGET fmt::fmt)
     message(FATAL_ERROR "fmt library not found. Build the main plugin first.")
 endif()
 
+# Get Essentia (should already be built by parent)
+if(NOT TARGET essentia_built)
+    message(FATAL_ERROR "Essentia not found. Build the main plugin first.")
+endif()
+
 # Delaunator sources
 set(DELAUNATOR_SOURCES
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/src/delaunator.cpp
@@ -33,11 +38,15 @@ target_include_directories(tsn-profile-triangulation PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/slicer_granular/nvs_libraries
         ${CMAKE_SOURCE_DIR}/plugin/slicer_granular/JUCE/modules
         ${CMAKE_BINARY_DIR}/plugin/tsn-granular_artefacts/JuceLibraryCode  # Add generated JUCE header location
+        ${CMAKE_SOURCE_DIR}/essentia/src
+        ${CMAKE_BINARY_DIR}/essentia_install/include
+        ${CMAKE_BINARY_DIR}/essentia_install/include/essentia
 )
 
 target_link_libraries(tsn-profile-triangulation PRIVATE
         Eigen3::Eigen
         fmt::fmt
+        essentia_built
         juce::juce_core
         juce::juce_data_structures
         juce::juce_events
