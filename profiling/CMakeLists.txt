@@ -1,6 +1,9 @@
 # profiling/CMakeLists.txt
 cmake_minimum_required(VERSION 3.15)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Find Eigen3 (should already be found by parent)
 find_package(Eigen3 REQUIRED NO_MODULE)
 
@@ -38,17 +41,11 @@ target_include_directories(tsn-profile-triangulation PRIVATE
 
 target_link_libraries(tsn-profile-triangulation PRIVATE
         Eigen3::Eigen
-#        fmt::fmt
 )
 
 target_compile_definitions(tsn-profile-triangulation PRIVATE
-#        JUCE_STRICT_REFCOUNTEDPOINTER=1
         _LIBCPP_ENABLE_CXX20_REMOVED_TYPE_TRAITS=1
-#        JUCE_STANDALONE_APPLICATION=1
-#        FMT_HEADER_ONLY=1
 )
-
-target_compile_features(tsn-profile-triangulation PRIVATE cxx_std_20)
 
 # Enable optimization even in debug builds for profiling
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -63,3 +60,11 @@ if(APPLE)
             -fno-omit-frame-pointer
     )
 endif()
+
+#======================================================================================
+add_executable(test-triangle-walk test_triangle_walk.cpp ${DELAUNATOR_SOURCES})
+
+target_include_directories(test-triangle-walk PRIVATE
+        ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include)
+
+target_link_libraries(test-triangle-walk PRIVATE Eigen3::Eigen)
