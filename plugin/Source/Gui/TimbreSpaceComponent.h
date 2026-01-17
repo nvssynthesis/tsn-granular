@@ -56,7 +56,7 @@ public:
 	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 	//==========================================================================================
 
-	std::vector<nvs::util::WeightedIdx> getCurrentPointIndices() const;
+	std::vector<nvs::timbrespace::WeightedIdx> getCurrentPointIndices() const;
 	
 	void setNavigatorPoint(const Timbre2DPoint& p);
 	ProgressIndicator& getProgressIndicator();

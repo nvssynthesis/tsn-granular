@@ -24,7 +24,7 @@ public:
 
 private:
     TSNGranularAudioProcessor &_tsn_proc;
-    std::shared_ptr<nvs::analysis::ThreadedAnalyzer::OnsetAnalysisResult> _onsetAnalysis;
+    std::shared_ptr<nvs::analysis::OnsetAnalysisResult> _onsetAnalysis;
 
     void retrieveOnsets();
 };

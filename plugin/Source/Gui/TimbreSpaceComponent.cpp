@@ -180,7 +180,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	    }
         std::vector<Timbre5DPoint> current_points;
 		current_points.reserve(timbreSpacePS.getCurrentPointIndices().size());
-		for (const nvs::util::WeightedIdx &wi : timbreSpacePS.getCurrentPointIndices()){
+		for (const WeightedIdx &wi : timbreSpacePS.getCurrentPointIndices()){
 			current_points.push_back(timbres5D[wi.idx].point);
 		}
 
@@ -422,7 +422,7 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	_image = image;
 }
 
-std::vector<nvs::util::WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
+std::vector<WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
 	const auto &tsps = _proc->getTimbreSpacePointSelector();
 	return tsps.getCurrentPointIndices();
 }

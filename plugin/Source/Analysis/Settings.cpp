@@ -10,6 +10,7 @@
 
 #include "Settings.h"
 #include "Analyzer.h"
+#include "StringAxiom.h"
 
 namespace nvs::analysis {
 

@@ -10,8 +10,8 @@
 
 #include "Analysis/ThreadedAnalyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetProcessing.h"
-#include "fmt/core.h"
 #include "StringAxiom.h"
+#include "../../slicer_granular/Source/misc_util_juce.h"
 
 namespace nvs::analysis {
 

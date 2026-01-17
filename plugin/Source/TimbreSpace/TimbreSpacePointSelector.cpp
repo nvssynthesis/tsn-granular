@@ -2,11 +2,11 @@
 // Created by Nicholas Solem on 1/12/26.
 //
 
+#include <ranges>
 #include "TimbreSpacePointSelector.h"
 #include "TimbreSpaceTriangulation.h"
-#include <ranges>
-
 #include "dsp_util.h"
+#include "StringAxiom.h"
 
 namespace nvs::timbrespace {
 
@@ -108,7 +108,7 @@ void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoi
         return;
     }
 
-    std::vector<util::WeightedIdx> weightedIndices =
+    std::vector<WeightedIdx> weightedIndices =
         findPointsTriangulationBased(
             _target,
             _activePoints,

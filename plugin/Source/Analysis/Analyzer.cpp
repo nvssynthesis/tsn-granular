@@ -11,6 +11,7 @@
 #include "Analysis/Analyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
 #include "../plugin/slicer_granular/Source/algo_util.h"
+#include "../plugin/slicer_granular/Source/misc_util_juce.h"
 #include <concepts>
 
 namespace nvs::analysis {

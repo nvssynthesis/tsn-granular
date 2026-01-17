@@ -9,11 +9,10 @@
 */
 
 #pragma once
-#include <span>
 #include "../../slicer_granular/Source/Synthesis/GranularSynthesizer.h"
-#include "../../slicer_granular/Source/misc_util.h"
 #include "Navigation/NavigationManager.h"
 #include "TimbreSpace/TimbreSpacePointSelector.h"
+#include "../../slicer_granular/Source/IndexTypes.h"
 
 namespace nvs::gran {
 class TSNGranularSynthesizer final
@@ -21,10 +20,10 @@ class TSNGranularSynthesizer final
 ,   private ActionListener
 {
 public:
-    using WeightedIdx = nvs::util::WeightedIdx;
+    using WeightedIdx = nvs::timbrespace::WeightedIdx;
     using TimbreSpace = timbrespace::TimbreSpace;
     using TimbreSpacePointSelector = timbrespace::TimbreSpacePointSelector;
-    using SharedOnsets = std::shared_ptr<nvs::analysis::ThreadedAnalyzer::OnsetAnalysisResult>;
+    using SharedOnsets = std::shared_ptr<nvs::analysis::OnsetAnalysisResult>;
 
     explicit TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
     ~TSNGranularSynthesizer() override;

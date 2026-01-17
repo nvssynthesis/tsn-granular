@@ -4,7 +4,7 @@
 
 #pragma once
 #include "TimbreSpace.h"
-#include "IndexTypes.h"
+#include "../../slicer_granular/Source/IndexTypes.h"
 
 namespace nvs::timbrespace {
 

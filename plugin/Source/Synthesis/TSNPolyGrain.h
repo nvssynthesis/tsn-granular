@@ -11,9 +11,11 @@
 #pragma once
 #include "Analysis/ThreadedAnalyzer.h"
 #include "../slicer_granular/Source/Synthesis/GranularSynthesis.h"
-#include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
-#include "Analysis/Analyzer.h"
+#include "Analysis/OnsetAnalysis/OnsetAnalysisResult.h"
+#include "../slicer_granular/Source/IndexTypes.h"
 #include <JuceHeader.h>
+
+#include "Navigation/NavigationManager.h"
 
 
 /** TODO:
@@ -24,8 +26,8 @@ namespace nvs::gran {
 class TSNPolyGrain final :		public PolyGrain
 {
 public:
-    using WeightedIdx = util::WeightedIdx;
-    using SharedOnsets = std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult>;
+    using WeightedIdx = timbrespace::WeightedIdx;
+    using SharedOnsets = std::shared_ptr<analysis::OnsetAnalysisResult>;
 	
     TSNPolyGrain(GranularSynthSharedState *synth_shared_state, GranularVoiceSharedState *voice_shared_state);
     ~TSNPolyGrain() override = default;

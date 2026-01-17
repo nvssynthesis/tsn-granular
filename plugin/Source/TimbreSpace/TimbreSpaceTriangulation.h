@@ -14,7 +14,7 @@
 #include <ranges>
 
 #include "../../delaunator-cpp/include/delaunator.hpp"
-#include "IndexTypes.h"
+#include "../../slicer_granular/Source/IndexTypes.h"
 #include "TimbrePointTypes.h"
 
 namespace nvs::timbrespace {
