@@ -64,12 +64,12 @@ private:
 
 //=============================================================================================================================
 
-std::vector<WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
-                                                        const juce::Array<Timbre5DPoint>&  database,
-                                                        int K,
-                                                        int numToPick,
-                                                        double sharpness,
-                                                        float higher3Dweight);
+// std::vector<WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
+//                                                         const juce::Array<Timbre5DPoint>&  database,
+//                                                         int K,
+//                                                         int numToPick,
+//                                                         double sharpness,
+//                                                         float higher3Dweight);
 
 std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
                                                             const std::vector<Timbre5DPoint>& database,

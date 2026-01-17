@@ -10,13 +10,14 @@
 
 #include "TimbreSpaceTriangulation.h"
 #include <set>
+#include <cassert>
 
 #ifndef DBG
 #define DBG(x) (std::cerr << x << std::endl, (void)0)
 #endif
 
 #ifndef jassert
-#define jassert assert
+#define jassert(x) assert(x)
 #endif
 
 namespace nvs::timbrespace {

@@ -52,7 +52,7 @@ target_compile_features(tsn-profile-triangulation PRIVATE cxx_std_20)
 
 # Enable optimization even in debug builds for profiling
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(tsn-profile-triangulation PRIVATE -O2 -g)
+    target_compile_options(tsn-profile-triangulation PRIVATE -O0 -g)
 else()
     target_compile_options(tsn-profile-triangulation PRIVATE -O3 -g)
 endif()

@@ -31,7 +31,8 @@ std::vector<Timbre5DPoint> generateRandomDatabase(size_t numPoints, std::mt19937
 
 // Generate random target points
 std::vector<Timbre5DPoint> generateRandomTargets(size_t numTargets, std::mt19937& rng) {
-    std::uniform_real_distribution<float> dist(-1.5f, 1.5f); // Slightly outside to test edge cases
+    static constexpr float r = 1.5f;
+    std::uniform_real_distribution<float> dist(-r, r); // Slightly outside to test edge cases
 
     std::vector<Timbre5DPoint> targets;
     targets.reserve(numTargets);
@@ -131,7 +132,7 @@ BenchmarkResult runBenchmark(const std::string& name,
 
 void printResults(const std::vector<BenchmarkResult>& results) {
     std::cout << "\n=== Benchmark Results ===" << std::endl;
-    std::cout << std::fixed << std::setprecision(4);
+    std::cout << std::fixed << std::setprecision(6);
     std::cout << std::setw(30) << "Test Name"
               << std::setw(12) << "DB Size"
               << std::setw(12) << "Queries"
@@ -159,7 +160,13 @@ int main() {
     std::vector<BenchmarkResult> results;
 
     // Test different database sizes
-    std::vector<size_t> dbSizes = {100, 500, 1000, 5000, 10000};
+    std::vector<size_t> dbSizes = {
+        10,
+        100,
+        1000,
+        10000,
+        100000
+    };
     const size_t numQueries = 10000;
 
     for (size_t dbSize : dbSizes) {
