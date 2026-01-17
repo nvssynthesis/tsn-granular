@@ -23,34 +23,6 @@ enum class Statistic {
 };
 typedef nvs::util::Iterator<Statistic, Statistic::Mean, Statistic::Kurtosis> statisticIterator;
 
-inline String toString(const Statistic stat) {
-    switch (stat) {
-        case Statistic::Mean:
-            return "Mean";
-        case Statistic::Median:
-            return "Median";
-        case Statistic::Variance:
-            return "Variance";
-        case Statistic::Skewness:
-            return "Skewness";
-        case Statistic::Kurtosis:
-            return "Kurtosis";
-        default:
-            return "";
-    }
-}
-
-inline juce::StringArray getStatisticsStringArray() {
-    static const juce::StringArray ret = []() {
-        juce::StringArray a;
-        for (auto const &i : statisticIterator()) {
-            a.add(toString(i));
-        }
-        return a;
-    }();
-    return ret;
-}
-
 template <typename T>
 struct EventwiseStatistics {
 	T mean		{};

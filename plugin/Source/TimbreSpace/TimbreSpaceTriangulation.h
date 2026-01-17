@@ -10,7 +10,11 @@
 
 #pragma once
 
+#include <random>
+#include <ranges>
+
 #include "../../delaunator-cpp/include/delaunator.hpp"
+#include "IndexTypes.h"
 #include "TimbrePointTypes.h"
 
 namespace nvs::timbrespace {
@@ -53,5 +57,43 @@ std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
  // Use weights[0], weights[1], weights[2] as amplitudes
  }
 */
+
+// triangulation-based point selection function
+std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
+    const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d);
+
+// Helper function for when target is outside convex hull
+std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
+														 const std::vector<Timbre5DPoint>& database,
+														 const delaunator::Delaunator& d);
+
+
+//=============================================================================================================================
+#if 0
+std::vector<WeightedIdx> toWeightedIndices(std::vector<DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
+
+
+/**
+ * Finds the K nearest points to `target` in `database`,
+ * builds softmax-style weights over those K,
+ * then either returns them all, or samples `numToPick` **without replacement**.
+ *
+ * @param  target          the target point from which to find nearest points
+ * @param  database        your full set of Timbre5DPoints
+ * @param  K               how many nearest neighbors to consider (caps at database.size())
+ * @param  numToPick       if <=0, we return all K weighted indices;
+ *                         otherwise we pick exactly numToPick **without** replacement.
+ * @param  sharpness       0=flat, >0 biases toward closer points
+ * @param  higher3Dweight  extra weighting on the 3D portion of your distance metric
+ */
+std::vector<WeightedIdx> findPointsDistanceBased(
+    const Timbre5DPoint&               target,
+    const juce::Array<Timbre5DPoint>&  database,
+    int                                K,
+    const int                          numToPick,
+    double                             sharpness,
+    float                              higher3Dweight);
+
+#endif
 
 }	// namespace nvs::timbrespace

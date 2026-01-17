@@ -10,7 +10,9 @@
 
 #include "TimbreSpace.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../Analysis/ThreadedAnalyzer.h"
+#include "../../slicer_granular/Source/misc_util_juce.h"
+#include "Analysis/ThreadedAnalyzer.h"
+#include "Analysis/FeatureOperations.h"
 #include <ranges>
 #include "fmt/core.h"
 #include "StringAxiom.h"
@@ -63,7 +65,7 @@ String TimbreSpace::getAudioAbsolutePath() const {
     }
     return _onsetAnalysis->audioFileAbsPath;
 }
-auto TimbreSpace::shareOnsets() const -> std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult>  {
+auto TimbreSpace::shareOnsets() const -> std::shared_ptr<analysis::OnsetAnalysisResult>  {
     return _onsetAnalysis;
 }
 bool TimbreSpace::hasValidAnalysisFor(juce::String const &waveformHash) const {
@@ -131,11 +133,51 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
         updateStatistic();
     }
 }
+
+using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
+
+
+juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> const &fullTimbreSpace,
+                                    std::vector<float> const &normalizedOnsets,
+                                    const juce::String& waveformHash,
+                                    const juce::String& audioAbsPath);
+
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
     // could there be any reason to clear the tree? re-assigning it wouldn't need that, but
     // what if the rest of this func fails? do we want a cleared tree at that point?
     if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-        analyzerUpdated(*a);
+        // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
+        // ========================================ONSETS========================================
+        const auto onsetsResult = a->shareOnsetAnalysis();
+        if (!onsetsResult) {
+            DBG("Onsets somehow null; returning\n");
+            return;
+        }
+        auto const &onsets = onsetsResult->onsets;
+        if (onsets.empty()) {
+            DBG("Onsets have 0 length");
+            return;
+        }
+
+        // ===================================TIMBRE ANALYSIS====================================
+        const auto analysisResult = a->stealTimbreSpaceRepresentation();
+        if (!analysisResult.has_value()){
+            DBG("No analysis available\n");
+            return;
+        }
+        auto const &tspace = analysisResult.value().timbreMeasurements;
+
+        const String waveformHash = onsetsResult->waveformHash;
+        const String absFilePath = onsetsResult->audioFileAbsPath;
+
+        if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
+            DBG("Discrepancy between onsets and timbre analysis\n");
+        }
+        setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
+
+        setSavePending(true);
+        signalSaveAnalysisOption();
+        signalOnsetsAvailable();
     }
 }
 //=============================================================================================================================
@@ -176,12 +218,11 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
             !(waveformHash.isEmpty() || path.isEmpty()))
         {
             std::vector<float> onsets(onsetsArray->begin(), onsetsArray->end());
-            _onsetAnalysis = std::make_shared<analysis::ThreadedAnalyzer::OnsetAnalysisResult>(onsets, waveformHash, path);
+            _onsetAnalysis = std::make_shared<analysis::OnsetAnalysisResult>(onsets, waveformHash, path);
         }
     }
 	fullSelfUpdate(true);
 }
-using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
 
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> const &fullTimbreSpace,
 									std::vector<float> const &normalizedOnsets,
@@ -355,41 +396,6 @@ void TimbreSpace::signalShapedPointsAvailable() const {
 }
 void TimbreSpace::signalTimbreSpaceTreeChanged() const {
     sendActionMessage(axiom::timbreSpaceTreeChanged);   // for TimbreSpacePointSelector to know to update filtered feature
-}
-
-void TimbreSpace::analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a) {
-    // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
-    // ========================================ONSETS========================================
-    const auto onsetsResult = a.shareOnsetAnalysis();
-    if (!onsetsResult) {
-        DBG("Onsets somehow null; returning\n");
-        return;
-    }
-    auto const &onsets = onsetsResult->onsets;
-    if (onsets.empty()) {
-        DBG("Onsets have 0 length");
-        return;
-    }
-
-    // ===================================TIMBRE ANALYSIS====================================
-    const auto analysisResult = a.stealTimbreSpaceRepresentation();
-    if (!analysisResult.has_value()){
-        DBG("No analysis available\n");
-        return;
-    }
-    auto const &tspace = analysisResult.value().timbreMeasurements;
-
-    const String waveformHash = onsetsResult->waveformHash;
-    const String absFilePath = onsetsResult->audioFileAbsPath;
-
-    if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
-        DBG("Discrepancy between onsets and timbre analysis\n");
-    }
-    setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
-
-    setSavePending(true);
-    signalSaveAnalysisOption();
-    signalOnsetsAvailable();
 }
 
 void TimbreSpace::TimbreDataManager::swapIfPending() {

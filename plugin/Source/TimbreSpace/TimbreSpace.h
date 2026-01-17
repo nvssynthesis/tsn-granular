@@ -9,10 +9,9 @@
 */
 
 #pragma once
-#include <JuceHeader.h>
 #include "../Analysis/Features.h"
 #include "../Analysis/Statistics.h"
-#include "../Analysis/ThreadedAnalyzer.h"   // just for OnsetAnalysisResult
+#include "../Analysis/OnsetAnalysis/OnsetAnalysisResult.h"
 #include "TimbrePointTypes.h"
 #include "../../delaunator-cpp/include/delaunator.hpp"
 
@@ -32,7 +31,7 @@ public:
 	TimbreSpace& operator=(TimbreSpace&&) noexcept = delete;
 	//=============================================================================================================================
 	std::vector<Timbre5DPoint> const &getTimbreSpacePoints() const;
-	std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> shareOnsets() const;
+	std::shared_ptr<analysis::OnsetAnalysisResult> shareOnsets() const;
 	//=============================================================================================================================
 	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
 	ValueTree getTimbreSpaceTree() const { return _treeManager.getTimbreSpaceTree(); }
@@ -48,7 +47,7 @@ private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally calls analyzerUpdated
-    void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
+    // void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
 
     void updateDimensionwiseFeatureFromParam(const String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
@@ -67,7 +66,7 @@ private:
 	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
 	} settings;
 	//=============================================================================================================================
-    std::shared_ptr<analysis::ThreadedAnalyzer::OnsetAnalysisResult> _onsetAnalysis;
+    std::shared_ptr<analysis::OnsetAnalysisResult> _onsetAnalysis;
 	//=============================================================================================================================
     class TimbreDataManager {
     public:

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "TimbreSpace.h"
+#include "IndexTypes.h"
 
 namespace nvs::timbrespace {
 
@@ -21,7 +22,7 @@ public:
     void computeExistingPointsFromTarget(const Timbre5DPoint &target);
 
     Timbre5DPoint const &getTargetPoint() const { return _target; }
-    const std::vector<util::WeightedIdx> &getCurrentPointIndices() const { return _currentPointIndices; }
+    const std::vector<WeightedIdx> &getCurrentPointIndices() const { return _currentPointIndices; }
     //========================================================================================================
     void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) override;
 
@@ -30,7 +31,7 @@ private:
     TimbreSpace &_timbreSpace;
 
     Timbre5DPoint _target {};
-    std::vector<util::WeightedIdx> _currentPointIndices {{},{},{}};
+    std::vector<WeightedIdx> _currentPointIndices {{},{},{}};
 
     std::vector<WrappedPoint5D> _wrappedPoints {};
     std::vector<size_t> _activeIndices {};
@@ -63,21 +64,19 @@ private:
 
 //=============================================================================================================================
 
-std::vector<util::WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
+std::vector<WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
                                                         const juce::Array<Timbre5DPoint>&  database,
                                                         int K,
                                                         int numToPick,
                                                         double sharpness,
                                                         float higher3Dweight);
 
-std::vector<util::WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
+std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
                                                             const std::vector<Timbre5DPoint>& database,
                                                             const delaunator::Delaunator &d);
 
-std::vector<util::WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
+std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
                                                          const std::vector<Timbre5DPoint>& database,
                                                          const delaunator::Delaunator& d);
-
-std::vector<util::WeightedIdx> toWeightedIndices(std::vector<util::DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
 
 }   // namespace nvs::timbrespace

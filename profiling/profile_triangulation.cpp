@@ -4,11 +4,7 @@
 #include <random>
 #include <iomanip>
 #include "TimbreSpace/TimbrePointTypes.h"
-#include "TimbreSpace/TimbreSpacePointSelector.h"
 #include "TimbreSpace/TimbreSpaceTriangulation.h"
-
-// Mock jassert for standalone build
-#define jassert(x) assert(x)
 
 using namespace std::chrono;
 using namespace nvs::timbrespace;

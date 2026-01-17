@@ -10,7 +10,6 @@
 
 #pragma once
 #include <Eigen/Dense>
-#include <JuceHeader.h>
 
 namespace nvs::timbrespace {
 
@@ -31,7 +30,10 @@ inline Timbre3DPoint get3D(Timbre5DPoint p) {
 inline Timbre5DPoint to5D(Timbre2DPoint p2, Timbre3DPoint p3) {
     return Timbre5DPoint{p2[0], p2[1], p3[0], p3[1], p3[2]};
 }
-std::array<juce::uint8, 3> toUnsigned(Timbre3DPoint p);
+
+using uint8 = unsigned char;
+
+std::array<uint8, 3> toUnsigned(Timbre3DPoint p);
 
 
 bool inRange0_1(const auto& point) {
