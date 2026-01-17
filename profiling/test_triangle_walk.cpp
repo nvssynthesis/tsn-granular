@@ -18,8 +18,8 @@ delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
     std::vector<double> coords;
     coords.reserve(points.size() * 2);
     for (const auto& p : points) {
-        coords.push_back(p.x);
-        coords.push_back(p.y);
+        coords.push_back(p.x());
+        coords.push_back(p.y());
     }
     return delaunator::Delaunator(coords);
 }
@@ -31,7 +31,7 @@ Point2D getPoint(const delaunator::Delaunator& d, size_t idx) {
 // barycentric method
 bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const Point2D& c) {
     auto sign = [](const Point2D& p1, const Point2D& p2, const Point2D& p3) {
-        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
     };
 
     double d1 = sign(p, a, b);
