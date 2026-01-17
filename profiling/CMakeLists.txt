@@ -65,6 +65,8 @@ endif()
 add_executable(test-triangle-walk test_triangle_walk.cpp ${DELAUNATOR_SOURCES})
 
 target_include_directories(test-triangle-walk PRIVATE
-        ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include)
+        ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
+        ${CMAKE_SOURCE_DIR}/plugin/Source
+)
 
 target_link_libraries(test-triangle-walk PRIVATE Eigen3::Eigen)

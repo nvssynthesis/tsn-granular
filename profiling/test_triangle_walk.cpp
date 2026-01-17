@@ -10,12 +10,9 @@
 #include <vector>
 #include <cmath>
 #include "delaunator.hpp"
+#include "TimbreSpace/TimbrePointTypes.h"
 
-
-struct Point2D {
-    double x, y;
-    Point2D(double x_, double y_) : x(x_), y(y_) {}
-};
+using Point2D = nvs::timbrespace::Timbre2DPoint;
 
 delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
     std::vector<double> coords;
