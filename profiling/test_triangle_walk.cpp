@@ -8,9 +8,11 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <set>
 #include <cmath>
 #include "delaunator.hpp"
 #include "TimbreSpace/TimbrePointTypes.h"
+#include "TimbreSpace/TimbreSpaceTriangulation.h"
 
 using Point2D = nvs::timbrespace::Timbre2DPoint;
 
@@ -24,35 +26,8 @@ delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
     return delaunator::Delaunator(coords);
 }
 
-Point2D getPoint(const delaunator::Delaunator& d, size_t idx) {
-    return {d.coords[2 * idx], d.coords[2 * idx + 1]};
-}
 
-// barycentric method
-bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const Point2D& c) {
-    auto sign = [](const Point2D& p1, const Point2D& p2, const Point2D& p3) {
-        return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
-    };
 
-    double d1 = sign(p, a, b);
-    double d2 = sign(p, b, c);
-    double d3 = sign(p, c, a);
-
-    bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-    bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-    return !(has_neg && has_pos);
-}
-
-// PLACEHOLDER: Triangle walking implementation
-// Returns triangle index (i / 3 where i is the index into d.triangles)
-std::optional<size_t> walkToTriangle(const delaunator::Delaunator& d,
-                                     size_t startTriIdx,
-                                     const Point2D& target) {
-    // TODO: Implement actual walking algorithm
-    // For now, this is a stub that will be replaced
-    return std::nullopt;
-}
 
 // simple 3-point triangle (degenerate case)
 void test_single_triangle() {
@@ -67,7 +42,7 @@ void test_single_triangle() {
     auto d = buildDelaunator(points);
 
     // point inside the triangle
-    Point2D inside(0.5, 0.3);
+    const Point2D inside(0.5, 0.3);
 
     // with only one triangle, any start point should work
     auto result = walkToTriangle(d, 0, inside);
@@ -92,13 +67,29 @@ void test_grid_points() {
 
     const auto d = buildDelaunator(points);
 
+    std::cout << "Input points: " << points.size() << std::endl;
+    std::cout << "Triangulation coords size: " << d.coords.size() / 2 << std::endl;
+    std::cout << "Number of triangles: " << d.triangles.size() / 3 << std::endl;
+
+    // print all unique point indices in triangulation
+    std::set<size_t> uniqueIndices(d.triangles.begin(), d.triangles.end());
+    std::cout << "Unique point indices used: ";
+    for (auto idx : uniqueIndices) {
+        std::cout << idx << " ";
+    }
+    std::cout << std::endl;
+
     // test point near center
     const Point2D center(1.0, 1.0);
 
     // try walking from different starting triangles
     for (size_t startTri = 0; startTri < d.triangles.size() / 3; ++startTri) {
+        auto tri = TrianglePoints::create(d, startTri);
         auto result = walkToTriangle(d, startTri, center);
         // when implemented, should find the containing triangle
+        auto resTri = TrianglePoints::create(d, *result);
+
+        assert(nvs::timbrespace::pointInTriangle(center, resTri.p0, resTri.p1, resTri.p2));
     }
 
     assert(!d.triangles.empty());

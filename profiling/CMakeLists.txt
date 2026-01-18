@@ -64,6 +64,11 @@ endif()
 #======================================================================================
 add_executable(test-triangle-walk test_triangle_walk.cpp ${DELAUNATOR_SOURCES})
 
+target_sources(test-triangle-walk PRIVATE
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbreSpaceTriangulation.cpp
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbrePointTypes.cpp
+)
+
 target_include_directories(test-triangle-walk PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
         ${CMAKE_SOURCE_DIR}/plugin/Source

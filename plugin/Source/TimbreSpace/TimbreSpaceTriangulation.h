@@ -67,6 +67,18 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 														 const std::vector<Timbre5DPoint>& database,
 														 const delaunator::Delaunator& d);
 
+//=============================================================================================================================
+
+std::optional<size_t> walkToTriangle(const delaunator::Delaunator& d,
+                                     size_t startTriIdx,
+                                     const Timbre2DPoint& target);
+Timbre2DPoint getPoint(const delaunator::Delaunator& d, size_t idx);
+
+struct TrianglePoints {
+    Timbre2DPoint p0, p1, p2;
+    size_t t0, t1, t2;
+    static TrianglePoints create(const delaunator::Delaunator& d, size_t triangleIdx);
+};
 
 //=============================================================================================================================
 #if 0
