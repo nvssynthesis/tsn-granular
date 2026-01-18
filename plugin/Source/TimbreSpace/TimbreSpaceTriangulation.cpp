@@ -464,7 +464,7 @@ size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_
 
 // Get vertex index from point (assumes point exactly matches a vertex in coords)
 size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point) {
-    const float EPSILON = 1e-9f;
+    const float EPSILON = 1e-6f;
 
     for (size_t i = 0; i < d.coords.size() / 2; ++i) {
         float vx = static_cast<float>(d.coords[2 * i]);
@@ -495,95 +495,88 @@ std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                                  const Timbre2DPoint& q,
                                                  size_t startTri) {
-    const float EPSILON = 1e-9f;
-    const size_t MAX_ITERATIONS = d.triangles.size();
+    std::cout << "rememberingStochasticWalk called with startTri=" << startTri
+              << " q=(" << q.x() << "," << q.y() << ")" << std::endl;
 
-    size_t currentTri = startTri;
-    size_t previousTri = SIZE_MAX;
+    const float EPSILON = 1e-6f;
+    const size_t MAX_ITERATIONS = d.triangles.size() * 3; // Safety limit
 
-    // Helper: check which side of edge (v1->v2) point q is on
-    auto pointSideOfEdge = [](const Timbre2DPoint& v1, const Timbre2DPoint& v2, const Timbre2DPoint& p) -> float {
-        return (v2.x() - v1.x()) * (p.y() - v1.y()) - (v2.y() - v1.y()) * (p.x() - v1.x());
+    size_t t = startTri;
+    size_t previous = startTri;
+    bool end = false;
+    size_t iterations = 0;
+
+    // Helper: check if point q is on the "other side" of edge from v1 to v2
+    // (negative signed area means q is on the right/outside)
+    auto pointOnOtherSide = [&](const Timbre2DPoint& v1, const Timbre2DPoint& v2) -> bool {
+        float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
+                          (v2.y() - v1.y()) * (q.x() - v1.x());
+        return signedArea < -EPSILON;
     };
 
-    for (size_t iter = 0; iter < MAX_ITERATIONS; ++iter) {
-        auto tri = TrianglePoints::create(d, currentTri);
+    while (!end && iterations++ < MAX_ITERATIONS) {
+        auto tri = TrianglePoints::create(d, t);
+        std::cout << "Iter " << iterations << " at triangle " << t << ": "
+          << tri.p0.x() << "," << tri.p0.y() << " | "
+          << tri.p1.x() << "," << tri.p1.y() << " | "
+          << tri.p2.x() << "," << tri.p2.y() << std::endl;
 
-        std::cout << "Iter " << iter << " at triangle " << currentTri << ": "
-                  << tri.p0.x() << "," << tri.p0.y() << " | "
-                  << tri.p1.x() << "," << tri.p1.y() << " | "
-                  << tri.p2.x() << "," << tri.p2.y() << std::endl;
-
-        // Check if q is in current triangle
+        // Check if we found it
         if (pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
-            std::cout << "Found! Triangle " << currentTri << " contains point" << std::endl;
-            return currentTri;
+            std::cout << "Found at triangle " << t << std::endl;
+            return t;
         }
 
-        // Get the three edges (as halfedge indices)
         std::array<Timbre2DPoint, 3> vertices = {tri.p0, tri.p1, tri.p2};
-
-        if (!pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
-            std::cout << "Point (" << q.x() << "," << q.y() << ") NOT in triangle" << std::endl;
-            // Manually check each edge
-            for (size_t i = 0; i < 3; ++i) {
-                Timbre2DPoint v1 = vertices[i];
-                Timbre2DPoint v2 = vertices[(i + 1) % 3];
-                float sa = (v2.x() - v1.x()) * (q.y() - v1.y()) - (v2.y() - v1.y()) * (q.x() - v1.x());
-                std::cout << "  Edge " << i << " signed area: " << sa << std::endl;
-            }
-        }
-
-        size_t startEdgeIdx = 0;
-        bool moved = false;
-
         std::array<size_t, 3> halfedges = {tri.t0, tri.t1, tri.t2};
 
+        // Try edges: random (we'll use 0), then next, then next
         for (size_t i = 0; i < 3; ++i) {
-            size_t edgeIdx = (startEdgeIdx + i) % 3;
+            size_t edgeIdx = i;
             size_t halfedge = halfedges[edgeIdx];
 
-            // Compute signed area first
             Timbre2DPoint v1 = vertices[edgeIdx];
             Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
-            float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
-                              (v2.y() - v1.y()) * (q.x() - v1.x());
 
-            // If q is on the outside of this edge (negative signed area)
-            if (signedArea < -EPSILON) {
-                // Check if we can cross this edge
-                size_t neighborHalfedge = d.halfedges[halfedge];
-                if (neighborHalfedge == delaunator::INVALID_INDEX) {
-                    // Want to cross but it's a hull edge - point is outside
-                    return std::nullopt;
-                }
+            size_t neighborHalfedge = d.halfedges[halfedge];
+            std::cout << "  Edge " << i << " (" << v1.x() << "," << v1.y() << " -> "
+                      << v2.x() << "," << v2.y() << "): ";
 
-                size_t neighborTri = neighborHalfedge / 3;
-                if (neighborTri == previousTri) {
-                    continue; // Skip previous triangle, try next edge
-                }
+            if (neighborHalfedge == delaunator::INVALID_INDEX) {
+                std::cout << "hull edge" << std::endl;
+                continue;
+            }
 
-                previousTri = currentTri;
-                currentTri = neighborTri;
-                moved = true;
-                break;
+            size_t neighbor = neighborHalfedge / 3;
+            bool otherSide = pointOnOtherSide(v1, v2);
+            bool notPrevious = (neighbor != previous);
+
+            std::cout << "neighbor=" << neighbor << " previous=" << previous
+                      << " otherSide=" << otherSide << " notPrevious=" << notPrevious << std::endl;
+
+            if (notPrevious && otherSide) {
+                std::cout << "  -> Crossing to triangle " << neighbor << std::endl;
+                previous = t;
+                t = neighbor;
+                goto next_iteration;
             }
         }
 
-        if (!moved) {
-            std::cout << "Stuck at triangle " << currentTri << std::endl;
-            return currentTri;
-        }
+        // If we get here, no edge was suitable
+        std::cout << "No suitable edge found, ending" << std::endl;
+        end = true;
+
+    next_iteration:
+        continue;
     }
 
-    std::cout << "Max iterations exceeded" << std::endl;
-    return std::nullopt;
+    return t;
 }
 
 std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
                                  size_t startTriIdx,
                                  const Timbre2DPoint& q) {
-    const float EPSILON = 1e-7f;
+    const float EPSILON = 1e-6f;
 
     // Get starting triangle vertices
     size_t t0 = startTriIdx * 3;
@@ -643,6 +636,7 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
             // Cross edge from p to l
             size_t edge_pl = findHalfedge(d, currentTri, vp, vl);
             if (edge_pl == SIZE_MAX || d.halfedges[edge_pl] == delaunator::INVALID_INDEX) {
+                std::cout << "Returning nullopt: hit boundary in case 1 creation of edge_pl" << std::endl;
                 return std::nullopt; // Hit boundary
             }
 
@@ -651,8 +645,10 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
 
             vr = vl;
             vl = getThirdVertex(d, currentTri, vp, vr);
-            if (vl == SIZE_MAX) return std::nullopt;
-
+            if (vl == SIZE_MAX) {
+                std::cout << "Returning nullopt: vl == SIZE_MAX in case 1\n";
+                return std::nullopt;
+            }
             l = getPointFromVertex(d, vl);
             lprime_y = l.x() * ksin + l.y() * kcos;
         }
@@ -678,6 +674,7 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
             // Cross edge from p to r
             size_t edge_pr = findHalfedge(d, currentTri, vp, vr);
             if (edge_pr == SIZE_MAX || d.halfedges[edge_pr] == delaunator::INVALID_INDEX) {
+                std::cout << "Returning nullopt: edge_pr == SIZE_MAX || d.halfedges[edge_pr] == delaunator::INVALID_INDEX in case 2\n";
                 return std::nullopt; // Hit boundary
             }
 
@@ -686,7 +683,10 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
 
             vl = vr;
             vr = getThirdVertex(d, currentTri, vp, vl);
-            if (vr == SIZE_MAX) return std::nullopt;
+            if (vr == SIZE_MAX) {
+                std::cout << "Returning nullopt: vr == SIZE_MAX in case 2\n";
+                return std::nullopt;
+            }
 
             r = getPointFromVertex(d, vr);
             rprime_y = r.x() * ksin + r.y() * kcos;
@@ -698,13 +698,24 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
         vr = vl;
         vl = vp;
     }
-
     // At this point, pq intersects currentTri
+
+    std::cout << "After initialization, before walk: currentTri=" << currentTri << std::endl;
+    auto debugTri = TrianglePoints::create(d, currentTri);
+    std::cout << "  Triangle vertices: "
+              << debugTri.p0.x() << "," << debugTri.p0.y() << " | "
+              << debugTri.p1.x() << "," << debugTri.p1.y() << " | "
+              << debugTri.p2.x() << "," << debugTri.p2.y() << std::endl;
+    std::cout << "  vl=" << vl << " vr=" << vr << std::endl;
+
 
     // === WALK STEP: Follow line segment pq ===
 
     size_t vs = getThirdVertex(d, currentTri, vl, vr);
-    if (vs == SIZE_MAX) return std::nullopt;
+    if (vs == SIZE_MAX) {
+        std::cout << "Returning nullopt: vs == SIZE_MAX in WALK STEP\n";
+        return std::nullopt;
+    }
 
     Timbre2DPoint s = getPointFromVertex(d, vs);
     float sprime_x = s.x() * kcos - s.y() * ksin;
@@ -726,7 +737,7 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
         std::cout << "Attempting to cross edge_lr=" << edge_lr << std::endl;
 
         if (edge_lr == SIZE_MAX || d.halfedges[edge_lr] == delaunator::INVALID_INDEX) {
-            std::cout << "Hit boundary!" << std::endl;
+            std::cout << "Returning nullopt: in sprime_x < qprime_x while loop, hit boundary! edge_lr == SIZE_MAX || d.halfedges[edge_lr] == delaunator::INVALID_INDEX" << std::endl;
             return std::nullopt;
         }
 
@@ -734,21 +745,17 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
         currentTri = oppositeEdge / 3;
 
         vs = getThirdVertex(d, currentTri, vl, vr);
-        if (vs == SIZE_MAX) return std::nullopt;
+        if (vs == SIZE_MAX) {
+            std::cout << "Returning nullopt: in sprime_x < qprime_x while loop,vs == SIZE_MAX" << std::endl;
+            return std::nullopt;
+        }
 
         s = getPointFromVertex(d, vs);
         sprime_x = s.x() * kcos - s.y() * ksin;
     }
 
-    // Before returning, verify q is actually in or near currentTri
-    auto tri = TrianglePoints::create(d, currentTri);
-    if (!pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
-        // Point is not in the triangle - likely outside the convex hull
-        return std::nullopt;
-    }
-
-    // TODO: Call remembering_stochastic_walk(q, currentTri)
-    return currentTri;
+    std::cout << "After initialization, before walk: currentTri=" << currentTri << std::endl;
+    return rememberingStochasticWalk(d, q, currentTri);
 }
 //=============================================================================================================================
 #if 0
