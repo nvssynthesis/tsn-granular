@@ -10,6 +10,7 @@
 
 #include "TimbreSpaceTriangulation.h"
 #include <set>
+#include <unordered_set>
 #include <cassert>
 
 #ifndef DBG
@@ -175,7 +176,7 @@ Timbre2DPoint projectPointOntoSegment(const Timbre2DPoint& p,
     double t = ap.dot(ab) / ab_squared;
     t = std::clamp(t, 0.0, 1.0); // stay on segment by clamp
 
-    return Timbre2DPoint(a[0] + t * ab[0], a[1] + t * ab[1]);
+    return {a[0] + t * ab[0], a[1] + t * ab[1]};
 }
 
 // find which edge is closest to p and project onto it
@@ -386,9 +387,7 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 
 //=============================================================================================================================
 
-Timbre2DPoint getPoint(const delaunator::Delaunator& d, size_t idx) {
-    return {d.coords[2 * idx], d.coords[2 * idx + 1]};
-}
+
 
 
 TrianglePoints TrianglePoints::create(const delaunator::Delaunator& d, size_t triangleIdx)
@@ -402,9 +401,9 @@ TrianglePoints TrianglePoints::create(const delaunator::Delaunator& d, size_t tr
     const size_t v2 = d.triangles[t2];
 
     TrianglePoints points {
-        .p0 = getPoint(d, v0),
-        .p1 = getPoint(d, v1),
-        .p2 = getPoint(d, v2),
+        .p0 = getPointFromVertex(d, v0),
+        .p1 = getPointFromVertex(d, v1),
+        .p2 = getPointFromVertex(d, v2),
 
         .t0 = t0,
         .t1 = t1,
@@ -413,83 +412,79 @@ TrianglePoints TrianglePoints::create(const delaunator::Delaunator& d, size_t tr
     return points;
 }
 
+// Find the halfedge index in triangle that goes from vertex v1 to vertex v2
+// Returns SIZE_MAX if not found
+size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
+    size_t t0 = triangleIdx * 3;
 
-// PLACEHOLDER: Triangle walking implementation
-// Returns triangle index (i / 3 where i is the index into d.triangles)
-std::optional<size_t> walkToTriangle(const delaunator::Delaunator& d,
-                                     size_t startTriIdx,
-                                     const Timbre2DPoint& target) {
-    const size_t MAX_ITERATIONS = d.triangles.size(); // safety limit
-    size_t currentTri = startTriIdx;
+    for (size_t i = 0; i < 3; ++i) {
+        size_t halfedge = t0 + i;
+        size_t nextHalfedge = (i == 2) ? t0 : halfedge + 1;
 
-    for (size_t iter = 0; iter < MAX_ITERATIONS; ++iter) {
-        auto points = TrianglePoints::create(d, currentTri);
-
-        // check if target is inside current triangle
-        if (pointInTriangle(target, points.p0, points.p1, points.p2)) {
-            return currentTri;
+        if (d.triangles[halfedge] == v1 && d.triangles[nextHalfedge] == v2) {
+            return halfedge;
         }
+    }
+    return SIZE_MAX;
+}
 
-        // target is outside - find which edge to cross
-        // use signed area to determine which side of each edge the target is on
-        auto signedArea = [](const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& p) {
-            return (b.x() - a.x()) * (p.y() - a.y()) - (b.y() - a.y()) * (p.x() - a.x());
-        };
+// Get the third vertex of a triangle given two known vertices
+// Returns SIZE_MAX if v1 or v2 are not in the triangle
+size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
+    size_t t0 = triangleIdx * 3;
 
-        // check each edge and find one where target is on the "outside"// check each edge and find one where target is on the "outside"
-        const float area0 = signedArea(points.p0, points.p1, target); // edge v0->v1
-        const float area1 = signedArea(points.p1, points.p2, target); // edge v1->v2
-        const float area2 = signedArea(points.p2, points.p0, target); // edge v2->v0
+    std::array<size_t, 3> vertices = {
+        d.triangles[t0],
+        d.triangles[t0 + 1],
+        d.triangles[t0 + 2]
+    };
 
-        // pick edge with most positive area (where target is on inside), but skip hull edges
-        size_t edgeToCross = SIZE_MAX;
-        float mostPositive = -1e10;
+    // First check that both v1 and v2 are actually in the triangle
+    bool hasV1 = false;
+    bool hasV2 = false;
 
-        if (area0 > mostPositive && d.halfedges[points.t0] != delaunator::INVALID_INDEX) {
-            mostPositive = area0;
-            edgeToCross = points.t0;
-        }
-        if (area1 > mostPositive && d.halfedges[points.t1] != delaunator::INVALID_INDEX) {
-            mostPositive = area1;
-            edgeToCross = points.t1;
-        }
-        if (area2 > mostPositive && d.halfedges[points.t2] != delaunator::INVALID_INDEX) {
-            mostPositive = area2;
-            edgeToCross = points.t2;
-        }
-
-        if (edgeToCross == SIZE_MAX) {
-            // all edges are hull edges or all areas negative, point is outside
-            return std::nullopt;
-        }
-
-        std::cout << "Triangle " << currentTri << " vertices: "
-                << points.p0.x() << "," << points.p0.y() << " | "
-                << points.p1.x() << "," << points.p1.y() << " | "
-                << points.p2.x() << "," << points.p2.y() << std::endl;
-        std::cout << "areas: " << area0 << ", " << area1 << ", " << area2 << std::endl;
-        std::cout << "crossing edge: " << edgeToCross << std::endl;
-
-        std::cout << "halfedges for this triangle: "
-                  << d.halfedges[points.t0] << ", "
-                  << d.halfedges[points.t1] << ", "
-                  << d.halfedges[points.t2] << std::endl;
-
-        // get the opposite triangle across this edge
-        const size_t oppositeHalfedge = d.halfedges[edgeToCross];
-
-        // if no opposite triangle (on hull boundary), target is outside
-        if (oppositeHalfedge == delaunator::INVALID_INDEX) {
-            return std::nullopt;
-        }
-
-        // move to the opposite triangle
-        currentTri = oppositeHalfedge / 3;
+    for (size_t v : vertices) {
+        if (v == v1) hasV1 = true;
+        if (v == v2) hasV2 = true;
     }
 
-    // exceeded max iterations - something went wrong
-    return std::nullopt;
+    if (!hasV1 || !hasV2) {
+        return SIZE_MAX;
+    }
+
+    // Now find the third vertex
+    for (size_t v : vertices) {
+        if (v != v1 && v != v2) {
+            return v;
+        }
+    }
+
+    return SIZE_MAX;
 }
+
+// Get vertex index from point (assumes point exactly matches a vertex in coords)
+size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point) {
+    const float EPSILON = 1e-9f;
+
+    for (size_t i = 0; i < d.coords.size() / 2; ++i) {
+        float vx = static_cast<float>(d.coords[2 * i]);
+        float vy = static_cast<float>(d.coords[2 * i + 1]);
+
+        if (std::abs(vx - point.x()) < EPSILON && std::abs(vy - point.y()) < EPSILON) {
+            return i;
+        }
+    }
+    return SIZE_MAX;
+}
+
+// Get point from vertex index
+Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx) {
+    return {
+        static_cast<float>(d.coords[2 * vertexIdx]),
+        static_cast<float>(d.coords[2 * vertexIdx + 1])
+    };
+}
+
 
 //=============================================================================================================================
 #if 0

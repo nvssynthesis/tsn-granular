@@ -17,6 +17,19 @@ if(NOT TARGET essentia_built)
     message(FATAL_ERROR "Essentia not found. Build the main plugin first.")
 endif()
 
+# fetch catch2 for testing
+include(FetchContent)
+FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.5.2  # or whatever version you want
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(Catch2)
+
+# add catch2's cmake modules to the path for test discovery
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+
 # Delaunator sources
 set(DELAUNATOR_SOURCES
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/src/delaunator.cpp
@@ -62,6 +75,7 @@ if(APPLE)
 endif()
 
 #======================================================================================
+# test executable with catch2
 add_executable(test-triangle-walk test_triangle_walk.cpp ${DELAUNATOR_SOURCES})
 
 target_sources(test-triangle-walk PRIVATE
@@ -74,4 +88,12 @@ target_include_directories(test-triangle-walk PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/Source
 )
 
-target_link_libraries(test-triangle-walk PRIVATE Eigen3::Eigen)
+target_link_libraries(test-triangle-walk PRIVATE
+        Eigen3::Eigen
+        Catch2::Catch2WithMain
+)
+
+# enable ctest integration
+include(CTest)
+include(Catch)
+catch_discover_tests(test-triangle-walk)

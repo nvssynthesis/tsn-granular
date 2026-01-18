@@ -69,10 +69,10 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 
 //=============================================================================================================================
 
-std::optional<size_t> walkToTriangle(const delaunator::Delaunator& d,
-                                     size_t startTriIdx,
-                                     const Timbre2DPoint& target);
-Timbre2DPoint getPoint(const delaunator::Delaunator& d, size_t idx);
+size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
+size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
+size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
+Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx);
 
 struct TrianglePoints {
     Timbre2DPoint p0, p1, p2;
