@@ -485,7 +485,176 @@ Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexI
     };
 }
 
+std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
+{
+    out << p.x() << "," << p.y();
+    return out;
+}
 
+std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
+                                 size_t startTriIdx,
+                                 const Timbre2DPoint& q) {
+    const float EPSILON = 1e-7f;
+
+    // Get starting triangle vertices
+    size_t t0 = startTriIdx * 3;
+    size_t v0 = d.triangles[t0];
+    size_t v1 = d.triangles[t0 + 1];
+    size_t v2 = d.triangles[t0 + 2];
+
+    // Early exit if q is at any vertex of starting triangle
+    Timbre2DPoint p0 = getPointFromVertex(d, v0);
+    Timbre2DPoint p1 = getPointFromVertex(d, v1);
+    Timbre2DPoint p2 = getPointFromVertex(d, v2);
+
+    if ((std::abs(p0.x() - q.x()) < EPSILON && std::abs(p0.y() - q.y()) < EPSILON) ||
+        (std::abs(p1.x() - q.x()) < EPSILON && std::abs(p1.y() - q.y()) < EPSILON) ||
+        (std::abs(p2.x() - q.x()) < EPSILON && std::abs(p2.y() - q.y()) < EPSILON))
+    {
+        return startTriIdx;
+    }
+
+    // Choose p as first vertex
+    size_t vp = v0;
+    size_t vr = v1;
+    size_t vl = v2;
+    Timbre2DPoint p = p0;
+
+    // Compute transformation: vector a = q - p
+    float ax = q.x() - p.x();
+    float ay = q.y() - p.y();
+    float kcos = ax;
+    float ksin = ay;
+
+    // Transform q
+    float qprime_x = q.x() * kcos - q.y() * ksin;
+    float qprime_y = q.x() * ksin + q.y() * kcos;
+
+    std::cout << "p: " << p << std::endl <<
+        " q: " << q << std::endl <<
+            " kcos: " << kcos << std::endl <<
+                " ksin: " << ksin << std::endl <<
+                    " qprime_x: " << qprime_x  << std::endl <<
+                        " qprime_y: " << qprime_y << std::endl;
+
+    // Current triangle
+    size_t currentTri = startTriIdx;
+
+    // === INITIALIZATION: Find triangle intersected by pq ===
+
+    Timbre2DPoint r = getPointFromVertex(d, vr);
+    float rprime_y = r.x() * ksin + r.y() * kcos;
+
+    // Case 1: r is above the line pq
+    if (rprime_y > qprime_y) {
+        Timbre2DPoint l = getPointFromVertex(d, vl);
+        float lprime_y = l.x() * ksin + l.y() * kcos;
+
+        while (lprime_y > qprime_y - EPSILON) {
+            // Cross edge from p to l
+            size_t edge_pl = findHalfedge(d, currentTri, vp, vl);
+            if (edge_pl == SIZE_MAX || d.halfedges[edge_pl] == delaunator::INVALID_INDEX) {
+                return std::nullopt; // Hit boundary
+            }
+
+            size_t oppositeEdge = d.halfedges[edge_pl];
+            currentTri = oppositeEdge / 3;
+
+            vr = vl;
+            vl = getThirdVertex(d, currentTri, vp, vr);
+            if (vl == SIZE_MAX) return std::nullopt;
+
+            l = getPointFromVertex(d, vl);
+            lprime_y = l.x() * ksin + l.y() * kcos;
+        }
+
+        // Update s, l, r for walk step
+        size_t vs = vl;
+        vl = vr;
+        vr = vp;
+
+    } else {
+        // Case 2: r is below the line pq
+        std::unordered_set<size_t> visitedInInit;
+        const size_t MAX_INIT_ITERATIONS = d.triangles.size();
+        size_t iterations = 0;
+
+        do {
+            if (visitedInInit.contains(currentTri) || iterations++ > MAX_INIT_ITERATIONS) {
+                // We're cycling or stuck - break and proceed to walk step
+                break;
+            }
+            visitedInInit.insert(currentTri);
+
+            // Cross edge from p to r
+            size_t edge_pr = findHalfedge(d, currentTri, vp, vr);
+            if (edge_pr == SIZE_MAX || d.halfedges[edge_pr] == delaunator::INVALID_INDEX) {
+                return std::nullopt; // Hit boundary
+            }
+
+            size_t oppositeEdge = d.halfedges[edge_pr];
+            currentTri = oppositeEdge / 3;
+
+            vl = vr;
+            vr = getThirdVertex(d, currentTri, vp, vl);
+            if (vr == SIZE_MAX) return std::nullopt;
+
+            r = getPointFromVertex(d, vr);
+            rprime_y = r.x() * ksin + r.y() * kcos;
+
+        } while (rprime_y <= qprime_y + EPSILON);
+
+        // Update s, l, r for walk step
+        size_t vs = vr;
+        vr = vl;
+        vl = vp;
+    }
+
+    // At this point, pq intersects currentTri
+
+    // === WALK STEP: Follow line segment pq ===
+
+    size_t vs = getThirdVertex(d, currentTri, vl, vr);
+    if (vs == SIZE_MAX) return std::nullopt;
+
+    Timbre2DPoint s = getPointFromVertex(d, vs);
+    float sprime_x = s.x() * kcos - s.y() * ksin;
+
+    while (sprime_x < qprime_x) {
+        std::cout << "Walk step: sprime_x=" << sprime_x << " qprime_x=" << qprime_x << std::endl;
+
+        float sprime_y = s.x() * ksin + s.y() * kcos;
+
+        size_t edge_lr;
+        if (sprime_y < qprime_y) {
+            vr = vs;
+            edge_lr = findHalfedge(d, currentTri, vl, vr);
+        } else {
+            vl = vs;
+            edge_lr = findHalfedge(d, currentTri, vl, vr);
+        }
+
+        std::cout << "Attempting to cross edge_lr=" << edge_lr << std::endl;
+
+        if (edge_lr == SIZE_MAX || d.halfedges[edge_lr] == delaunator::INVALID_INDEX) {
+            std::cout << "Hit boundary!" << std::endl;
+            return std::nullopt;
+        }
+
+        size_t oppositeEdge = d.halfedges[edge_lr];
+        currentTri = oppositeEdge / 3;
+
+        vs = getThirdVertex(d, currentTri, vl, vr);
+        if (vs == SIZE_MAX) return std::nullopt;
+
+        s = getPointFromVertex(d, vs);
+        sprime_x = s.x() * kcos - s.y() * ksin;
+    }
+
+    // TODO: Call remembering_stochastic_walk(q, currentTri)
+    // For now, just return currentTri
+    return currentTri;
+}
 //=============================================================================================================================
 #if 0
 std::vector<WeightedIdx> toWeightedIndices(

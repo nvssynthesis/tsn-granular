@@ -83,3 +83,70 @@ TEST_CASE("Helper function tests", "[helpers]") {
         REQUIRE(getThirdVertex(d, 0, 99, 100) == SIZE_MAX);
     }
 }
+
+TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
+    // 3x3 grid
+    std::vector<Point2D> points;
+    for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            points.emplace_back(static_cast<float>(x), static_cast<float>(y));
+        }
+    }
+    auto d = buildDelaunator(points);
+
+    SECTION("point at vertex - early exit") {
+        // Point at vertex 0 (0,0), starting from triangle containing it
+        Point2D atVertex(0.0f, 0.0f);
+
+        // Find a triangle containing vertex 0
+        size_t startTri = 0;
+        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+            size_t t0 = tri * 3;
+            if (d.triangles[t0] == 0 || d.triangles[t0+1] == 0 || d.triangles[t0+2] == 0) {
+                startTri = tri;
+                break;
+            }
+        }
+
+        auto result = hybridWalk(d, startTri, atVertex);
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == startTri);
+    }
+
+    SECTION("point in center of grid") {
+        // Point (1,1) is at center, should work from any starting triangle
+        Point2D center(1.0f, 1.0f);
+
+        auto result = hybridWalk(d, 0, center);
+        REQUIRE(result.has_value());
+
+        // Verify the result triangle contains the point
+        auto tri = TrianglePoints::create(d, *result);
+        REQUIRE(pointInTriangle(center, tri.p0, tri.p1, tri.p2));
+    }
+
+    SECTION("point slightly off-center - EXPECTED TO FAIL without stochastic walk") {
+        // This point is NOT on a vertex or edge, so it needs the final
+        // remembering_stochastic_walk to converge properly
+        Point2D offCenter(1.3f, 1.3f);
+
+        auto result = hybridWalk(d, 0, offCenter);
+        REQUIRE(result.has_value());
+
+        // This SHOULD fail because we're just returning currentTri
+        // without the final stochastic walk refinement
+        auto tri = TrianglePoints::create(d, *result);
+        INFO("Result triangle: " << tri.p0.x() << "," << tri.p0.y() << " | "
+             << tri.p1.x() << "," << tri.p1.y() << " | "
+             << tri.p2.x() << "," << tri.p2.y());
+        REQUIRE(pointInTriangle(offCenter, tri.p0, tri.p1, tri.p2));
+    }
+
+    SECTION("point outside convex hull") {
+        Point2D outside(10.0f, 10.0f);
+
+        auto result = hybridWalk(d, 0, outside);
+        // Should return nullopt when point is outside
+        REQUIRE_FALSE(result.has_value());
+    }
+}
