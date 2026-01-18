@@ -84,6 +84,88 @@ TEST_CASE("Helper function tests", "[helpers]") {
     }
 }
 
+TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
+    // 3x3 grid
+    std::vector<Point2D> points;
+    for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            points.emplace_back(static_cast<float>(x), static_cast<float>(y));
+        }
+    }
+    auto d = buildDelaunator(points);
+
+    SECTION("point already in starting triangle") {
+        // Find a triangle and a point clearly inside it
+        Point2D inside(0.3f, 0.3f);
+
+        // Find which triangle contains this point
+        size_t containingTri = SIZE_MAX;
+        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+            auto triPts = TrianglePoints::create(d, tri);
+            if (pointInTriangle(inside, triPts.p0, triPts.p1, triPts.p2)) {
+                containingTri = tri;
+                break;
+            }
+        }
+        REQUIRE(containingTri != SIZE_MAX);
+
+        // Starting from the correct triangle should immediately return it
+        auto result = rememberingStochasticWalk(d, inside, containingTri);
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == containingTri);
+    }
+
+    SECTION("point in adjacent triangle") {
+        // Start from triangle 0, look for point in a neighboring triangle
+        Point2D target(1.3f, 1.3f);
+
+        auto result = rememberingStochasticWalk(d, target, 0);
+        REQUIRE(result.has_value());
+
+        // Verify result contains the point
+        auto tri = TrianglePoints::create(d, *result);
+        REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
+    }
+
+    SECTION("point outside convex hull") {
+        Point2D outside(10.0f, 10.0f);
+
+        auto result = rememberingStochasticWalk(d, outside, 0);
+        // Should either return nullopt or return a triangle that doesn't contain it
+        if (result.has_value()) {
+            auto tri = TrianglePoints::create(d, *result);
+            REQUIRE_FALSE(pointInTriangle(outside, tri.p0, tri.p1, tri.p2));
+        }
+    }
+
+    SECTION("convergence from far away triangle") {
+        // Point in one corner, start from opposite corner
+        Point2D target(0.2f, 0.2f);
+
+        // Find a triangle far from target (containing vertex (2,2))
+        size_t farTri = SIZE_MAX;
+        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+            size_t t0 = tri * 3;
+            for (size_t i = 0; i < 3; ++i) {
+                Point2D v = getPointFromVertex(d, d.triangles[t0 + i]);
+                if (v.x() == 2.0f && v.y() == 2.0f) {
+                    farTri = tri;
+                    break;
+                }
+            }
+            if (farTri != SIZE_MAX) break;
+        }
+
+        REQUIRE(farTri != SIZE_MAX);
+
+        auto result = rememberingStochasticWalk(d, target, farTri);
+        REQUIRE(result.has_value());
+
+        auto tri = TrianglePoints::create(d, *result);
+        REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
+    }
+}
+
 TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
     // 3x3 grid
     std::vector<Point2D> points;

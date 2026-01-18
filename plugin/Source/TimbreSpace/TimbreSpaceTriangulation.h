@@ -74,6 +74,10 @@ size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_
 size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx);
 
+std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
+                                                 const Timbre2DPoint& q,
+                                                 size_t startTri);
+
 std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
                                  size_t startTriIdx,
                                  const Timbre2DPoint& q);

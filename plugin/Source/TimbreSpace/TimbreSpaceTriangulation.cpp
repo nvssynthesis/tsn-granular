@@ -509,54 +509,74 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
     for (size_t iter = 0; iter < MAX_ITERATIONS; ++iter) {
         auto tri = TrianglePoints::create(d, currentTri);
 
+        std::cout << "Iter " << iter << " at triangle " << currentTri << ": "
+                  << tri.p0.x() << "," << tri.p0.y() << " | "
+                  << tri.p1.x() << "," << tri.p1.y() << " | "
+                  << tri.p2.x() << "," << tri.p2.y() << std::endl;
+
         // Check if q is in current triangle
         if (pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
+            std::cout << "Found! Triangle " << currentTri << " contains point" << std::endl;
             return currentTri;
         }
 
         // Get the three edges (as halfedge indices)
-        std::array<size_t, 3> edges = {tri.t0, tri.t1, tri.t2};
         std::array<Timbre2DPoint, 3> vertices = {tri.p0, tri.p1, tri.p2};
 
-        // Try a random edge first (for now, just use edge 0 as "random")
-        // In a true implementation, you'd use rand() % 3
-        size_t startEdgeIdx = 0; // Could be: rand() % 3
+        if (!pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
+            std::cout << "Point (" << q.x() << "," << q.y() << ") NOT in triangle" << std::endl;
+            // Manually check each edge
+            for (size_t i = 0; i < 3; ++i) {
+                Timbre2DPoint v1 = vertices[i];
+                Timbre2DPoint v2 = vertices[(i + 1) % 3];
+                float sa = (v2.x() - v1.x()) * (q.y() - v1.y()) - (v2.y() - v1.y()) * (q.x() - v1.x());
+                std::cout << "  Edge " << i << " signed area: " << sa << std::endl;
+            }
+        }
+
+        size_t startEdgeIdx = 0;
+        bool moved = false;
+
+        std::array<size_t, 3> halfedges = {tri.t0, tri.t1, tri.t2};
 
         for (size_t i = 0; i < 3; ++i) {
             size_t edgeIdx = (startEdgeIdx + i) % 3;
-            size_t halfedge = edges[edgeIdx];
+            size_t halfedge = halfedges[edgeIdx];
 
-            // Check if this edge leads to a triangle we haven't just come from
-            size_t neighborHalfedge = d.halfedges[halfedge];
-            if (neighborHalfedge == delaunator::INVALID_INDEX) {
-                continue; // Hull edge
-            }
-
-            size_t neighborTri = neighborHalfedge / 3;
-            if (neighborTri == previousTri) {
-                continue; // Don't go back to previous triangle
-            }
-
-            // Check if q is on the "other side" of this edge
+            // Compute signed area first
             Timbre2DPoint v1 = vertices[edgeIdx];
             Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
+            float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
+                              (v2.y() - v1.y()) * (q.x() - v1.x());
 
-            float side = pointSideOfEdge(v1, v2, q);
+            // If q is on the outside of this edge (negative signed area)
+            if (signedArea < -EPSILON) {
+                // Check if we can cross this edge
+                size_t neighborHalfedge = d.halfedges[halfedge];
+                if (neighborHalfedge == delaunator::INVALID_INDEX) {
+                    // Want to cross but it's a hull edge - point is outside
+                    return std::nullopt;
+                }
 
-            if (side < -EPSILON) {
-                // q is on the other side, cross this edge
+                size_t neighborTri = neighborHalfedge / 3;
+                if (neighborTri == previousTri) {
+                    continue; // Skip previous triangle, try next edge
+                }
+
                 previousTri = currentTri;
                 currentTri = neighborTri;
+                moved = true;
                 break;
             }
         }
 
-        // If we didn't move, we're stuck - shouldn't happen if q is inside
-        if (currentTri == previousTri || (iter > 0 && currentTri == startTri)) {
-            return currentTri; // Best we can do
+        if (!moved) {
+            std::cout << "Stuck at triangle " << currentTri << std::endl;
+            return currentTri;
         }
     }
 
+    std::cout << "Max iterations exceeded" << std::endl;
     return std::nullopt;
 }
 
