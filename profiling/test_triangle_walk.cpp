@@ -27,7 +27,8 @@ delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
 }
 
 
-
+using nvs::timbrespace::walkToTriangle;
+using nvs::timbrespace::TrianglePoints;
 
 // simple 3-point triangle (degenerate case)
 void test_single_triangle() {
