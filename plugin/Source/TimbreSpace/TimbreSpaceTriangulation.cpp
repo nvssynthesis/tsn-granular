@@ -491,6 +491,75 @@ std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
     return out;
 }
 
+// Remembering stochastic walk - refines the triangle location
+std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
+                                                 const Timbre2DPoint& q,
+                                                 size_t startTri) {
+    const float EPSILON = 1e-9f;
+    const size_t MAX_ITERATIONS = d.triangles.size();
+
+    size_t currentTri = startTri;
+    size_t previousTri = SIZE_MAX;
+
+    // Helper: check which side of edge (v1->v2) point q is on
+    auto pointSideOfEdge = [](const Timbre2DPoint& v1, const Timbre2DPoint& v2, const Timbre2DPoint& p) -> float {
+        return (v2.x() - v1.x()) * (p.y() - v1.y()) - (v2.y() - v1.y()) * (p.x() - v1.x());
+    };
+
+    for (size_t iter = 0; iter < MAX_ITERATIONS; ++iter) {
+        auto tri = TrianglePoints::create(d, currentTri);
+
+        // Check if q is in current triangle
+        if (pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
+            return currentTri;
+        }
+
+        // Get the three edges (as halfedge indices)
+        std::array<size_t, 3> edges = {tri.t0, tri.t1, tri.t2};
+        std::array<Timbre2DPoint, 3> vertices = {tri.p0, tri.p1, tri.p2};
+
+        // Try a random edge first (for now, just use edge 0 as "random")
+        // In a true implementation, you'd use rand() % 3
+        size_t startEdgeIdx = 0; // Could be: rand() % 3
+
+        for (size_t i = 0; i < 3; ++i) {
+            size_t edgeIdx = (startEdgeIdx + i) % 3;
+            size_t halfedge = edges[edgeIdx];
+
+            // Check if this edge leads to a triangle we haven't just come from
+            size_t neighborHalfedge = d.halfedges[halfedge];
+            if (neighborHalfedge == delaunator::INVALID_INDEX) {
+                continue; // Hull edge
+            }
+
+            size_t neighborTri = neighborHalfedge / 3;
+            if (neighborTri == previousTri) {
+                continue; // Don't go back to previous triangle
+            }
+
+            // Check if q is on the "other side" of this edge
+            Timbre2DPoint v1 = vertices[edgeIdx];
+            Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
+
+            float side = pointSideOfEdge(v1, v2, q);
+
+            if (side < -EPSILON) {
+                // q is on the other side, cross this edge
+                previousTri = currentTri;
+                currentTri = neighborTri;
+                break;
+            }
+        }
+
+        // If we didn't move, we're stuck - shouldn't happen if q is inside
+        if (currentTri == previousTri || (iter > 0 && currentTri == startTri)) {
+            return currentTri; // Best we can do
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
                                  size_t startTriIdx,
                                  const Timbre2DPoint& q) {
@@ -651,8 +720,14 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
         sprime_x = s.x() * kcos - s.y() * ksin;
     }
 
+    // Before returning, verify q is actually in or near currentTri
+    auto tri = TrianglePoints::create(d, currentTri);
+    if (!pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
+        // Point is not in the triangle - likely outside the convex hull
+        return std::nullopt;
+    }
+
     // TODO: Call remembering_stochastic_walk(q, currentTri)
-    // For now, just return currentTri
     return currentTri;
 }
 //=============================================================================================================================
