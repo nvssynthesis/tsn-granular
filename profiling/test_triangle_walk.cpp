@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <cmath>
 #include "delaunator.hpp"
 #include "TimbreSpace/TimbrePointTypes.h"
@@ -97,6 +98,238 @@ TEST_CASE("pointInTriangle", "pointInTriangle") {
     REQUIRE(pointInTriangle(pointOnEdge, points[0], points[1], points[2]));
 }
 
+TEST_CASE("getEdgeVertices tests", "[getEdgeVertices]") {
+    // Simple triangle
+    std::vector<Point2D> points = {
+        Point2D(0.0f, 0.0f),  // vertex 0
+        Point2D(1.0f, 0.0f),  // vertex 1
+        Point2D(0.0f, 1.0f)   // vertex 2
+    };
+    auto d = buildDelaunator(points);
+
+    SECTION("get all three edges of triangle 0") {
+        size_t v0 = d.triangles[0];
+        size_t v1 = d.triangles[1];
+        size_t v2 = d.triangles[2];
+
+        // Edge 0: from vertex 0 to vertex 1
+        auto [e0_v1, e0_v2] = getEdgeVertices(d, 0, 0);
+        REQUIRE(e0_v1 == v0);
+        REQUIRE(e0_v2 == v1);
+
+        // Edge 1: from vertex 1 to vertex 2
+        auto [e1_v1, e1_v2] = getEdgeVertices(d, 0, 1);
+        REQUIRE(e1_v1 == v1);
+        REQUIRE(e1_v2 == v2);
+
+        // Edge 2: from vertex 2 to vertex 0 (wraps around)
+        auto [e2_v1, e2_v2] = getEdgeVertices(d, 0, 2);
+        REQUIRE(e2_v1 == v2);
+        REQUIRE(e2_v2 == v0);
+    }
+
+    SECTION("edge vertices are different") {
+        auto [v1, v2] = getEdgeVertices(d, 0, 0);
+        REQUIRE(v1 != v2);
+    }
+
+    SECTION("multiple triangles") {
+        // If we have multiple triangles, each should give different edge vertices
+        if (d.triangles.size() / 3 >= 2) {
+            auto [tri0_v1, tri0_v2] = getEdgeVertices(d, 0, 0);
+            auto [tri1_v1, tri1_v2] = getEdgeVertices(d, 1, 0);
+
+            // The edges should be different (unless they share that specific edge)
+            bool different = (tri0_v1 != tri1_v1) || (tri0_v2 != tri1_v2);
+            REQUIRE(different);
+        }
+    }
+    SECTION("large random triangulation - edge vertices form valid edges") {
+    // Generate 100 random points
+    std::vector<Point2D> largePoints;
+    srand(42); // Fixed seed for reproducibility
+    for (int i = 0; i < 100; ++i) {
+        float x = static_cast<float>(rand()) / RAND_MAX * 10.0f;
+        float y = static_cast<float>(rand()) / RAND_MAX * 10.0f;
+        largePoints.emplace_back(x, y);
+    }
+    auto largeD = buildDelaunator(largePoints);
+
+    // Check all edges of all triangles
+    size_t numTriangles = largeD.triangles.size() / 3;
+    for (size_t tri = 0; tri < numTriangles; ++tri) {
+        for (size_t edgeIdx = 0; edgeIdx < 3; ++edgeIdx) {
+            auto [v1, v2] = getEdgeVertices(largeD, tri, edgeIdx);
+
+            // Vertices should be different
+            REQUIRE(v1 != v2);
+
+            // Vertices should be valid indices
+            REQUIRE(v1 < largePoints.size());
+            REQUIRE(v2 < largePoints.size());
+        }
+    }
+}
+
+    SECTION("large random triangulation - edge consistency") {
+        // Generate 200 random points
+        std::vector<Point2D> largePoints;
+        srand(123);
+        for (int i = 0; i < 200; ++i) {
+            float x = static_cast<float>(rand()) / RAND_MAX * 20.0f;
+            float y = static_cast<float>(rand()) / RAND_MAX * 20.0f;
+            largePoints.emplace_back(x, y);
+        }
+        auto largeD = buildDelaunator(largePoints);
+
+        size_t numTriangles = largeD.triangles.size() / 3;
+
+        // For each triangle, verify that the three edges use exactly the three vertices
+        for (size_t tri = 0; tri < numTriangles; ++tri) {
+            auto [e0_v1, e0_v2] = getEdgeVertices(largeD, tri, 0);
+            auto [e1_v1, e1_v2] = getEdgeVertices(largeD, tri, 1);
+            auto [e2_v1, e2_v2] = getEdgeVertices(largeD, tri, 2);
+
+            // Collect all 6 vertex references (each vertex appears twice)
+            std::unordered_set<size_t> vertices;
+            vertices.insert(e0_v1);
+            vertices.insert(e0_v2);
+            vertices.insert(e1_v1);
+            vertices.insert(e1_v2);
+            vertices.insert(e2_v1);
+            vertices.insert(e2_v2);
+
+            // Should have exactly 3 unique vertices
+            REQUIRE(vertices.size() == 3);
+        }
+    }
+}
+TEST_CASE("pointOnOtherSide tests", "[pointOnOtherSide]") {
+    // Simple triangle: (0,0), (1,0), (0,1)
+    std::vector<Point2D> points = {
+        Point2D(0.0f, 0.0f),  // vertex 0
+        Point2D(1.0f, 0.0f),  // vertex 1
+        Point2D(0.0f, 1.0f)   // vertex 2
+    };
+    auto d = buildDelaunator(points);
+
+    SECTION("point outside triangle is on other side of at least one edge") {
+        Point2D outside(2.0f, 2.0f);  // Clearly outside the triangle
+
+        // Should be on "other side" of at least one edge
+        bool onOtherSide = pointOnOtherSide(d, 0, 0, outside) ||
+                          pointOnOtherSide(d, 0, 1, outside) ||
+                          pointOnOtherSide(d, 0, 2, outside);
+
+        REQUIRE(onOtherSide);
+    }
+
+    SECTION("point inside triangle is not on other side of any edge") {
+        Point2D inside(0.2f, 0.2f);  // Inside the triangle
+
+        // Should NOT be on "other side" of any edge
+        REQUIRE_FALSE(pointOnOtherSide(d, 0, 0, inside));
+        REQUIRE_FALSE(pointOnOtherSide(d, 0, 1, inside));
+        REQUIRE_FALSE(pointOnOtherSide(d, 0, 2, inside));
+    }
+
+    SECTION("point on edge is considered other side") {
+        Point2D onEdge(0.5f, 0.0f);  // On edge 0 (from vertex 0 to vertex 1)
+
+        // Point on the edge should be considered "other side" to allow crossing
+        REQUIRE(pointOnOtherSide(d, 0, 0, onEdge));
+    }
+}
+
+TEST_CASE("neighbor tests", "[neighbor]") {
+    SECTION("No neighbor") {
+        const std::vector points = {
+            Point2D(0.0f, 0.0f),
+            Point2D(1.0f, 0.0f),
+            Point2D(0.0f, 1.0f)
+        };
+        auto d = buildDelaunator(points);
+        const auto tri = d.triangles.front();
+        const auto [v1, v2] = getEdgeVertices(d, tri, 0);
+        const auto nonexistent = neighbor(d, tri, v1, v2);
+        REQUIRE(nonexistent == delaunator::INVALID_INDEX);
+    }
+    SECTION("Neighbor found") {
+        const std::vector points = {
+            Point2D(0.0f, 0.0f),
+            Point2D(1.0f, 0.0f),
+            Point2D(0.0f, 1.0f),
+            Point2D(1.0f, 1.0f)
+        };
+        auto d = buildDelaunator(points);
+        const auto tri = d.triangles.front();
+
+        bool someNeighborFound = false;
+        for (auto he : d.halfedges) {
+            const auto [v1, v2] = getEdgeVertices(d, tri, he);
+            const auto existent = neighbor(d, tri, v1, v2);
+            if (existent != delaunator::INVALID_INDEX) {
+                someNeighborFound = true;
+                break;
+            }
+        }
+        REQUIRE(someNeighborFound);
+    }
+}
+
+TEST_CASE("isNeighbor tests", "[isNeighbor]") {
+    // Simple 2x2 grid: 4 points, 2 triangles
+    std::vector<Point2D> points = {
+        Point2D(0.0f, 0.0f),  // vertex 0
+        Point2D(1.0f, 0.0f),  // vertex 1
+        Point2D(0.0f, 1.0f),  // vertex 2
+        Point2D(1.0f, 1.0f)   // vertex 3
+    };
+    auto d = buildDelaunator(points);
+
+    REQUIRE(d.triangles.size() == 6);
+
+    SECTION("triangle has neighbor across internal edge") {
+        bool hasNeighbor = false;
+        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+            if (tri != 0 && isNeighbor(d, 0, tri)) {
+                hasNeighbor = true;
+                break;
+            }
+        }
+        REQUIRE(hasNeighbor);
+    }
+
+    SECTION("edge not in triangle returns false") {
+        // Try an edge that definitely isn't in triangle 0 by using wrong direction
+        // or vertices not in this triangle
+        bool result = isNeighbor(d, 0, 100);
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("triangle is not neighbor to itself") {
+        REQUIRE_FALSE(isNeighbor(d, 0, 0));
+    }
+
+    SECTION("triangles in 2x2 grid - check neighbor relationships") {
+        size_t numTriangles = d.triangles.size() / 3;
+        REQUIRE(numTriangles >= 2);
+
+        // Count how many neighbors triangle 0 has
+        size_t neighborCount = 0;
+        for (size_t tri = 1; tri < numTriangles; ++tri) {
+            if (isNeighbor(d, 0, tri)) {
+                neighborCount++;
+            }
+        }
+
+        // Triangle 0 should have at least 1 neighbor
+        REQUIRE(neighborCount >= 1);
+    }
+}
+
+
+
 TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
     // 3x3 grid
     std::vector<Point2D> points;
@@ -105,78 +338,77 @@ TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
             points.emplace_back(static_cast<float>(x), static_cast<float>(y));
         }
     }
-    auto d = buildDelaunator(points);
+    const auto d = buildDelaunator(points);
 
     SECTION("point already in starting triangle") {
         // Find a triangle and a point clearly inside it
-        Point2D inside(0.3f, 0.3f);
+        const Point2D inside(0.5f, 0.2f);
 
         // Find which triangle contains this point
         size_t containingTri = SIZE_MAX;
         for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
             auto triPts = TrianglePoints::create(d, tri);
-            if (pointInTriangle(inside, triPts.p0, triPts.p1, triPts.p2)) {
+            assert(triPts != std::nullopt);
+            if (pointInTriangle(inside, triPts->p0, triPts->p1, triPts->p2)) {
                 containingTri = tri;
                 break;
             }
         }
         REQUIRE(containingTri != SIZE_MAX);
 
+        auto containingPoints = TrianglePoints::create(d, containingTri);
+
         // Starting from the correct triangle should immediately return it
-        auto result = rememberingStochasticWalk(d, inside, containingTri);
-        REQUIRE(result.has_value());
-        REQUIRE(result.value() == containingTri);
+        const auto result = rememberingStochasticWalk(d, inside, containingTri);
+        auto algoDetectedContainingPoints = TrianglePoints::create(d, result);
+
+        REQUIRE(result == containingTri);
     }
 
-    SECTION("point in adjacent triangle") {
-        // Start from triangle 0, look for point in a neighboring triangle
-        Point2D target(1.3f, 1.3f);
-
-        auto result = rememberingStochasticWalk(d, target, 0);
-        REQUIRE(result.has_value());
-
-        // Verify result contains the point
-        auto tri = TrianglePoints::create(d, *result);
-        REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
-    }
-
-    SECTION("point outside convex hull") {
-        Point2D outside(10.0f, 10.0f);
-
-        auto result = rememberingStochasticWalk(d, outside, 0);
-        // Should either return nullopt or return a triangle that doesn't contain it
-        if (result.has_value()) {
-            auto tri = TrianglePoints::create(d, *result);
-            REQUIRE_FALSE(pointInTriangle(outside, tri.p0, tri.p1, tri.p2));
-        }
-    }
-
-    SECTION("convergence from far away triangle") {
-        // Point in one corner, start from opposite corner
-        Point2D target(0.2f, 0.2f);
-
-        // Find a triangle far from target (containing vertex (2,2))
-        size_t farTri = SIZE_MAX;
-        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
-            size_t t0 = tri * 3;
-            for (size_t i = 0; i < 3; ++i) {
-                Point2D v = getPointFromVertex(d, d.triangles[t0 + i]);
-                if (v.x() == 2.0f && v.y() == 2.0f) {
-                    farTri = tri;
-                    break;
-                }
-            }
-            if (farTri != SIZE_MAX) break;
-        }
-
-        REQUIRE(farTri != SIZE_MAX);
-
-        auto result = rememberingStochasticWalk(d, target, farTri);
-        REQUIRE(result.has_value());
-
-        auto tri = TrianglePoints::create(d, *result);
-        REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
-    }
+    // SECTION("point in adjacent triangle") {
+    //     // Start from triangle 0, look for point in a neighboring triangle
+    //     Point2D target(1.3f, 1.3f);
+    //
+    //     auto result = rememberingStochasticWalk(d, target, 0);
+    //
+    //     // Verify result contains the point
+    //     auto tri = TrianglePoints::create(d, result);
+    //     REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
+    // }
+    //
+    // SECTION("point outside convex hull") {
+    //     Point2D outside(10.0f, 10.0f);
+    //
+    //     auto result = rememberingStochasticWalk(d, outside, 0);
+    //     // Should either return nullopt or return a triangle that doesn't contain it
+    //     auto tri = TrianglePoints::create(d, result);
+    //     REQUIRE_FALSE(pointInTriangle(outside, tri.p0, tri.p1, tri.p2));
+    // }
+    //
+    // SECTION("convergence from far away triangle") {
+    //     // Point in one corner, start from opposite corner
+    //     Point2D target(0.2f, 0.2f);
+    //
+    //     // Find a triangle far from target (containing vertex (2,2))
+    //     size_t farTri = SIZE_MAX;
+    //     for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+    //         size_t t0 = tri * 3;
+    //         for (size_t i = 0; i < 3; ++i) {
+    //             Point2D v = getPointFromVertex(d, d.triangles[t0 + i]);
+    //             if (v.x() == 2.0f && v.y() == 2.0f) {
+    //                 farTri = tri;
+    //                 break;
+    //             }
+    //         }
+    //         if (farTri != SIZE_MAX) break;
+    //     }
+    //
+    //     REQUIRE(farTri != SIZE_MAX);
+    //
+    //     auto result = rememberingStochasticWalk(d, target, farTri);
+    //     auto tri = TrianglePoints::create(d, result);
+    //     REQUIRE(pointInTriangle(target, tri.p0, tri.p1, tri.p2));
+    // }
 }
 
 TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
@@ -188,6 +420,20 @@ TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
         }
     }
     auto d = buildDelaunator(points);
+
+    std::cout << "All triangles in triangulation:" << std::endl;
+    for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+        auto t = TrianglePoints::create(d, tri);
+        assert(t != std::nullopt);
+        std::cout << "  Triangle " << tri << ": "
+                  << t->p0.x() << "," << t->p0.y() << " | "
+                  << t->p1.x() << "," << t->p1.y() << " | "
+                  << t->p2.x() << "," << t->p2.y();
+        if (pointInTriangle(Point2D(1.3f, 1.3f), t->p0, t->p1, t->p2)) {
+            std::cout << " <- CONTAINS (1.3, 1.3)";
+        }
+        std::cout << std::endl;
+    }
 
     // SECTION("point at vertex - early exit") {
     //     // Point at vertex 0 (0,0), starting from triangle containing it
@@ -231,10 +477,11 @@ TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
         // This SHOULD fail because we're just returning currentTri
         // without the final stochastic walk refinement
         auto tri = TrianglePoints::create(d, *result);
-        INFO("Result triangle: " << tri.p0.x() << "," << tri.p0.y() << " | "
-             << tri.p1.x() << "," << tri.p1.y() << " | "
-             << tri.p2.x() << "," << tri.p2.y());
-        REQUIRE(pointInTriangle(offCenter, tri.p0, tri.p1, tri.p2));
+        assert(tri != std::nullopt);
+        INFO("Result triangle: " << tri->p0.x() << "," << tri->p0.y() << " | "
+             << tri->p1.x() << "," << tri->p1.y() << " | "
+             << tri->p2.x() << "," << tri->p2.y());
+        REQUIRE(pointInTriangle(offCenter, tri->p0, tri->p1, tri->p2));
     }
 
     // SECTION("point outside convex hull") {

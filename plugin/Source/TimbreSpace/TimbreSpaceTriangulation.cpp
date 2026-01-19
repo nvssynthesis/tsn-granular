@@ -15,6 +15,7 @@
 
 #ifndef DBG
 #include <iostream>
+#include "fmt/core.h"
 #define DBG(x) (std::cerr << x << std::endl, (void)0)
 #endif
 
@@ -390,11 +391,15 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 
 
 
-TrianglePoints TrianglePoints::create(const delaunator::Delaunator& d, size_t triangleIdx)
+std::optional<TrianglePoints> TrianglePoints::create(const delaunator::Delaunator& d, size_t triangleIdx)
 {
     const size_t t0 = triangleIdx * 3;
     const size_t t1 = t0 + 1;
     const size_t t2 = t0 + 2;
+
+    if (t0 >= d.triangles.size()) {
+        return std::nullopt;
+    }
 
     const size_t v0 = d.triangles[t0];
     const size_t v1 = d.triangles[t1];
@@ -426,6 +431,79 @@ size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t 
         }
     }
     return SIZE_MAX;
+}
+
+// Check if two triangles are neighbors (share an edge)
+bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2) {
+    size_t baseIdx = triangle1 * 3;
+
+    // Check all three edges of triangle1
+    for (size_t i = 0; i < 3; ++i) {
+        size_t halfedge = baseIdx + i;
+        size_t oppositeHalfedge = d.halfedges[halfedge];
+
+        if (oppositeHalfedge != delaunator::INVALID_INDEX) {
+            size_t neighborTri = oppositeHalfedge / 3;
+            if (neighborTri == triangle2) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Get the neighbor triangle across the edge from v1 to v2
+// Returns SIZE_MAX if no neighbor exists (hull edge) or edge not found
+size_t neighbor(const delaunator::Delaunator& d,
+                size_t triangle, size_t v1, size_t v2)
+{
+    // Find the halfedge in 'triangle' that goes from v1 to v2
+    size_t baseIdx = triangle * 3;
+
+    for (size_t i = 0; i < 3; ++i) {
+        size_t halfedge = baseIdx + i;
+        size_t nextHalfedge = (i == 2) ? baseIdx : halfedge + 1;
+
+        // Check if this halfedge goes from v1 to v2
+        if (d.triangles[halfedge] == v1 && d.triangles[nextHalfedge] == v2) {
+            // Found the edge, get the opposite halfedge
+            size_t oppositeHalfedge = d.halfedges[halfedge];
+
+            if (oppositeHalfedge == delaunator::INVALID_INDEX) {
+                return SIZE_MAX; // Hull edge, no neighbor
+            }
+
+            // Return the triangle index of the neighbor
+            return oppositeHalfedge / 3;
+        }
+    }
+
+    // Edge (v1, v2) not found in this triangle
+    return SIZE_MAX;
+}
+// Check if point q is on the "other side" of edge e relative to triangle t
+// Edge e is defined by the halfedge index in the triangle
+bool pointOnOtherSide(const delaunator::Delaunator& d,
+                      size_t triangle,
+                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
+                      const Timbre2DPoint& q) {
+    const float EPSILON = 1e-6f;
+
+    const auto tri = TrianglePoints::create(d, triangle);
+    assert(tri != std::nullopt);
+    const std::array<Timbre2DPoint, 3> vertices = {tri->p0, tri->p1, tri->p2};
+
+    // Get the edge vertices
+    Timbre2DPoint v1 = vertices[edgeIdx];
+    Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
+
+    // Compute signed area
+    // For a CCW triangle, negative area means q is on the outside (other side)
+    const float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
+                             (v2.y() - v1.y()) * (q.x() - v1.x());
+
+    // Negative or near-zero means on the other side or on the edge
+    return signedArea < EPSILON;
 }
 
 // Get the third vertex of a triangle given two known vertices
@@ -479,10 +557,24 @@ size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& poin
 
 // Get point from vertex index
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx) {
+    assert (vertexIdx < d.coords.size());
     return {
         static_cast<float>(d.coords[2 * vertexIdx]),
         static_cast<float>(d.coords[2 * vertexIdx + 1])
     };
+}
+
+std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
+                                          size_t triangle,
+                                          size_t edgeIdx) {
+    size_t baseIdx = triangle * 3;
+    size_t halfedge = baseIdx + edgeIdx;
+    size_t nextHalfedge = (edgeIdx == 2) ? baseIdx : halfedge + 1;
+
+    size_t v1 = d.triangles[halfedge];
+    size_t v2 = d.triangles[nextHalfedge];
+
+    return {v1, v2};
 }
 
 std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
@@ -491,85 +583,108 @@ std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
     return out;
 }
 
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return std::move(out).str();
+}
+
+std::string str(const Timbre2DPoint &p) {
+    return std::string("(") +
+        to_string_with_precision(p.x(), 2) +
+            std::string(", ") +
+                to_string_with_precision(p.y(), 2) +
+                    std::string(")");
+}
+std::string str(const TrianglePoints &tri) {
+    return std::string("(") +
+        str(tri.p0) + std::string(", ") +
+            str(tri.p1) + std::string(", ") +
+                str(tri.p2) +
+                    std::string(")");
+}
+
 // Remembering stochastic walk - refines the triangle location
-std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
-                                                 const Timbre2DPoint& q,
+size_t rememberingStochasticWalk(const delaunator::Delaunator& d,
+                                                 const Timbre2DPoint& p,
                                                  size_t startTri) {
-    std::cout << "rememberingStochasticWalk called with startTri=" << startTri
-              << " q=(" << q.x() << "," << q.y() << ")" << std::endl;
-
-    const float EPSILON = 1e-6f;
-    const size_t MAX_ITERATIONS = d.triangles.size() * 3; // Safety limit
-
+    fmt::print("rememberingStochasticWalk called with:\n startTri={}\n target_p=({}, {})\n", startTri, p.x(), p.y());
     size_t t = startTri;
-    size_t previous = startTri;
-    bool end = false;
-    size_t iterations = 0;
+    size_t previous = t;
 
-    // Helper: check if point q is on the "other side" of edge from v1 to v2
-    // (negative signed area means q is on the right/outside)
-    auto pointOnOtherSide = [&](const Timbre2DPoint& v1, const Timbre2DPoint& v2) -> bool {
-        float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
-                          (v2.y() - v1.y()) * (q.x() - v1.x());
-        return signedArea < -EPSILON;
+    bool end = false;
+
+    auto neighborThroughEdge_ifShouldWalkHere = [&d, &p](const size_t currentTriangle, const size_t previousTriangle, const size_t edgeIdx) -> std::optional<size_t> {
+        const auto [edge_v0, edge_v1] = getEdgeVertices(d, currentTriangle, edgeIdx);
+        const auto neighborThroughE = neighbor(d, currentTriangle, edge_v0, edge_v1);
+
+        {
+            const auto v0 = getPointFromVertex(d, edge_v0);
+            const auto v1 = getPointFromVertex(d, edge_v1);
+            const auto currentTrianglePoints = TrianglePoints::create(d, currentTriangle);
+            if (currentTrianglePoints == std::nullopt) {
+                fmt::print("\t\tcurrent triangle not valid... not sure what to do quite yet.\n");
+            }
+            else {
+                fmt::print("\t\tcurrent triangle points: {}\n", str(*currentTrianglePoints));
+                fmt::print("\t\tedge considered e: {}, {}\n", str(v0), str(v1));
+                const auto neighborPoints = TrianglePoints::create(d, neighborThroughE);
+                if (neighborPoints == std::nullopt) {
+                    fmt::print("\t\tneighbor through e not valid... not sure what to do yet.\n");
+                }
+                else {
+                    fmt::print("\t\tneighbor through e: {}\n", str(*neighborPoints));
+                }
+            }
+        }
+
+        if (neighborThroughE != delaunator::INVALID_INDEX &&
+                neighborThroughE != previousTriangle &&
+                    pointOnOtherSide(d, currentTriangle, edgeIdx, p)) {
+            {
+                fmt::print("\t\tYES the point is on that side (and it wasn't previously checked and not invalid)\n\n");
+            }
+            return neighborThroughE;
+        }
+        fmt::print("\t\tNO the point NOT is on that side.\n\n");
+        return std::nullopt;
     };
 
-    while (!end && iterations++ < MAX_ITERATIONS) {
-        auto tri = TrianglePoints::create(d, t);
-        std::cout << "Iter " << iterations << " at triangle " << t << ": "
-          << tri.p0.x() << "," << tri.p0.y() << " | "
-          << tri.p1.x() << "," << tri.p1.y() << " | "
-          << tri.p2.x() << "," << tri.p2.y() << std::endl;
+    while (!end) {
+        size_t e = rand() % 3;
 
-        // Check if we found it
-        if (pointInTriangle(q, tri.p0, tri.p1, tri.p2)) {
-            std::cout << "Found at triangle " << t << std::endl;
-            return t;
+        if (auto neighbor = neighborThroughEdge_ifShouldWalkHere(t, previous, e); neighbor != std::nullopt)
+        {
+            previous = t;
+            t = neighbor.value();
         }
-
-        std::array<Timbre2DPoint, 3> vertices = {tri.p0, tri.p1, tri.p2};
-        std::array<size_t, 3> halfedges = {tri.t0, tri.t1, tri.t2};
-
-        // Try edges: random (we'll use 0), then next, then next
-        for (size_t i = 0; i < 3; ++i) {
-            size_t edgeIdx = i;
-            size_t halfedge = halfedges[edgeIdx];
-
-            Timbre2DPoint v1 = vertices[edgeIdx];
-            Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
-
-            size_t neighborHalfedge = d.halfedges[halfedge];
-            std::cout << "  Edge " << i << " (" << v1.x() << "," << v1.y() << " -> "
-                      << v2.x() << "," << v2.y() << "): ";
-
-            if (neighborHalfedge == delaunator::INVALID_INDEX) {
-                std::cout << "hull edge" << std::endl;
-                continue;
-            }
-
-            size_t neighbor = neighborHalfedge / 3;
-            bool otherSide = pointOnOtherSide(v1, v2);
-            bool notPrevious = (neighbor != previous);
-
-            std::cout << "neighbor=" << neighbor << " previous=" << previous
-                      << " otherSide=" << otherSide << " notPrevious=" << notPrevious << std::endl;
-
-            if (notPrevious && otherSide) {
-                std::cout << "  -> Crossing to triangle " << neighbor << std::endl;
+        else
+        {
+            e += 1; e %= 3; // next edge
+            if (neighbor = neighborThroughEdge_ifShouldWalkHere(t, previous, e); neighbor != std::nullopt)
+            {
                 previous = t;
-                t = neighbor;
-                goto next_iteration;
+                t = neighbor.value();
+            }
+            else {
+                e += 1; e %= 3; // next edge
+                if (neighbor = neighborThroughEdge_ifShouldWalkHere(t, previous, e); neighbor != std::nullopt)
+                {
+                    previous = t;
+                    t = neighbor.value();
+                }
+                else {
+                    end=true;
+                }
             }
         }
-
-        // If we get here, no edge was suitable
-        std::cout << "No suitable edge found, ending" << std::endl;
-        end = true;
-
-    next_iteration:
-        continue;
     }
-
+    const auto trianglePoints = TrianglePoints::create(d, t);
+    assert(trianglePoints != std::nullopt);
+    fmt::print("FOUND CONTAINING TRIANGLE: {}", str(*trianglePoints));
     return t;
 }
 
@@ -702,10 +817,11 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
 
     std::cout << "After initialization, before walk: currentTri=" << currentTri << std::endl;
     auto debugTri = TrianglePoints::create(d, currentTri);
+    assert (debugTri != std::nullopt);
     std::cout << "  Triangle vertices: "
-              << debugTri.p0.x() << "," << debugTri.p0.y() << " | "
-              << debugTri.p1.x() << "," << debugTri.p1.y() << " | "
-              << debugTri.p2.x() << "," << debugTri.p2.y() << std::endl;
+              << debugTri->p0.x() << "," << debugTri->p0.y() << " | "
+              << debugTri->p1.x() << "," << debugTri->p1.y() << " | "
+              << debugTri->p2.x() << "," << debugTri->p2.y() << std::endl;
     std::cout << "  vl=" << vl << " vr=" << vr << std::endl;
 
 
@@ -907,3 +1023,4 @@ std::vector<WeightedIdx> findPointsDistanceBased(
 #endif
 
 }	// namespace nvs::timbrespace
+

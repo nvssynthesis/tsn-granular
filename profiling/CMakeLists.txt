@@ -86,9 +86,14 @@ target_sources(test-triangle-walk PRIVATE
 target_include_directories(test-triangle-walk PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
         ${CMAKE_SOURCE_DIR}/plugin/Source
+        ${CMAKE_SOURCE_DIR}/build/_deps/fmt-src/include
 )
-
+target_compile_definitions(test-triangle-walk
+        PRIVATE
+        FMT_HEADER_ONLY=1
+)
 target_link_libraries(test-triangle-walk PRIVATE
+        fmt::fmt
         Eigen3::Eigen
         Catch2::Catch2WithMain
 )

@@ -73,10 +73,20 @@ size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t 
 size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
 size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx);
+std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
+                                          size_t triangle,
+                                          size_t edgeIdx);
+size_t neighbor(const delaunator::Delaunator& d,
+                size_t triangle, size_t v1, size_t v2);
+bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2);
+bool pointOnOtherSide(const delaunator::Delaunator& d,
+                      size_t triangle,
+                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
+                      const Timbre2DPoint& q);
 
-std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
-                                                 const Timbre2DPoint& q,
-                                                 size_t startTri);
+size_t rememberingStochasticWalk(const delaunator::Delaunator& d,
+                                             const Timbre2DPoint& q,
+                                             size_t startTri);
 
 std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
                                  size_t startTriIdx,
@@ -85,7 +95,7 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
 struct TrianglePoints {
     Timbre2DPoint p0, p1, p2;
     size_t t0, t1, t2;
-    static TrianglePoints create(const delaunator::Delaunator& d, size_t triangleIdx);
+    static std::optional<TrianglePoints> create(const delaunator::Delaunator& d, size_t triangleIdx);
 };
 
 //=============================================================================================================================
