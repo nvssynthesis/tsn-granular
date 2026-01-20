@@ -76,15 +76,28 @@ Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexI
 std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
                                           size_t triangle,
                                           size_t edgeIdx);
+size_t getOppositeVertex(const delaunator::Delaunator& d,
+                         size_t triangle,
+                         size_t edgeIdx);   // gets the vertex NOT belonging to the given edge
 size_t neighbor(const delaunator::Delaunator& d,
                 size_t triangle, size_t v1, size_t v2);
 bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2);
+bool pointOnOtherSide_old(const delaunator::Delaunator& d,
+                      size_t triangle,
+                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
+                      const Timbre2DPoint& q);
 bool pointOnOtherSide(const delaunator::Delaunator& d,
                       size_t triangle,
                       size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
                       const Timbre2DPoint& q);
+enum class Orientation_e : int {
+    colinear = 0,
+    CCW = 1,
+    CW = -1
+};
+Orientation_e orientation(const Timbre2DPoint &A, const Timbre2DPoint &B, const Timbre2DPoint &C);
 
-size_t rememberingStochasticWalk(const delaunator::Delaunator& d,
+std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                              const Timbre2DPoint& q,
                                              size_t startTri);
 

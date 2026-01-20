@@ -481,9 +481,69 @@ size_t neighbor(const delaunator::Delaunator& d,
     // Edge (v1, v2) not found in this triangle
     return SIZE_MAX;
 }
+
+float cross(const Timbre2DPoint &A, const Timbre2DPoint &B) {
+    return A.x() * B.y() - A.y() * B.x();
+}
+
+Orientation_e orientation(const Timbre2DPoint &A, const Timbre2DPoint &B, const Timbre2DPoint &C) {
+    const auto crossProd = cross(B-A, C-A);
+    if (crossProd > 0){
+        return Orientation_e::CCW;
+    }
+    if (crossProd < 0) {
+        return Orientation_e::CW;
+    }
+    assert (crossProd == 0);
+    return Orientation_e::colinear;
+}
+Orientation_e orientation(const TrianglePoints &points) {
+    return orientation(points.p0, points.p1, points.p2);
+}
+
+bool lexLess(const Timbre2DPoint& u, const Timbre2DPoint& v) {
+    return (u.x() < v.x()) || (u.x() == v.x() && u.y() < v.y());
+}
+template <typename T>
+bool inHalfOpen(const T& a, const T& b, const T& p)
+{
+    const T& lo = lexLess(a,b) ? a : b;
+    const T& hi = lexLess(a,b) ? b : a;
+
+    return !lexLess(p, lo) && lexLess(p, hi);
+}
+
 // Check if point q is on the "other side" of edge e relative to triangle t
 // Edge e is defined by the halfedge index in the triangle
 bool pointOnOtherSide(const delaunator::Delaunator& d,
+                      size_t triangle,
+                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
+                      const Timbre2DPoint& q) {
+    const auto triPoints = TrianglePoints::create(d, triangle);
+    assert(triPoints != std::nullopt);
+
+    const auto edge = getEdgeVertices(d, triangle, edgeIdx);
+    const auto innerVertex = getOppositeVertex(d, triangle, edgeIdx);
+
+    const Timbre2DPoint A = getPointFromVertex(d, edge.first);
+    const Timbre2DPoint B = getPointFromVertex(d, edge.second);
+    const Timbre2DPoint C = getPointFromVertex(d, innerVertex);
+    const Timbre2DPoint &P = q;
+
+    const auto s1 = cross(B-A,P-A);
+    const auto s2 = cross(B-A, C-A);
+
+    const auto mult = s1 * s2;
+    if (mult < 0) {
+        return true;
+    }
+    if (mult > 0) {
+        return false;
+    }
+    assert(mult == 0.f);
+    return inHalfOpen(A, B, P);
+}
+bool pointOnOtherSide_old(const delaunator::Delaunator& d,
                       size_t triangle,
                       size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
                       const Timbre2DPoint& q) {
@@ -505,7 +565,6 @@ bool pointOnOtherSide(const delaunator::Delaunator& d,
     // Negative or near-zero means on the other side or on the edge
     return signedArea < EPSILON;
 }
-
 // Get the third vertex of a triangle given two known vertices
 // Returns SIZE_MAX if v1 or v2 are not in the triangle
 size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
@@ -576,7 +635,13 @@ std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
 
     return {v1, v2};
 }
-
+size_t getOppositeVertex(const delaunator::Delaunator& d,
+                         size_t triangle,
+                         size_t edgeIdx)
+{
+    size_t base = triangle * 3;
+    return d.triangles[base + (edgeIdx + 2) % 3];
+}
 std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
 {
     out << p.x() << "," << p.y();
@@ -608,7 +673,7 @@ std::string str(const TrianglePoints &tri) {
 }
 
 // Remembering stochastic walk - refines the triangle location
-size_t rememberingStochasticWalk(const delaunator::Delaunator& d,
+std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                                  const Timbre2DPoint& p,
                                                  size_t startTri) {
     fmt::print("rememberingStochasticWalk called with:\n startTri={}\n target_p=({}, {})\n", startTri, p.x(), p.y());
@@ -683,9 +748,10 @@ size_t rememberingStochasticWalk(const delaunator::Delaunator& d,
         }
     }
     const auto trianglePoints = TrianglePoints::create(d, t);
-    assert(trianglePoints != std::nullopt);
-    fmt::print("FOUND CONTAINING TRIANGLE: {}", str(*trianglePoints));
-    return t;
+    if (pointInTriangle(p, trianglePoints->p0, trianglePoints->p1, trianglePoints->p2)) {
+        return t;
+    }
+    return std::nullopt;
 }
 
 std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
