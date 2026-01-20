@@ -410,9 +410,9 @@ std::optional<TrianglePoints> TrianglePoints::create(const delaunator::Delaunato
         .p1 = getPointFromVertex(d, v1),
         .p2 = getPointFromVertex(d, v2),
 
-        .t0 = t0,
-        .t1 = t1,
-        .t2 = t2,
+        .halfedge0 = t0,
+        .halfedge1 = t1,
+        .halfedge2 = t2
     };
     return points;
 }
@@ -619,7 +619,7 @@ size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& poin
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx) {
     assert (vertexIdx < d.coords.size());
     return {
-        static_cast<float>(d.coords[2 * vertexIdx]),
+        static_cast<float>(d.coords[2 * vertexIdx + 0]),
         static_cast<float>(d.coords[2 * vertexIdx + 1])
     };
 }
@@ -755,14 +755,18 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
     return std::nullopt;
 }
 
+size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx) {
+    return d.triangles[halfedgeIdx];
+}
+
 std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α)
 {
     auto τ = startTri_α;
     auto lrsOpt = TrianglePoints::create(d, startTri_α);
     assert(lrsOpt.has_value());
-    auto lIdx = lrsOpt->t0; auto l = getPointFromVertex(d, lIdx); assert(l == lrsOpt->p0);
-    auto rIdx = lrsOpt->t1; auto r = getPointFromVertex(d, rIdx); assert(r == lrsOpt->p1);
-    auto sIdx = lrsOpt->t2; auto s = getPointFromVertex(d, sIdx); assert(s == lrsOpt->p2);
+    auto lIdx = getVertexFromHalfedge(d, lrsOpt->halfedge0); auto l = getPointFromVertex(d, lIdx); assert(l == lrsOpt->p0);
+    auto rIdx = getVertexFromHalfedge(d, lrsOpt->halfedge1); auto r = getPointFromVertex(d, rIdx); assert(r == lrsOpt->p1);
+    auto sIdx = getVertexFromHalfedge(d, lrsOpt->halfedge2); auto s = getPointFromVertex(d, sIdx); assert(s == lrsOpt->p2);
 
     const auto pIdx = sIdx; const auto p = s;
     if (p == q) {
