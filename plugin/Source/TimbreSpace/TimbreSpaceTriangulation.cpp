@@ -760,16 +760,67 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2D
     auto τ = startTri_α;
     auto lrsOpt = TrianglePoints::create(d, startTri_α);
     assert(lrsOpt.has_value());
-    auto l = lrsOpt->p0;
-    auto r = lrsOpt->p1;
-    auto s = lrsOpt->p2;
+    auto lIdx = lrsOpt->t0; auto l = getPointFromVertex(d, lIdx); assert(l == lrsOpt->p0);
+    auto rIdx = lrsOpt->t1; auto r = getPointFromVertex(d, rIdx); assert(r == lrsOpt->p1);
+    auto sIdx = lrsOpt->t2; auto s = getPointFromVertex(d, sIdx); assert(s == lrsOpt->p2);
 
-    Timbre2DPoint p = s;
+    const auto pIdx = sIdx; const auto p = s;
     if (p == q) {
         return τ; // already found
     }
 
-    return std::nullopt;
+    const auto a = q - p;
+    // k = ||a||
+    const double kcos = a.x();
+    const double ksin = a.y();
+    Timbre2DPoint q_prime(
+      q.x() * kcos - q.y() * ksin,
+      q.x() * ksin + q.y() * kcos
+    );
+    double r_prime_y = r.x() * ksin + r.y() * kcos;
+    if (r_prime_y > q_prime.y()) {
+      // r is above line pq
+      double l_prime_y = l.x() * ksin + l.y() * kcos;
+      while (l_prime_y > q_prime.y()) { // IN PAPER this MIIIGHT be a do while loop instead...
+        τ = neighbor(d, τ, pIdx, lIdx); // τ = neighbor of τ trough ε_pl;
+        r = l; rIdx = lIdx;
+        lIdx = getThirdVertex(d, τ, pIdx, rIdx); l = getPointFromVertex(d, lIdx);
+        l_prime_y = l.x() * ksin + l.y() * kcos;
+      }
+      sIdx = lIdx; s = l;
+      lIdx = rIdx; l = r;
+      rIdx = pIdx; r = p;
+    }
+    else {
+      // r is below line pq
+      do { // from paper: "repeat: "
+        τ = neighbor(d, τ, pIdx, rIdx); // τ = neighbor of τ trough ε_pr;
+        l = r; lIdx = rIdx;
+        rIdx = getThirdVertex(d, τ, pIdx, lIdx); r = getPointFromVertex(d, rIdx);
+      } while (r_prime_y <= q_prime.y()); // until r′_y > q′_y;
+      sIdx = rIdx; s = r;
+      rIdx = lIdx; r = l;
+      lIdx = pIdx; l = p;
+    }
+    // now line pq intersects τ
+    // walk step - following the line segment pq
+    Timbre2DPoint s_prime(
+      s.x() * kcos - s.y() * ksin,
+      std::numeric_limits<double>::quiet_NaN() // unassigned yet
+    );
+    while (s_prime.x() < q_prime.x()) {
+      s_prime.y() = s.x() * ksin + s.y() * kcos;
+      if (s_prime.y() < q_prime.y()){
+        rIdx = sIdx; // only used for getting third vertex; no need to update actual point, just index
+      } else {
+        lIdx = sIdx; // only used for getting third vertex; no need to update actual point, just index
+      }
+      τ = neighbor(d, τ, lIdx, rIdx); // τ = neighbor of τ trough ε_pr;
+      sIdx = getThirdVertex(d, τ, rIdx, lIdx); s = getPointFromVertex(d, sIdx);
+      s_prime.x() = s.x() * kcos - s.y() * ksin;
+    }
+
+    return rememberingStochasticWalk(d, q, startTri_α);
 }
 
 [[deprecated]]
