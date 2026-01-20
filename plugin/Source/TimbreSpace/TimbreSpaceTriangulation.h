@@ -23,7 +23,6 @@ std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points);
 
 void getUniqueEdges(const delaunator::Delaunator& d);
 
-// Test if point p is inside triangle formed by vertices a, b, c
 bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& c) ;
 
 // Find triangle containing target point using Delaunator results
@@ -79,8 +78,7 @@ std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
 size_t getOppositeVertex(const delaunator::Delaunator& d,
                          size_t triangle,
                          size_t edgeIdx);   // gets the vertex NOT belonging to the given edge
-size_t neighbor(const delaunator::Delaunator& d,
-                size_t triangle, size_t v1, size_t v2);
+size_t neighbor(const delaunator::Delaunator& d,size_t triangle, size_t v1, size_t v2);
 bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2);
 bool pointOnOtherSide_old(const delaunator::Delaunator& d,
                       size_t triangle,
@@ -90,6 +88,7 @@ bool pointOnOtherSide(const delaunator::Delaunator& d,
                       size_t triangle,
                       size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
                       const Timbre2DPoint& q);
+float cross(const Timbre2DPoint &A, const Timbre2DPoint &B);
 enum class Orientation_e : int {
     colinear = 0,
     CCW = 1,
@@ -101,9 +100,7 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                              const Timbre2DPoint& q,
                                              size_t startTri);
 
-std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
-                                 size_t startTriIdx,
-                                 const Timbre2DPoint& q);
+std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α);
 
 struct TrianglePoints {
     Timbre2DPoint p0, p1, p2;

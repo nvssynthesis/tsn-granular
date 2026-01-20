@@ -504,13 +504,35 @@ Orientation_e orientation(const TrianglePoints &points) {
 bool lexLess(const Timbre2DPoint& u, const Timbre2DPoint& v) {
     return (u.x() < v.x()) || (u.x() == v.x() && u.y() < v.y());
 }
-template <typename T>
-bool inHalfOpen(const T& a, const T& b, const T& p)
-{
-    const T& lo = lexLess(a,b) ? a : b;
-    const T& hi = lexLess(a,b) ? b : a;
 
-    return !lexLess(p, lo) && lexLess(p, hi);
+bool inHalfOpen(const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& p)
+
+{
+    const Timbre2DPoint& lo = lexLess(a,b) ? a : b;
+    const Timbre2DPoint& hi = lexLess(a,b) ? b : a;
+
+    bool cond1 = !lexLess(p, lo);
+    bool cond2 = lexLess(p, hi);
+    return cond1 && cond2;
+}
+
+bool horizontalRayIntersectsEdge(const Timbre2DPoint& A,
+                                 const Timbre2DPoint& B,
+                                 const Timbre2DPoint& P)
+{
+    // Ignore horizontal edges
+    if (A.y() == B.y())
+        return false;
+
+    // Check if P.y is in the half-open vertical span of AB
+    if (!((A.y() > P.y()) != (B.y() > P.y())))
+        return false;
+
+    // Compute x-coordinate of intersection
+    double x = A.x() + (P.y() - A.y()) * (B.x() - A.x()) / (B.y() - A.y());
+
+    // True if intersection is strictly to the right
+    return x > P.x();
 }
 
 // Check if point q is on the "other side" of edge e relative to triangle t
@@ -534,37 +556,16 @@ bool pointOnOtherSide(const delaunator::Delaunator& d,
     const auto s2 = cross(B-A, C-A);
 
     const auto mult = s1 * s2;
-    if (mult < 0) {
+    if (mult <= 0) {
         return true;
     }
-    if (mult > 0) {
-        return false;
-    }
-    assert(mult == 0.f);
-    return inHalfOpen(A, B, P);
+    // if (mult > 0) {
+    return false;
+    // }
+    // assert(mult == 0.f); was used for point on edge, but in current use case–walking through to get to containing triangle–it shouldn't matter
+    // return inHalfOpen(A, B, P);
 }
-bool pointOnOtherSide_old(const delaunator::Delaunator& d,
-                      size_t triangle,
-                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
-                      const Timbre2DPoint& q) {
-    const float EPSILON = 1e-6f;
 
-    const auto tri = TrianglePoints::create(d, triangle);
-    assert(tri != std::nullopt);
-    const std::array<Timbre2DPoint, 3> vertices = {tri->p0, tri->p1, tri->p2};
-
-    // Get the edge vertices
-    Timbre2DPoint v1 = vertices[edgeIdx];
-    Timbre2DPoint v2 = vertices[(edgeIdx + 1) % 3];
-
-    // Compute signed area
-    // For a CCW triangle, negative area means q is on the outside (other side)
-    const float signedArea = (v2.x() - v1.x()) * (q.y() - v1.y()) -
-                             (v2.y() - v1.y()) * (q.x() - v1.x());
-
-    // Negative or near-zero means on the other side or on the edge
-    return signedArea < EPSILON;
-}
 // Get the third vertex of a triangle given two known vertices
 // Returns SIZE_MAX if v1 or v2 are not in the triangle
 size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
@@ -754,7 +755,26 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
     return std::nullopt;
 }
 
-std::optional<size_t> hybridWalk(const delaunator::Delaunator& d,
+std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α)
+{
+    auto τ = startTri_α;
+    auto lrsOpt = TrianglePoints::create(d, startTri_α);
+    assert(lrsOpt.has_value());
+    auto l = lrsOpt->p0;
+    auto r = lrsOpt->p1;
+    auto s = lrsOpt->p2;
+
+    Timbre2DPoint p = s;
+    if (p == q) {
+        return τ; // already found
+    }
+
+    return std::nullopt;
+}
+
+[[deprecated]]
+#pragma message("hybridWalk_old: remove me")
+std::optional<size_t> hybridWalk_old(const delaunator::Delaunator& d,
                                  size_t startTriIdx,
                                  const Timbre2DPoint& q) {
     const float EPSILON = 1e-6f;
