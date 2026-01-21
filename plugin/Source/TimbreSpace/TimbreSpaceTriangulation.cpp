@@ -761,6 +761,8 @@ size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx
 
 std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α)
 {
+    // FROM PAPER: "we assume that the vertices of the triangles are in a CCW order."
+    // THIS is NOT the case with Delaunator!!! need cw to ccw conversion?
     auto τ = startTri_α;
     auto lrsOpt = TrianglePoints::create(d, startTri_α);
     assert(lrsOpt.has_value());
@@ -775,8 +777,8 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2D
 
     const auto a = q - p;
     // k = ||a||
-    const double kcos = a.x();
-    const double ksin = a.y();
+    const float kcos = a.x();
+    const float ksin = a.y();
     Timbre2DPoint q_prime(
       q.x() * kcos - q.y() * ksin,
       q.x() * ksin + q.y() * kcos
@@ -801,6 +803,7 @@ std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2D
         τ = neighbor(d, τ, pIdx, rIdx); // τ = neighbor of τ trough ε_pr;
         l = r; lIdx = rIdx;
         rIdx = getThirdVertex(d, τ, pIdx, lIdx); r = getPointFromVertex(d, rIdx);
+        r_prime_y = r.x() * ksin + r.y() * kcos;
       } while (r_prime_y <= q_prime.y()); // until r′_y > q′_y;
       sIdx = rIdx; s = r;
       rIdx = lIdx; r = l;

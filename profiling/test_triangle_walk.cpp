@@ -541,18 +541,18 @@ TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
             REQUIRE(result.value() == startTri);
         }
 
-        // SECTION("point in center of grid") {
-        //     // Point (1,1) is at center, should work from any starting triangle
-        //     Point2D center(1.0f, 1.0f);
-        //
-        //     auto result = hybridWalk(d, 0, center);
-        //     REQUIRE(result.has_value());
-        //
-        //     // Verify the result triangle contains the point
-        //     auto tri = TrianglePoints::create(d, *result);
-        //     REQUIRE(pointInTriangle(center, tri->p0, tri->p1, tri->p2));
-        // }
-        //
+        SECTION("point in center of grid") {
+            // Point (1,1) is at center, should work from any starting triangle
+            Point2D center(1.0f, 1.0f);
+
+            auto result = hybridWalk(d, center, 0);
+            REQUIRE(result.has_value());
+
+            // Verify the result triangle contains the point
+            auto tri = TrianglePoints::create(d, *result);
+            REQUIRE(pointInTriangle(center, tri->p0, tri->p1, tri->p2));
+        }
+
         // SECTION("point slightly off-center - EXPECTED TO FAIL without stochastic walk") {
         //     // This point is NOT on a vertex or edge, so it needs the final
         //     // remembering_stochastic_walk to converge properly

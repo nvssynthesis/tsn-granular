@@ -109,6 +109,33 @@ struct TrianglePoints {
     static std::optional<TrianglePoints> create(const delaunator::Delaunator& d, size_t triangleIdx);
 };
 
+// TODO: use the following function to check if the point is even inside a triangle by checking it against the convex hull
+// TODO: and test it!
+inline bool pointInConvexHull(const delaunator::Delaunator& d,
+                       const Timbre2DPoint& q)
+{
+    const auto start = d.hull_start;
+    if (start == delaunator::INVALID_INDEX)
+        return false;
+
+    std::size_t v = start;
+    do {
+        const std::size_t vNext = d.hull_next[v];
+
+        const auto A = getPointFromVertex(d, v);
+        const auto B = getPointFromVertex(d, vNext);
+
+        // for CLOCKWISE hull:
+        // q must not be to the left of any edge
+        if (cross(B - A, q - A) > 0) {
+            return false;  // outside
+        }
+
+        v = vNext;
+    } while (v != start);
+
+    return true;  // inside or on boundary
+}
 //=============================================================================================================================
 #if 0
 std::vector<WeightedIdx> toWeightedIndices(std::vector<DistanceIdx> const &dv, double sharpness, double contrastPower = 2.0);
