@@ -329,7 +329,9 @@ Point_t HyperchaosNavigator<Point_t>::navigate(AudioProcessorValueTreeState cons
 
 template<typename Point_t>
 Navigator<Point_t>::Navigator(const AudioProcessorValueTreeState &paramTree)
-:   _apvts(paramTree) {}
+:   _apvts(paramTree) {
+    _previousPoint.setZero();
+}
 template<typename Point_t>
 void Navigator<Point_t>::setNavigationStrategy(const NavigationType_e navType) {
     switch (navType) {

@@ -141,7 +141,7 @@ public:
 private:
     std::unique_ptr<NavigationStrategy<Point_t>> _navigationStrategy;
     juce::AudioProcessorValueTreeState const &_apvts;
-    Point_t _previousPoint {};
+    Point_t _previousPoint;
 
     void updateNavPeriodSamples();
     void updateStrategyRate();
