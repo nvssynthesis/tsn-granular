@@ -51,6 +51,7 @@ target_sources(tsn-profile-triangulation PRIVATE
 
 target_include_directories(tsn-profile-triangulation PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/Source
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
 )
 
@@ -83,9 +84,12 @@ add_executable(test-triangle-walk test_triangle_walk.cpp ${DELAUNATOR_SOURCES})
 target_sources(test-triangle-walk PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbreSpaceTriangulation.cpp
         ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbrePointTypes.cpp
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TrianglePoints.cpp
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/StringHelpers.cpp
 )
 
 target_include_directories(test-triangle-walk PRIVATE
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
         ${CMAKE_SOURCE_DIR}/plugin/Source
         ${CMAKE_SOURCE_DIR}/build/_deps/fmt-src/include

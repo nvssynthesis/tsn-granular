@@ -1,5 +1,5 @@
 #include "TrianglePoints.h"
-#include "Triangulation.h"
+#include "TimbreSpaceTriangulation.h"
 
 namespace nvs::timbrespace {
 

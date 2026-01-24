@@ -13,6 +13,6 @@ std::string str(const Timbre2DPoint &p);
 std::string str(const TrianglePoints &tri);
 void printTriangles(const delaunator::Delaunator& d);
 void printTriangleIdx(size_t idx);
-void printLine(const timbrespace::Timbre2DPoint &p, const timbrespace::Timbre2DPoint &q);
+void printLine(const Timbre2DPoint &p, const Timbre2DPoint &q);
 
-} // namespace nvs
+} // namespace nvs::timbrespace
