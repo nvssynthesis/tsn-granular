@@ -45,6 +45,8 @@ add_executable(tsn-profile-triangulation
 target_sources(tsn-profile-triangulation PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbreSpaceTriangulation.cpp
         ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TimbrePointTypes.cpp
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/TrianglePoints.cpp
+        ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace/StringHelpers.cpp
 )
 
 target_include_directories(tsn-profile-triangulation PRIVATE

@@ -43,7 +43,7 @@ TEST_CASE("Delaunator triangle orientation is clockwise", "[orientation]") {
         const auto triPoints = TrianglePoints::create(d, d.triangles[i]);
         assert(triPoints != std::nullopt);
         const auto o = orientation(triPoints->p0, triPoints->p1, triPoints->p2);
-        REQUIRE(o == Orientation_e::CW);
+        REQUIRE(o < 0);
     }
 }
 
@@ -541,6 +541,33 @@ TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
             REQUIRE(result.value() == startTri);
         }
 
+        SECTION("a bunch of random points") {
+            std::vector<Point2D> largePoints;
+            srand(423);
+            auto randVal = [] () {
+                return ((static_cast<float>(rand()) / RAND_MAX) * 2.f - 1.f) * 2.0f;
+            };
+            for (int i = 0; i < 100; ++i) {
+                float x = randVal();
+                float y = randVal();
+                largePoints.emplace_back(x, y);
+            }
+            auto d = buildDelaunator(largePoints);
+
+            for (size_t tri = 0; tri < d.triangles.size(); ++tri) {
+                DYNAMIC_SECTION("Triangle " << tri)
+                {
+                    size_t startTri = rand() % (d.triangles.size() / 3);
+                    const auto target = Point2D(randVal(),
+                                                randVal());
+                    const auto result = hybridWalk(d, target, startTri);
+                    REQUIRE(result.has_value());
+                    const auto triPoints = TrianglePoints::create(d, *result);
+                    REQUIRE(pointInTriangle(target, triPoints->p0, triPoints->p1, triPoints->p2));
+                }
+            }
+        }
+
         SECTION("point in center of grid") {
             // Point (1,1) is at center, should work from any starting triangle
             Point2D center(1.0f, 1.0f);
@@ -579,27 +606,4 @@ TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
         //     REQUIRE_FALSE(result.has_value());
         // }
     }
-    // SECTION("a bunch of random points") {
-    //     std::vector<Point2D> largePoints;
-    //     srand(423);
-    //     for (int i = 0; i < 1000; ++i) {
-    //         float x = static_cast<float>(rand() * 2.f - 1.f) / RAND_MAX * 1000.0f;
-    //         float y = static_cast<float>(rand() * 2.f - 1.f) / RAND_MAX * 1000.0f;
-    //         largePoints.emplace_back(x, y);
-    //     }
-    //     auto d = buildDelaunator(largePoints);
-    //
-    //     for (size_t tri = 0; tri < d.triangles.size(); ++tri) {
-    //         DYNAMIC_SECTION("Triangle " << tri)
-    //         {
-    //             size_t startTri = rand() * d.triangles.size();
-    //             const auto target = Point2D(static_cast<float>(rand() * 2.f - 1.f) / RAND_MAX * 1000.0f,
-    //                                         static_cast<float>(rand() * 2.f - 1.f) / RAND_MAX * 1000.0f);
-    //             const auto result = hybridWalk(d, startTri, target);
-    //             REQUIRE(result.has_value());
-    //             const auto triPoints = TrianglePoints::create(d, *result);
-    //             REQUIRE(pointInTriangle(target, triPoints->p0, triPoints->p1, triPoints->p2));
-    //         }
-    //     }
-    // }
 }

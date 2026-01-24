@@ -16,6 +16,7 @@
 #include "../../delaunator-cpp/include/delaunator.hpp"
 #include "../../slicer_granular/Source/IndexTypes.h"
 #include "TimbrePointTypes.h"
+#include "TrianglePoints.h"
 
 namespace nvs::timbrespace {
 
@@ -70,7 +71,7 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 
 size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
 size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
-size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
+[[deprecated("uses linear search")]] size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
 size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx);
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx);
 std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
@@ -81,33 +82,19 @@ size_t getOppositeVertex(const delaunator::Delaunator& d,
                          size_t edgeIdx);   // gets the vertex NOT belonging to the given edge
 size_t neighbor(const delaunator::Delaunator& d,size_t triangle, size_t v1, size_t v2);
 bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2);
-bool pointOnOtherSide_old(const delaunator::Delaunator& d,
-                      size_t triangle,
-                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
-                      const Timbre2DPoint& q);
 bool pointOnOtherSide(const delaunator::Delaunator& d,
                       size_t triangle,
                       size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
                       const Timbre2DPoint& q);
 float cross(const Timbre2DPoint &A, const Timbre2DPoint &B);
-enum class Orientation_e : int {
-    colinear = 0,
-    CCW = 1,
-    CW = -1
-};
-Orientation_e orientation(const Timbre2DPoint &A, const Timbre2DPoint &B, const Timbre2DPoint &C);
+float orientation(const Timbre2DPoint &A, const Timbre2DPoint &B, const Timbre2DPoint &C);
+float orientation(const TrianglePoints &points);
 
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                              const Timbre2DPoint& q,
                                              size_t startTri);
 
 std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α);
-
-struct TrianglePoints {
-    Timbre2DPoint p0, p1, p2;
-    size_t halfedge0, halfedge1, halfedge2;
-    static std::optional<TrianglePoints> create(const delaunator::Delaunator& d, size_t triangleIdx);
-};
 
 // TODO: use the following function to check if the point is even inside a triangle by checking it against the convex hull
 // TODO: and test it!

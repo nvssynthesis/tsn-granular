@@ -10,12 +10,14 @@
 
 #include "TimbreSpaceTriangulation.h"
 #include <set>
-#include <unordered_set>
+#include <fmt/core.h>
 #include <cassert>
+#include "StringHelpers.h"
+#include "../../slicer_granular/JUCE/modules/juce_core/system/juce_PlatformDefs.h"
 
 #ifndef DBG
 #include <iostream>
-#include "fmt/core.h"
+#include "StringHelpers.h"
 #define DBG(x) (std::cerr << x << std::endl, (void)0)
 #endif
 
@@ -73,16 +75,18 @@ void getUniqueEdges(const delaunator::Delaunator& d)
 	// Draw all unique edges
 	for (const auto& [idx1, idx2] : edges) {
 //		drawLine(idx1, idx2);
-		std::cout << idx1 << ", " << idx2 << "\n";
+		fmt::print("{}, {}\n", idx1 , idx2);
 	}
 }
 
+using Point2D = Timbre2DPoint;
+
 // Test if point p is inside triangle formed by vertices a, b, c
-bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& c) {
+bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const Point2D& c) {
     // Compute vectors
-    const Timbre2DPoint v0 = c - a;
-    const Timbre2DPoint v1 = b - a;
-    const Timbre2DPoint v2 = p - a;
+    const Point2D v0 = c - a;
+    const Point2D v1 = b - a;
+    const Point2D v2 = p - a;
 
     const double dot00 = v0.dot(v0);
     const double dot01 = v0.dot(v1);
@@ -99,55 +103,37 @@ bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbr
     return (u >= 0) && (v >= 0) && (u + v <= 1);
 }
 
-// barycentric method
-bool pointInTriangle2(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& c) {
-    constexpr float EPSILON = 1e-6;
-
-    auto sign = [](const Timbre2DPoint& p1, const Timbre2DPoint& p2, const Timbre2DPoint& p3) {
-        return (p1.x() - p3.x()) * (p2.y() - p3.y()) - (p2.x() - p3.x()) * (p1.y() - p3.y());
-    };
-
-    double d1 = sign(p, a, b);
-    double d2 = sign(p, b, c);
-    double d3 = sign(p, c, a);
-
-    bool has_neg = (d1 < -EPSILON) || (d2 < -EPSILON) || (d3 < -EPSILON);
-    bool has_pos = (d1 > EPSILON) || (d2 > EPSILON) || (d3 > EPSILON);
-
-    return !(has_neg && has_pos);
-}
-
-// Find triangle containing target point using Delaunator results
+// LINEAR search, this is what we're trying to discard
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
-                                              const Timbre2DPoint& target)
+                                              const Point2D& target)
 {
 
     // Iterate through all triangles
     for (size_t i = 0; i < d.triangles.size(); i += 3) {
-       // Get triangle vertex indices
-       size_t idx0 = d.triangles[i];
-       size_t idx1 = d.triangles[i + 1];
-       size_t idx2 = d.triangles[i + 2];
+        // Get triangle vertex indices
+        size_t idx0 = d.triangles[i];
+        size_t idx1 = d.triangles[i + 1];
+        size_t idx2 = d.triangles[i + 2];
 
-       // Get triangle vertex coordinates
-       Timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
-       Timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
-       Timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
+        // Get triangle vertex coordinates
+        Point2D a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
+        Point2D b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
+        Point2D c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
 
-       // Test if target is inside this triangle
-       if (pointInTriangle(target, a, b, c)) {
-          return std::array<size_t, 3>{idx0, idx1, idx2};
-       }
+        // Test if target is inside this triangle
+        if (pointInTriangle(target, a, b, c)) {
+            return std::array<size_t, 3>{idx0, idx1, idx2};
+        }
     }
 
     // No triangle contains the point
     return std::nullopt;
 }
 
-std::array<double, 3> computeDistanceWeights(const Timbre2DPoint& p,
-                                 const Timbre2DPoint& a,
-                                 const Timbre2DPoint& b,
-                                 const Timbre2DPoint& c)
+std::array<double, 3> computeDistanceWeights(const Point2D& p,
+                                 const Point2D& a,
+                                 const Point2D& b,
+                                 const Point2D& c)
 {
     double d0 = (p - a).norm() + 1e-10;
     double d1 = (p - b).norm() + 1e-10;
@@ -161,15 +147,15 @@ std::array<double, 3> computeDistanceWeights(const Timbre2DPoint& p,
     return {inv_d0 / sum, inv_d1 / sum, inv_d2 / sum};
 }
 // project point onto line segment ab
-Timbre2DPoint projectPointOntoSegment(const Timbre2DPoint& p,
-                                      const Timbre2DPoint& a,
-                                      const Timbre2DPoint& b) {
+Point2D projectPointOntoSegment(const Point2D& p,
+                                      const Point2D& a,
+                                      const Point2D& b) {
     assert(std::isfinite(a[0]) && std::isfinite(a[1]));
     assert(std::isfinite(b[0]) && std::isfinite(b[1]));
     assert(std::isfinite(p[0]) && std::isfinite(p[1]));
 
-    Timbre2DPoint ab = b - a;
-    Timbre2DPoint ap = p - a;
+    Point2D ab = b - a;
+    Point2D ap = p - a;
 
     double ab_squared = ab.dot(ab);
     if (ab_squared < 1e-10) return a; // degenerate segment
@@ -181,14 +167,14 @@ Timbre2DPoint projectPointOntoSegment(const Timbre2DPoint& p,
 }
 
 // find which edge is closest to p and project onto it
-Timbre2DPoint clampToTriangle(const Timbre2DPoint& p,
-                               const Timbre2DPoint& a,
-                               const Timbre2DPoint& b,
-                               const Timbre2DPoint& c) {
+Point2D clampToTriangle(const Point2D& p,
+                               const Point2D& a,
+                               const Point2D& b,
+                               const Point2D& c) {
     // project onto each edge
-    Timbre2DPoint proj_ab = projectPointOntoSegment(p, a, b);
-    Timbre2DPoint proj_bc = projectPointOntoSegment(p, b, c);
-    Timbre2DPoint proj_ca = projectPointOntoSegment(p, c, a);
+    Point2D proj_ab = projectPointOntoSegment(p, a, b);
+    Point2D proj_bc = projectPointOntoSegment(p, b, c);
+    Point2D proj_ca = projectPointOntoSegment(p, c, a);
 
     // closest projection
     double dist_ab = (p - proj_ab).norm();
@@ -201,14 +187,14 @@ Timbre2DPoint clampToTriangle(const Timbre2DPoint& p,
 }
 
 // compute barycentric coordinates for interpolation weights
-std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
-                                     const Timbre2DPoint& a,
-                                     const Timbre2DPoint& b,
-                                     const Timbre2DPoint& c) {
+std::array<double, 3> computeBarycentricWeights(const Point2D& p,
+                                     const Point2D& a,
+                                     const Point2D& b,
+                                     const Point2D& c) {
 
-    const Timbre2DPoint v0 = c - a;
-    const Timbre2DPoint v1 = b - a;
-    const Timbre2DPoint v2 = p - a;
+    const Point2D v0 = c - a;
+    const Point2D v1 = b - a;
+    const Point2D v2 = p - a;
 
     const double dot00 = v0.dot(v0);
     const double dot01 = v0.dot(v1);
@@ -229,12 +215,12 @@ std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
     const double w = 1.0 - u - v;
 
     if (w < 0 || v < 0 || u < 0) {
-        const Timbre2DPoint clamped = clampToTriangle(p, a, b, c);
+        const Point2D clamped = clampToTriangle(p, a, b, c);
 
         // recompute with clamped point
-        const Timbre2DPoint v0_c = c - a;
-        const Timbre2DPoint v1_c = b - a;
-        const Timbre2DPoint v2_c = clamped - a;
+        const Point2D v0_c = c - a;
+        const Point2D v1_c = b - a;
+        const Point2D v2_c = clamped - a;
 
         const double dot00_c = v0_c.dot(v0_c);
         const double dot01_c = v0_c.dot(v1_c);
@@ -263,16 +249,16 @@ std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
 // Usage example:
 /*
  Delaunator d(coordinates);
- Timbre2DPoint target(x, y);
+ Point2D target(x, y);
  
  auto triangleOpt = findContainingTriangle(d, target);
  if (triangleOpt) {
  auto [idx0, idx1, idx2] = *triangleOpt;
  
  // Get the actual triangle points
- Timbre2DPoint a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
- Timbre2DPoint b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
- Timbre2DPoint c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
+ Point2D a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
+ Point2D b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
+ Point2D c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
  
  // Compute interpolation weights
  auto weights = computeBarycentricWeights(target, a, b, c);
@@ -293,7 +279,7 @@ std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& targe
 	jassert (database.size() >= 3);
 
 	// Find triangle containing the target point
-	const Timbre2DPoint targetPoint = get2D(target);
+	const Point2D targetPoint = get2D(target);
 	const auto triangleOpt = findContainingTriangle(d, targetPoint);
 
 	if (!triangleOpt.has_value()) {
@@ -318,9 +304,9 @@ std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& targe
 	}
 
 	// Get the 2D points for barycentric calculation
-	const Timbre2DPoint p0 = get2D(database[idx0]);
-	const Timbre2DPoint p1 = get2D(database[idx1]);
-	const Timbre2DPoint p2 = get2D(database[idx2]);
+	const Point2D p0 = get2D(database[idx0]);
+	const Point2D p1 = get2D(database[idx1]);
+	const Point2D p2 = get2D(database[idx2]);
 
 	// Compute barycentric weights
 	const auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
@@ -347,23 +333,23 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 	// Find the nearest edge or vertex of the convex hull
 	// This is a simplified approach - you might want to be more sophisticated
 
-	Timbre2DPoint targetPoint = get2D(target);
+	Point2D targetPoint = get2D(target);
 	double minDistance = std::numeric_limits<double>::max();
 	std::array<size_t, 3> bestTriangle {0, 1, 2};
 
 	// Check all triangles and find the one with minimum distance to target
-    std::array<Timbre2DPoint, 3> bestPoints;
+    std::array<Point2D, 3> bestPoints;
 	for (size_t i = 0; i < d.triangles.size(); i += 3) {
 		const size_t idx0 = d.triangles[i];
 		const size_t idx1 = d.triangles[i + 1];
 		const size_t idx2 = d.triangles[i + 2];
 
-		Timbre2DPoint p0 = get2D(database[idx0]);
-		Timbre2DPoint p1 = get2D(database[idx1]);
-		Timbre2DPoint p2 = get2D(database[idx2]);
+		Point2D p0 = get2D(database[idx0]);
+		Point2D p1 = get2D(database[idx1]);
+		Point2D p2 = get2D(database[idx2]);
 
 		// Calculate centroid of triangle
-		Timbre2DPoint centroid = (p0 + p1 + p2) / 3.0;
+		Point2D centroid = (p0 + p1 + p2) / 3.0;
 
         if (const double distance = (targetPoint - centroid).squaredNorm();
             distance < minDistance)
@@ -457,68 +443,65 @@ bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triang
 size_t neighbor(const delaunator::Delaunator& d,
                 size_t triangle, size_t v1, size_t v2)
 {
-    // Find the halfedge in 'triangle' that goes from v1 to v2
     size_t baseIdx = triangle * 3;
 
     for (size_t i = 0; i < 3; ++i) {
         size_t halfedge = baseIdx + i;
-        size_t nextHalfedge = (i == 2) ? baseIdx : halfedge + 1;
+        size_t currVertex = d.triangles[halfedge];
+        size_t nextVertex = d.triangles[baseIdx + (i + 1) % 3];
 
-        // Check if this halfedge goes from v1 to v2
-        if (d.triangles[halfedge] == v1 && d.triangles[nextHalfedge] == v2) {
-            // Found the edge, get the opposite halfedge
+        // check if this edge connects v1 and v2 in either direction
+        if ((currVertex == v1 && nextVertex == v2) ||
+            (currVertex == v2 && nextVertex == v1)) {
+
             size_t oppositeHalfedge = d.halfedges[halfedge];
 
             if (oppositeHalfedge == delaunator::INVALID_INDEX) {
-                return SIZE_MAX; // Hull edge, no neighbor
+                return SIZE_MAX; // hull edge, no neighbor
             }
 
-            // Return the triangle index of the neighbor
             return oppositeHalfedge / 3;
-        }
+            }
     }
 
-    // Edge (v1, v2) not found in this triangle
-    return SIZE_MAX;
+    return SIZE_MAX; // edge not found
 }
 
-float cross(const Timbre2DPoint &A, const Timbre2DPoint &B) {
+float cross(const Point2D &A, const Point2D &B) {
     return A.x() * B.y() - A.y() * B.x();
 }
 
-Orientation_e orientation(const Timbre2DPoint &A, const Timbre2DPoint &B, const Timbre2DPoint &C) {
-    const auto crossProd = cross(B-A, C-A);
-    if (crossProd > 0){
-        return Orientation_e::CCW;
-    }
-    if (crossProd < 0) {
-        return Orientation_e::CW;
-    }
-    assert (crossProd == 0);
-    return Orientation_e::colinear;
+float orientation(const Point2D& A,
+                          const Point2D& B,
+                          const Point2D& C)
+{
+    const auto crossProd = cross(B - A, C - A);
+
+    return crossProd;
 }
-Orientation_e orientation(const TrianglePoints &points) {
+
+float orientation(const TrianglePoints &points) {
     return orientation(points.p0, points.p1, points.p2);
 }
 
-bool lexLess(const Timbre2DPoint& u, const Timbre2DPoint& v) {
+bool lexLess(const Point2D& u, const Point2D& v) {
     return (u.x() < v.x()) || (u.x() == v.x() && u.y() < v.y());
 }
 
-bool inHalfOpen(const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& p)
+bool inHalfOpen(const Point2D& a, const Point2D& b, const Point2D& p)
 
 {
-    const Timbre2DPoint& lo = lexLess(a,b) ? a : b;
-    const Timbre2DPoint& hi = lexLess(a,b) ? b : a;
+    const Point2D& lo = lexLess(a,b) ? a : b;
+    const Point2D& hi = lexLess(a,b) ? b : a;
 
     bool cond1 = !lexLess(p, lo);
     bool cond2 = lexLess(p, hi);
     return cond1 && cond2;
 }
 
-bool horizontalRayIntersectsEdge(const Timbre2DPoint& A,
-                                 const Timbre2DPoint& B,
-                                 const Timbre2DPoint& P)
+bool horizontalRayIntersectsEdge(const Point2D& A,
+                                 const Point2D& B,
+                                 const Point2D& P)
 {
     // Ignore horizontal edges
     if (A.y() == B.y())
@@ -540,17 +523,17 @@ bool horizontalRayIntersectsEdge(const Timbre2DPoint& A,
 bool pointOnOtherSide(const delaunator::Delaunator& d,
                       size_t triangle,
                       size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
-                      const Timbre2DPoint& q) {
+                      const Point2D& q) {
     const auto triPoints = TrianglePoints::create(d, triangle);
     assert(triPoints != std::nullopt);
 
     const auto edge = getEdgeVertices(d, triangle, edgeIdx);
     const auto innerVertex = getOppositeVertex(d, triangle, edgeIdx);
 
-    const Timbre2DPoint A = getPointFromVertex(d, edge.first);
-    const Timbre2DPoint B = getPointFromVertex(d, edge.second);
-    const Timbre2DPoint C = getPointFromVertex(d, innerVertex);
-    const Timbre2DPoint &P = q;
+    const Point2D A = getPointFromVertex(d, edge.first);
+    const Point2D B = getPointFromVertex(d, edge.second);
+    const Point2D C = getPointFromVertex(d, innerVertex);
+    const Point2D &P = q;
 
     const auto s1 = cross(B-A,P-A);
     const auto s2 = cross(B-A, C-A);
@@ -601,12 +584,13 @@ size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_
 }
 
 // Get vertex index from point (assumes point exactly matches a vertex in coords)
-size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point) {
+[[deprecated("uses linear search")]]
+size_t getVertexIndex(const delaunator::Delaunator& d, const Point2D& point) {
     const float EPSILON = 1e-6f;
 
     for (size_t i = 0; i < d.coords.size() / 2; ++i) {
-        float vx = static_cast<float>(d.coords[2 * i]);
-        float vy = static_cast<float>(d.coords[2 * i + 1]);
+        const float vx = static_cast<float>(d.coords[2 * i]);
+        const float vy = static_cast<float>(d.coords[2 * i + 1]);
 
         if (std::abs(vx - point.x()) < EPSILON && std::abs(vy - point.y()) < EPSILON) {
             return i;
@@ -615,8 +599,7 @@ size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& poin
     return SIZE_MAX;
 }
 
-// Get point from vertex index
-Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx) {
+Point2D getPointFromVertex(const delaunator::Delaunator& d, const size_t vertexIdx) {
     assert (vertexIdx < d.coords.size());
     return {
         static_cast<float>(d.coords[2 * vertexIdx + 0]),
@@ -643,39 +626,41 @@ size_t getOppositeVertex(const delaunator::Delaunator& d,
     size_t base = triangle * 3;
     return d.triangles[base + (edgeIdx + 2) % 3];
 }
-std::ostream &operator<<(std::ostream &out, const Timbre2DPoint &p)
-{
-    out << p.x() << "," << p.y();
-    return out;
-}
 
-template <typename T>
-std::string to_string_with_precision(const T a_value, const int n = 6)
-{
-    std::ostringstream out;
-    out.precision(n);
-    out << std::fixed << a_value;
-    return std::move(out).str();
-}
-
-std::string str(const Timbre2DPoint &p) {
-    return std::string("(") +
-        to_string_with_precision(p.x(), 2) +
-            std::string(", ") +
-                to_string_with_precision(p.y(), 2) +
-                    std::string(")");
-}
-std::string str(const TrianglePoints &tri) {
-    return std::string("(") +
-        str(tri.p0) + std::string(", ") +
-            str(tri.p1) + std::string(", ") +
-                str(tri.p2) +
-                    std::string(")");
-}
+class _Vertex {
+    // just used for keeping invariants together, NOT a general purpose vertex class!
+public:
+    _Vertex(const delaunator::Delaunator &d, const char *label) :   _d(d), _label(label) {}
+    void set(size_t idx) {
+        _id = idx;
+        _p = getPointFromVertex(_d, _id);
+        printPoint();
+    }
+    void set(const Point2D &p) {
+        _p = p;
+        printPoint();
+    }
+    [[nodiscard]] const Point2D &point() const {
+        return _p;
+    }
+    [[nodiscard]] size_t id() const {
+        return _id;
+    }
+    void printPoint() {
+        const auto s = fmt::format("{}_{}: {}\n", _label, _count++, str(_p));
+        fmt::print("{}", s);
+    };
+private:
+    size_t _id {SIZE_MAX};
+    size_t _count {0};
+    Point2D _p;
+    const delaunator::Delaunator &_d;
+    const char *_label;
+};
 
 // Remembering stochastic walk - refines the triangle location
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
-                                                 const Timbre2DPoint& p,
+                                                 const Point2D& p,
                                                  size_t startTri) {
     fmt::print("rememberingStochasticWalk called with:\n startTri={}\n target_p=({}, {})\n", startTri, p.x(), p.y());
     size_t t = startTri;
@@ -693,6 +678,7 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
             const auto currentTrianglePoints = TrianglePoints::create(d, currentTriangle);
             if (currentTrianglePoints == std::nullopt) {
                 fmt::print("\t\tcurrent triangle not valid... not sure what to do quite yet.\n");
+                jassertfalse;
             }
             else {
                 fmt::print("\t\tcurrent triangle points: {}\n", str(*currentTrianglePoints));
@@ -759,263 +745,192 @@ size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx
     return d.triangles[halfedgeIdx];
 }
 
-std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α)
-{
-    // FROM PAPER: "we assume that the vertices of the triangles are in a CCW order."
-    // THIS is NOT the case with Delaunator!!! need cw to ccw conversion?
-    auto τ = startTri_α;
-    auto lrsOpt = TrianglePoints::create(d, startTri_α);
-    assert(lrsOpt.has_value());
-    auto lIdx = getVertexFromHalfedge(d, lrsOpt->halfedge0); auto l = getPointFromVertex(d, lIdx); assert(l == lrsOpt->p0);
-    auto rIdx = getVertexFromHalfedge(d, lrsOpt->halfedge1); auto r = getPointFromVertex(d, rIdx); assert(r == lrsOpt->p1);
-    auto sIdx = getVertexFromHalfedge(d, lrsOpt->halfedge2); auto s = getPointFromVertex(d, sIdx); assert(s == lrsOpt->p2);
+std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Point2D &_p, const size_t startTri) {
+    // traverses the triangulation T, following the line segment from q to p.
 
-    const auto pIdx = sIdx; const auto p = s;
-    if (p == q) {
+    printTriangles(d);
+
+    _Vertex p(d, "p");
+    p.set(_p);
+
+    _Vertex q(d, "q");
+    _Vertex r(d, "r");
+    _Vertex l(d, "l");
+    _Vertex s(d, "s");
+
+    const auto qrlOpt = TrianglePoints::create(d, startTri);
+    assert(qrlOpt != std::nullopt);
+
+    auto t = startTri; printTriangleIdx(t);
+
+    q.set(getVertexFromHalfedge(d, qrlOpt->halfedge0));
+    r.set(getVertexFromHalfedge(d, qrlOpt->halfedge2));
+    l.set(getVertexFromHalfedge(d, qrlOpt->halfedge1));
+
+    if (p.point() == q.point() || p.point() == r.point() || p.point() == l.point()) {
+        return t;
+    }
+
+    auto neighborValidityCheck = [&d](size_t t, const _Vertex &l, const _Vertex &r) {
+        auto a = d.triangles[t*3 + 0];
+        auto b = d.triangles[t*3 + 1];
+        auto c = d.triangles[t*3 + 2];
+
+        bool l_in = (l.id() == a || l.id() == b || l.id() == c);
+        bool r_in = (r.id() == a || r.id() == b || r.id() == c);
+
+        assert(l_in && r_in);
+    };
+
+    if (orientation(r.point(), q.point(), p.point()) < 0) {
+        while (orientation(l.point(), q.point(), p.point()) < 0) {
+            r.set(l.id());
+            neighborValidityCheck(t, l, r);
+            t = neighbor(d, t, q.id(), l.id());
+            if (t == SIZE_MAX) {
+                return std::nullopt;
+            }
+            printTriangleIdx(t);
+            l.set(getThirdVertex(d, t, q.id(), r.id()));
+        }
+    }
+    else {
+        do {
+            l.set(r.id());
+            neighborValidityCheck(t, l, r);
+            t = neighbor(d, t, q.id(), r.id());
+            if (t == SIZE_MAX) {
+                return std::nullopt;
+            }
+            printTriangleIdx(t);
+            r.set(getThirdVertex(d, t, q.id(), l.id()));
+        } while (orientation(r.point(), q.point(), p.point()) > 0);
+    }
+    if (pointInTriangle(p.point(), q.point(), r.point(), l.point())) {
+        return t;
+    }
+    // end of initialization step.
+    assert(orientation(p.point(), r.point(), l.point()) <= 0 && "Initialization failed to bracket qp");
+    // now qp has r on its right and l on its left.
+    while (orientation(p.point(), r.point(), l.point()) < 0) {
+        neighborValidityCheck(t, l, r);
+        t = neighbor(d, t, r.id(), l.id());
+        if (t == SIZE_MAX) {
+            return std::nullopt;
+        }
+        printTriangleIdx(t);
+        s.set(getThirdVertex(d, t, r.id(), l.id()));
+        if (orientation(s.point(), q.point(), p.point()) < 0) {
+            r.set(s.id());
+            l.printPoint();
+        } else {
+            l.set(s.id());
+            r.printPoint();
+        }
+    }
+    return t;
+}
+[[deprecated("not working, just use straight walk")]]
+std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Point2D &_q, const size_t startTri_α)
+{
+    printTriangles(d);
+
+    _Vertex q(d, "q");
+    q.set(_q);
+
+    auto τ = startTri_α;
+    printTriangleIdx(τ);
+
+    const auto lrsOpt = TrianglePoints::create(d, startTri_α);
+    assert(lrsOpt.has_value());
+    // FROM PAPER: "we assume that the vertices of the triangles are in a CCW order."
+    // THIS is NOT the case with Delaunator!!! so we access vertices in reverse order
+    _Vertex l(d, "l"); l.set(getVertexFromHalfedge(d, lrsOpt->halfedge0));
+    _Vertex r(d, "r"); r.set(getVertexFromHalfedge(d, lrsOpt->halfedge2));
+    _Vertex s(d, "s"); s.set(getVertexFromHalfedge(d, lrsOpt->halfedge1));
+
+    _Vertex p(d, "p");
+    p.set(s.id());
+    printLine(p.point(), q.point());
+
+    if (p.point() == q.point()) {
         return τ; // already found
     }
 
-    const auto a = q - p;
+    const auto a = q.point() - p.point();
     // k = ||a||
-    const float kcos = a.x();
-    const float ksin = a.y();
-    Timbre2DPoint q_prime(
-      q.x() * kcos - q.y() * ksin,
-      q.x() * ksin + q.y() * kcos
+    const float k = a.norm();
+    const float kcos = a.x() / k;
+    const float ksin = a.y() / k;
+    Point2D q_prime(
+      q.point().x() * kcos - q.point().y() * ksin,
+      q.point().x() * ksin + q.point().y() * kcos
     );
-    double r_prime_y = r.x() * ksin + r.y() * kcos;
-    if (r_prime_y > q_prime.y()) {
+
+    if (double r_prime_y = r.point().x() * ksin + r.point().y() * kcos;
+        r_prime_y > q_prime.y())
+    {
       // r is above line pq
-      double l_prime_y = l.x() * ksin + l.y() * kcos;
+      double l_prime_y = l.point().x() * ksin + l.point().y() * kcos;
       while (l_prime_y > q_prime.y()) { // IN PAPER this MIIIGHT be a do while loop instead...
-        τ = neighbor(d, τ, pIdx, lIdx); // τ = neighbor of τ trough ε_pl;
-        r = l; rIdx = lIdx;
-        lIdx = getThirdVertex(d, τ, pIdx, rIdx); l = getPointFromVertex(d, lIdx);
-        l_prime_y = l.x() * ksin + l.y() * kcos;
+        assert(orientation(p.point(), r.point(), l.point()) <= 0);
+        τ = neighbor(d, τ, p.id(), l.id());
+        if (τ == SIZE_MAX) {
+          return std::nullopt;
+        }
+        printTriangleIdx(τ);
+        r.set(l.id());
+        l.set(getThirdVertex(d, τ, p.id(), r.id()));
+        l_prime_y = l.point().x() * ksin + l.point().y() * kcos;
       }
-      sIdx = lIdx; s = l;
-      lIdx = rIdx; l = r;
-      rIdx = pIdx; r = p;
+      s.set(l.id());
+      l.set(r.id());
+      r.set(p.id());
     }
     else {
       // r is below line pq
-      do { // from paper: "repeat: "
-        τ = neighbor(d, τ, pIdx, rIdx); // τ = neighbor of τ trough ε_pr;
-        l = r; lIdx = rIdx;
-        rIdx = getThirdVertex(d, τ, pIdx, lIdx); r = getPointFromVertex(d, rIdx);
-        r_prime_y = r.x() * ksin + r.y() * kcos;
-      } while (r_prime_y <= q_prime.y()); // until r′_y > q′_y;
-      sIdx = rIdx; s = r;
-      rIdx = lIdx; r = l;
-      lIdx = pIdx; l = p;
+      while (true) {
+          assert(orientation(p.point(), r.point(), l.point()) <= 0);
+          // from paper: "repeat: "
+          τ = neighbor(d, τ, p.id(), r.id()); // τ = neighbor of τ trough ε_pr;
+          if (τ == SIZE_MAX) {
+              return std::nullopt;
+          }
+          printTriangleIdx(τ);
+          l.set(r.id());
+          r.set(getThirdVertex(d, τ, p.id(), l.id()));
+          r_prime_y = r.point().x() * ksin + r.point().y() * kcos;
+          if (r_prime_y > q_prime.y()) { break; }
+      }
+      s.set(r.id());
+      r.set(l.id());
+      l.set(p.id());
     }
     // now line pq intersects τ
     // walk step - following the line segment pq
-    Timbre2DPoint s_prime(
-      s.x() * kcos - s.y() * ksin,
-      std::numeric_limits<double>::quiet_NaN() // unassigned yet
+    Point2D s_prime(
+      s.point().x() * kcos - s.point().y() * ksin,
+      std::numeric_limits<float>::quiet_NaN() // unassigned yet
     );
     while (s_prime.x() < q_prime.x()) {
-      s_prime.y() = s.x() * ksin + s.y() * kcos;
+      s_prime.y() = s.point().x() * ksin + s.point().y() * kcos;
       if (s_prime.y() < q_prime.y()){
-        rIdx = sIdx; // only used for getting third vertex; no need to update actual point, just index
+        r.set(s.id()); // only used for getting third vertex; no need to update actual point, just index
       } else {
-        lIdx = sIdx; // only used for getting third vertex; no need to update actual point, just index
+        l.set(s.id()); // only used for getting third vertex; no need to update actual point, just index
       }
-      τ = neighbor(d, τ, lIdx, rIdx); // τ = neighbor of τ trough ε_pr;
-      sIdx = getThirdVertex(d, τ, rIdx, lIdx); s = getPointFromVertex(d, sIdx);
-      s_prime.x() = s.x() * kcos - s.y() * ksin;
-    }
-
-    return rememberingStochasticWalk(d, q, startTri_α);
-}
-
-[[deprecated]]
-#pragma message("hybridWalk_old: remove me")
-std::optional<size_t> hybridWalk_old(const delaunator::Delaunator& d,
-                                 size_t startTriIdx,
-                                 const Timbre2DPoint& q) {
-    const float EPSILON = 1e-6f;
-
-    // Get starting triangle vertices
-    size_t t0 = startTriIdx * 3;
-    size_t v0 = d.triangles[t0];
-    size_t v1 = d.triangles[t0 + 1];
-    size_t v2 = d.triangles[t0 + 2];
-
-    // Early exit if q is at any vertex of starting triangle
-    Timbre2DPoint p0 = getPointFromVertex(d, v0);
-    Timbre2DPoint p1 = getPointFromVertex(d, v1);
-    Timbre2DPoint p2 = getPointFromVertex(d, v2);
-
-    if ((std::abs(p0.x() - q.x()) < EPSILON && std::abs(p0.y() - q.y()) < EPSILON) ||
-        (std::abs(p1.x() - q.x()) < EPSILON && std::abs(p1.y() - q.y()) < EPSILON) ||
-        (std::abs(p2.x() - q.x()) < EPSILON && std::abs(p2.y() - q.y()) < EPSILON))
-    {
-        return startTriIdx;
-    }
-
-    // Choose p as first vertex
-    size_t vp = v0;
-    size_t vr = v1;
-    size_t vl = v2;
-    Timbre2DPoint p = p0;
-
-    // Compute transformation: vector a = q - p
-    float ax = q.x() - p.x();
-    float ay = q.y() - p.y();
-    float kcos = ax;
-    float ksin = ay;
-
-    // Transform q
-    float qprime_x = q.x() * kcos - q.y() * ksin;
-    float qprime_y = q.x() * ksin + q.y() * kcos;
-
-    std::cout << "p: " << p << std::endl <<
-        " q: " << q << std::endl <<
-            " kcos: " << kcos << std::endl <<
-                " ksin: " << ksin << std::endl <<
-                    " qprime_x: " << qprime_x  << std::endl <<
-                        " qprime_y: " << qprime_y << std::endl;
-
-    // Current triangle
-    size_t currentTri = startTriIdx;
-
-    // === INITIALIZATION: Find triangle intersected by pq ===
-
-    Timbre2DPoint r = getPointFromVertex(d, vr);
-    float rprime_y = r.x() * ksin + r.y() * kcos;
-
-    // Case 1: r is above the line pq
-    if (rprime_y > qprime_y) {
-        Timbre2DPoint l = getPointFromVertex(d, vl);
-        float lprime_y = l.x() * ksin + l.y() * kcos;
-
-        while (lprime_y > qprime_y - EPSILON) {
-            // Cross edge from p to l
-            size_t edge_pl = findHalfedge(d, currentTri, vp, vl);
-            if (edge_pl == SIZE_MAX || d.halfedges[edge_pl] == delaunator::INVALID_INDEX) {
-                std::cout << "Returning nullopt: hit boundary in case 1 creation of edge_pl" << std::endl;
-                return std::nullopt; // Hit boundary
-            }
-
-            size_t oppositeEdge = d.halfedges[edge_pl];
-            currentTri = oppositeEdge / 3;
-
-            vr = vl;
-            vl = getThirdVertex(d, currentTri, vp, vr);
-            if (vl == SIZE_MAX) {
-                std::cout << "Returning nullopt: vl == SIZE_MAX in case 1\n";
-                return std::nullopt;
-            }
-            l = getPointFromVertex(d, vl);
-            lprime_y = l.x() * ksin + l.y() * kcos;
-        }
-
-        // Update s, l, r for walk step
-        size_t vs = vl;
-        vl = vr;
-        vr = vp;
-
-    } else {
-        // Case 2: r is below the line pq
-        std::unordered_set<size_t> visitedInInit;
-        const size_t MAX_INIT_ITERATIONS = d.triangles.size();
-        size_t iterations = 0;
-
-        do {
-            if (visitedInInit.contains(currentTri) || iterations++ > MAX_INIT_ITERATIONS) {
-                // We're cycling or stuck - break and proceed to walk step
-                break;
-            }
-            visitedInInit.insert(currentTri);
-
-            // Cross edge from p to r
-            size_t edge_pr = findHalfedge(d, currentTri, vp, vr);
-            if (edge_pr == SIZE_MAX || d.halfedges[edge_pr] == delaunator::INVALID_INDEX) {
-                std::cout << "Returning nullopt: edge_pr == SIZE_MAX || d.halfedges[edge_pr] == delaunator::INVALID_INDEX in case 2\n";
-                return std::nullopt; // Hit boundary
-            }
-
-            size_t oppositeEdge = d.halfedges[edge_pr];
-            currentTri = oppositeEdge / 3;
-
-            vl = vr;
-            vr = getThirdVertex(d, currentTri, vp, vl);
-            if (vr == SIZE_MAX) {
-                std::cout << "Returning nullopt: vr == SIZE_MAX in case 2\n";
-                return std::nullopt;
-            }
-
-            r = getPointFromVertex(d, vr);
-            rprime_y = r.x() * ksin + r.y() * kcos;
-
-        } while (rprime_y <= qprime_y + EPSILON);
-
-        // Update s, l, r for walk step
-        size_t vs = vr;
-        vr = vl;
-        vl = vp;
-    }
-    // At this point, pq intersects currentTri
-
-    std::cout << "After initialization, before walk: currentTri=" << currentTri << std::endl;
-    auto debugTri = TrianglePoints::create(d, currentTri);
-    assert (debugTri != std::nullopt);
-    std::cout << "  Triangle vertices: "
-              << debugTri->p0.x() << "," << debugTri->p0.y() << " | "
-              << debugTri->p1.x() << "," << debugTri->p1.y() << " | "
-              << debugTri->p2.x() << "," << debugTri->p2.y() << std::endl;
-    std::cout << "  vl=" << vl << " vr=" << vr << std::endl;
-
-
-    // === WALK STEP: Follow line segment pq ===
-
-    size_t vs = getThirdVertex(d, currentTri, vl, vr);
-    if (vs == SIZE_MAX) {
-        std::cout << "Returning nullopt: vs == SIZE_MAX in WALK STEP\n";
+      τ = neighbor(d, τ, l.id(), r.id()); // τ = neighbor of τ trough ε_pr;
+      if (τ == SIZE_MAX) {
         return std::nullopt;
+      }
+      printTriangleIdx(τ);
+      s.set(getThirdVertex(d, τ, r.id(), l.id()));
+      s_prime.x() = s.point().x() * kcos - s.point().y() * ksin;
     }
-
-    Timbre2DPoint s = getPointFromVertex(d, vs);
-    float sprime_x = s.x() * kcos - s.y() * ksin;
-
-    while (sprime_x < qprime_x) {
-        std::cout << "Walk step: sprime_x=" << sprime_x << " qprime_x=" << qprime_x << std::endl;
-
-        float sprime_y = s.x() * ksin + s.y() * kcos;
-
-        size_t edge_lr;
-        if (sprime_y < qprime_y) {
-            vr = vs;
-            edge_lr = findHalfedge(d, currentTri, vl, vr);
-        } else {
-            vl = vs;
-            edge_lr = findHalfedge(d, currentTri, vl, vr);
-        }
-
-        std::cout << "Attempting to cross edge_lr=" << edge_lr << std::endl;
-
-        if (edge_lr == SIZE_MAX || d.halfedges[edge_lr] == delaunator::INVALID_INDEX) {
-            std::cout << "Returning nullopt: in sprime_x < qprime_x while loop, hit boundary! edge_lr == SIZE_MAX || d.halfedges[edge_lr] == delaunator::INVALID_INDEX" << std::endl;
-            return std::nullopt;
-        }
-
-        size_t oppositeEdge = d.halfedges[edge_lr];
-        currentTri = oppositeEdge / 3;
-
-        vs = getThirdVertex(d, currentTri, vl, vr);
-        if (vs == SIZE_MAX) {
-            std::cout << "Returning nullopt: in sprime_x < qprime_x while loop,vs == SIZE_MAX" << std::endl;
-            return std::nullopt;
-        }
-
-        s = getPointFromVertex(d, vs);
-        sprime_x = s.x() * kcos - s.y() * ksin;
-    }
-
-    std::cout << "After initialization, before walk: currentTri=" << currentTri << std::endl;
-    return rememberingStochasticWalk(d, q, currentTri);
+#ifdef DISABLE_STOCHASTIC_REFINEMENT
+     return τ;
+#endif
+    return rememberingStochasticWalk(d, q.point(), τ);
 }
 //=============================================================================================================================
 #if 0
@@ -1113,7 +1028,7 @@ std::vector<WeightedIdx> findPointsDistanceBased(
           auto const& p = database.getReference(i);
 
           // Extract 2D portions and compute difference
-          Timbre2DPoint diff2D = get2D(p) - get2D(target);
+          Point2D diff2D = get2D(p) - get2D(target);
 
           // Extract 3D portions and compute difference
           Timbre3DPoint diff3D = get3D(p) - get3D(target);
