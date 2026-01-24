@@ -227,6 +227,15 @@ set_target_properties(essentia_built PROPERTIES
 )
 add_dependencies(essentia_built essentia_external)
 
+# check if library exists at configure time and warn user
+if(NOT EXISTS "${ESSENTIA_LIBRARY}")
+    message(WARNING
+            "Essentia library not found at: ${ESSENTIA_LIBRARY}\n"
+            "If build fails, run: cmake --build . --target essentia_external\n"
+            "Then build again."
+    )
+endif()
+
 # Handle JUCE setup with fallback logic
 if(JUCE_DIR)
     # User specified their own JUCE path
