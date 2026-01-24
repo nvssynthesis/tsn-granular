@@ -19,6 +19,7 @@ TimbreSpacePointSelector::TimbreSpacePointSelector(juce::AudioProcessorValueTree
 
 }
 TimbreSpacePointSelector::~TimbreSpacePointSelector() {
+    _apvts.state.removeListener(this);
     _timbreSpace.removeActionListener(this);
 }
 

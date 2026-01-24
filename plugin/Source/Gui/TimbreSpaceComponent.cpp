@@ -112,7 +112,10 @@ TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
         showAnalysisSaveDialog();
     }
 }
-
+TimbreSpaceComponent::~TimbreSpaceComponent() {
+    auto &ts = _proc->getTimbreSpace();
+    ts.removeActionListener(this);
+}
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
     _proc->getTimbreSpace().setSavePending(false);
 	const auto callback = new Callback(*this);

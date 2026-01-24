@@ -94,6 +94,10 @@ TsnGranularAudioProcessorEditor::~TsnGranularAudioProcessorEditor()
 	a.removeChangeListener(&timbreSpaceComponent);
 	a.removeChangeListener(this);
     jassert (waveformComponent != nullptr);
+    if (const auto x = dynamic_cast<juce::ActionListener*>(waveformComponent.get())) {
+        auto &ts = TSNaudioProcessor.getTimbreSpace();
+        ts.removeActionListener(x);
+    }
     a.removeChangeListener(waveformComponent.get());
 }
 //==============================================================================
