@@ -57,13 +57,7 @@ void TimbreSpacePointSelector::reserveWrappedPoints() {
     _wrappedPoints.clear();
     _wrappedPoints.reserve(_featurewiseRankIndices[_filteredFeature].size());
 }
-void TimbreSpacePointSelector::rebuildActivePoints() {
-    // assumes we already have wrappedPoints and _activePointsPending built
-    _activePointsPending.clear();
-    for (const size_t idx : _activeIndicesPending) {
-        _activePointsPending.push_back(_wrappedPoints[idx].point);
-    }
-}
+
 void TimbreSpacePointSelector::updateGlobalFilter() {
     const auto &rawPoints = _timbreSpace.getTimbreSpacePoints();
 
@@ -92,44 +86,74 @@ void TimbreSpacePointSelector::updateGlobalFilter() {
         _wrappedPoints.push_back({rawPoint, active});
     }
 
-    _activeIndicesPending.clear();
-    for (size_t i = 0; i < _wrappedPoints.size(); ++i) {
-        if (_wrappedPoints[i].active) {
-            _activeIndicesPending.push_back(i);
+    {
+        auto snapshot = std::make_shared<TriangulationSnapshot>();
+
+    // rebuildActivePoints
+        auto &activeIndices = snapshot->_activeIndices;
+        for (size_t i = 0; i < _wrappedPoints.size(); ++i) {
+            if (_wrappedPoints[i].active) {
+                activeIndices.push_back(i);
+            }
         }
+        auto &activePoints = snapshot->_activePoints;
+        // assumes we already have wrappedPoints and _activePointsPending built
+        for (const size_t idx : activeIndices) {
+            activePoints.push_back(_wrappedPoints[idx].point);
+        }
+
+    // computeDelaunay
+        if (activePoints.empty()) {
+            DBG("TimbreSpacePointSelector::triangulatePoints timbres5D empty; returning\n");
+            return;
+        }
+        const auto coords2D = make2dCoordinates(activePoints);
+        try {
+            snapshot->_delaunator = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
+        }
+        catch (std::exception &e) {
+            DBG(e.what());
+            return;
+        }
+        catch (...) {
+            return;
+        }
+        std::atomic_store_explicit(&_triangulationSnapshotPending, snapshot, std::memory_order_release); // memory_order_release indicating: done writing, publish it
     }
-    rebuildActivePoints();
-    computeDelaunay();
 }
 void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoint &target) {
     _target = target;
 
     swapIfPending();
-    if (_delaunator == nullptr) {
+    auto currentSnapshot = _triangulationSnapshotCurrent;
+    if (currentSnapshot == nullptr) {
         return;
     }
-
+    if (currentSnapshot->_delaunator == nullptr) {
+        return;
+    }
     std::vector<WeightedIdx> weightedIndices =
         findPointsTriangulationBased(
             _target,
-            _activePoints,
-            *_delaunator,
+            currentSnapshot->_activePoints,
+            *currentSnapshot->_delaunator,
             &_lastTriangleIndex
         );
     jassert(weightedIndices.size() == 3);
 
     for (auto const &widx : weightedIndices) {
         jassert(0 <= widx.idx);
-        jassert((widx.idx < _activePoints.size()));
+        jassert((widx.idx < currentSnapshot->_activePoints.size()));
     }
 
     for (size_t i = 0; i < weightedIndices.size(); ++i) {
-        jassert(weightedIndices[i].idx < _activeIndices.size());
+        jassert(weightedIndices[i].idx < currentSnapshot->_activeIndices.size());
 
-        weightedIndices[i].idx = _activeIndices[weightedIndices[i].idx];
+        weightedIndices[i].idx = currentSnapshot->_activeIndices[weightedIndices[i].idx];
         _currentPointIndices[i] = weightedIndices[i];
     }
 }
+
 std::vector<WrappedPoint5D> const &TimbreSpacePointSelector::getTimbreSpacePoints() const {
     return _wrappedPoints;
 }
@@ -158,34 +182,14 @@ void TimbreSpacePointSelector::updateRanksForFilteredFeature() {
 
     _featurewiseRankIndices[_filteredFeature] = computeRanks(vals);
 }
-
-
-void TimbreSpacePointSelector::computeDelaunay() {
-    DBG("TimbreSpacePointSelector::triangulatePoints computing _delaunator & storing _pendingUpdate flag\n");
-    if (_activePointsPending.empty()) {
-        DBG("TimbreSpacePointSelector::triangulatePoints timbres5D empty; returning\n");
-        return;
-    }
-    const auto coords2D = make2dCoordinates(_activePointsPending);
-    try {
-        _delaunatorPending = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
-    }
-    catch (std::exception &e) {
-        DBG(e.what());
-        return;
-    }
-    catch (...) {
-        return;
-    }
-    _pendingUpdate.store(true, std::memory_order_release);
-}
 void TimbreSpacePointSelector::swapIfPending() {
-    if (_pendingUpdate.exchange(false, std::memory_order_acq_rel))
+    auto pending = std::atomic_exchange_explicit(&_triangulationSnapshotPending,    // get value
+        std::shared_ptr<TriangulationSnapshot>(),                                 // AND clear pending slot (default ctor is nullptr)
+        std::memory_order_acq_rel);                                     // acq_rel: "acquire the new data" + "release the nullptr write"
+    if (pending)
     {
         DBG("TimbreSpacePointSelector::swapIfPending exchanging delaunator and active points\n");
-        _activeIndices = std::move(_activeIndicesPending);
-        _activePoints = std::move(_activePointsPending);
-        _delaunator = std::move(_delaunatorPending);
+        _triangulationSnapshotCurrent = pending;
     }
 }
 

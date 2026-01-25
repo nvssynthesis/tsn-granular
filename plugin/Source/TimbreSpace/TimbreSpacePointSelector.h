@@ -35,13 +35,16 @@ private:
     std::vector<WeightedIdx> _currentPointIndices {{},{},{}};
 
     std::vector<WrappedPoint5D> _wrappedPoints {};
-    std::vector<size_t> _activeIndices {};
-    std::vector<size_t> _activeIndicesPending {};
-    std::vector<Timbre5DPoint> _activePoints {}; // Reusable buffer THIS needs to ALSO BE SYNCHRONIZED with atomic pendingUpdate
-    std::vector<Timbre5DPoint> _activePointsPending {};
+
+    struct TriangulationSnapshot {
+        std::unique_ptr<delaunator::Delaunator> _delaunator { nullptr };
+        std::vector<Timbre5DPoint> _activePoints {};
+        std::vector<size_t> _activeIndices {};
+    };
+    std::shared_ptr<TriangulationSnapshot> _triangulationSnapshotCurrent;
+    std::shared_ptr<TriangulationSnapshot> _triangulationSnapshotPending;   // we want to use atomic<shared_ptr>, but not all compilers support it
 
     void reserveWrappedPoints();
-
     void rebuildActivePoints();
 
     nvs::analysis::Feature_e _filteredFeature {nvs::analysis::Feature_e::SpectralFlatness};
@@ -54,10 +57,6 @@ private:
     void computeDelaunay();
 
     void swapIfPending();
-
-    std::unique_ptr<delaunator::Delaunator> _delaunator;
-    std::unique_ptr<delaunator::Delaunator> _delaunatorPending;
-    std::atomic<bool> _pendingUpdate { false };
 
     void actionListenerCallback(const String &message) override;
 };
