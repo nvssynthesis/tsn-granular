@@ -3,6 +3,10 @@
 #include "TimbreSpaceTriangulation.h"
 #include "TrianglePoints.h"
 
+#ifndef WALK_STRING_DEBUGGING
+#define WALK_STRING_DEBUGGING 0
+#endif
+
 namespace nvs::timbrespace {
 
 // some of these may seem a bit pointless, but they help with the use of an external script that can parse and then

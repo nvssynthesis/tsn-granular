@@ -22,8 +22,6 @@ namespace nvs::timbrespace {
 
 std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points);
 
-void getUniqueEdges(const delaunator::Delaunator& d);
-
 bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbre2DPoint& b, const Timbre2DPoint& c) ;
 
 // Find triangle containing target point using Delaunator results
@@ -93,7 +91,7 @@ float orientation(const TrianglePoints &points);
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                              const Timbre2DPoint& q,
                                              size_t startTri);
-
+std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Timbre2DPoint &_p, size_t startTri);
 std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α);
 
 // TODO: use the following function to check if the point is even inside a triangle by checking it against the convex hull

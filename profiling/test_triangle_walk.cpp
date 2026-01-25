@@ -2,23 +2,51 @@
 // Created by Nicholas Solem on 1/17/26.
 //
 
-// #include "TimbreSpace/TimbrePointTypes.h"
-// #include "TimbreSpace/TimbreSpaceTriangulation.h"
-
 #include <cassert>
 #include <iostream>
 #include <vector>
 #include <set>
 #include <unordered_set>
 #include <cmath>
+#include <fmt/core.h>
 #include "delaunator.hpp"
 #include "TimbreSpace/TimbrePointTypes.h"
 #include "TimbreSpace/TimbreSpaceTriangulation.h"
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "catch2/catch_template_test_macros.hpp"
 
 using namespace nvs::timbrespace;
 using Point2D = Timbre2DPoint;
+
+struct StraightWalk {
+    static std::optional<size_t> walk(
+        const delaunator::Delaunator& d,
+        const Point2D& p,
+        size_t t)
+    {
+        return straightWalk(d, p, t);
+    }
+};
+
+struct HybridWalk {
+    static std::optional<size_t> walk(
+        const delaunator::Delaunator& d,
+        const Point2D& p,
+        size_t t)
+    {
+        return hybridWalk(d, p, t);
+    }
+};
+
+TEMPLATE_TEST_CASE(
+    "templating sanity check",
+    "[templating]",
+    StraightWalk,
+    HybridWalk)
+{
+    REQUIRE(true);
+}
 
 delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
     std::vector<double> coords;
@@ -27,7 +55,228 @@ delaunator::Delaunator buildDelaunator(const std::vector<Point2D>& points) {
         coords.push_back(p.x());
         coords.push_back(p.y());
     }
-    return delaunator::Delaunator(coords);
+
+    return delaunator::Delaunator(coords);}
+
+struct Test1Retval {
+    size_t startTri;
+    std::optional<size_t> result;
+    Point2D targetPoint;
+    TrianglePoints triPoints;
+};
+
+template <typename WalkFn>
+Test1Retval test1(const std::vector<Point2D>& points,
+                  const Point2D& q,
+                  size_t startTri,
+                  WalkFn walk)
+{
+    const auto d = buildDelaunator(points);
+
+    auto result = walk(d, q, startTri);
+
+    Test1Retval rv;
+    rv.startTri = startTri;
+    rv.result = result;
+
+    if (result) {
+        rv.triPoints = *TrianglePoints::create(d, *result);
+    }
+
+    rv.targetPoint = q;
+    return rv;
+}
+
+
+TEMPLATE_TEST_CASE("walk grid tests", "[walk]", StraightWalk, HybridWalk) {
+    {
+        // 3x3 grid
+        std::vector<Point2D> gridPoints;
+        for (int y = 0; y < 3; ++y) {
+            for (int x = 0; x < 3; ++x) {
+                gridPoints.emplace_back(static_cast<float>(x), static_cast<float>(y));
+            }
+        }
+        auto d = buildDelaunator(gridPoints);
+
+        SECTION("point at vertex - early exit") {
+            fmt::print("point at vertex - early exit\n");
+            // Point at vertex 0 (0,0), starting from triangle containing it
+            Point2D atVertex(0.0f, 0.0f);
+
+            // Find a triangle containing vertex 0
+            size_t startTri = 0;
+            for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
+                size_t t0 = tri * 3;
+                if (d.triangles[t0] == 0 || d.triangles[t0 + 1] == 0 || d.triangles[t0 + 2] == 0) {
+                    startTri = tri;
+                    break;
+                }
+            }
+
+            auto result = TestType::walk(d, atVertex, startTri);
+            REQUIRE(result.has_value());
+            REQUIRE(result.value() == startTri);
+
+            Point2D inFirstTriangle = {0.12, 0.1};
+            result = TestType::walk(d, inFirstTriangle, startTri);
+            REQUIRE(result.has_value());
+            REQUIRE(result.value() == startTri);
+        }
+        SECTION("point in center of grid") {
+            // Point (1,1) is at center, should work from any starting triangle
+            Point2D center(1.0f, 1.0f);
+
+            auto result = TestType::walk(d, center, 0);
+            REQUIRE(result.has_value());
+
+            // Verify the result triangle contains the point
+            auto tri = TrianglePoints::create(d, *result);
+            REQUIRE(pointInTriangle(center, tri->p0, tri->p1, tri->p2));
+        }
+    }
+}
+TEMPLATE_TEST_CASE("walk basic tests", "[walk]", StraightWalk, HybridWalk) {
+    /*
+     NOTE: for the current testing, we have add_compile_definitions(DISABLE_STOCHASTIC_REFINEMENT) in CMakeLists.txt.
+     This makes hybridWalk SKIP the last step of invoking stochasticRememberingWalk for the last fine tuning.
+     If we were to INCLUDE this fine tuning during testing, it would just pass all the tests unfairly, because
+     stochasticRememberingWalk DOES work.
+
+     In other words, when including that last step but still having the core hybridWalk algorithm not working, it falls
+     back to stochasticRememberingWalk, having it act not as the last fine tuning but an entire replacing algorithm,
+     which is not good for testing purposes.
+     */
+    {
+        auto makeTestString = [](size_t testIdx) {
+            return "Test " + std::to_string(testIdx++);
+        };
+        auto makeTestMarker = [](size_t testIdx) {
+            return fmt::format("{}{}{}", "========== Test ", testIdx, " ===========\n");
+        };
+
+
+        std::vector<Point2D> points {
+            // {-0.5, 1.0},
+                    {-0.0, 0.0},
+                    {0.5, 1.0},
+                    {1.0, -0.23},
+        };
+        Point2D target = {0.75, 0.33};
+
+        SECTION(makeTestString(0)) {
+            fmt::print("{}", makeTestMarker(0));
+
+            const auto rv = test1(points, target, 0, TestType::walk);
+            REQUIRE(rv.result.has_value());
+            REQUIRE(pointInTriangle(rv.targetPoint, rv.triPoints.p0, rv.triPoints.p1, rv.triPoints.p2));
+        }
+
+        SECTION(makeTestMarker(1)) {
+            fmt::print("{}", makeTestMarker(1));
+
+            points.emplace_back(1.5, 1.0);
+            points.emplace_back(2.0, 0.0);
+            points.emplace_back(2.5, 1.0);
+            points.emplace_back(-0.5, 1.5);
+            points.emplace_back(1.5, -1.0);
+
+            target = {1.6, -0.33};
+
+            const auto rv = test1(points, target, 2, TestType::walk);
+            REQUIRE(rv.result.has_value());
+            REQUIRE(pointInTriangle(rv.targetPoint, rv.triPoints.p0, rv.triPoints.p1, rv.triPoints.p2));
+        }
+
+        points.emplace_back(1.5, 1.6);
+        points.emplace_back(0.5, -1.2);
+        points.emplace_back(2.5, -0.9);
+        points.emplace_back(-0.25, -1.7);
+        points.emplace_back(3.5, -0.6);
+        points.emplace_back(3.1, -1.6);
+        points.emplace_back(-2.1, -1.3);
+
+        SECTION(makeTestMarker(2)) {
+            fmt::print("{}", makeTestMarker(2));
+
+
+
+            target = {2.9, -1.3};
+
+            const auto rv = test1(points, target, 8, TestType::walk);
+            REQUIRE(rv.result.has_value());
+            REQUIRE(pointInTriangle(rv.targetPoint, rv.triPoints.p0, rv.triPoints.p1, rv.triPoints.p2));
+        }
+        SECTION(makeTestMarker(3)) {
+            fmt::print("{}", makeTestMarker(3));
+            target = {-0.5, -1.5};
+
+            auto rv = test1(points, target, 8, TestType::walk);
+            REQUIRE(rv.result.has_value());
+            REQUIRE(pointInTriangle(rv.targetPoint, rv.triPoints.p0, rv.triPoints.p1, rv.triPoints.p2));
+            rv = test1(points, target, 9, TestType::walk);
+            REQUIRE(rv.result.has_value());
+            REQUIRE(pointInTriangle(rv.targetPoint, rv.triPoints.p0, rv.triPoints.p1, rv.triPoints.p2));
+        }
+    }
+}
+
+TEMPLATE_TEST_CASE("walk more tests", "[walk]", StraightWalk, HybridWalk) {
+    {
+        SECTION("a bunch of random points") {
+            std::vector<Point2D> largePoints;
+            // srand(403);
+            auto randVal = [] () {
+                return ((static_cast<float>(rand()) / RAND_MAX) * 2.f - 1.f) * 2.0f;
+            };
+            for (int i = 0; i < 80; ++i) {
+                float x = randVal() * 2.f;
+                float y = randVal() * 2.f;
+                largePoints.emplace_back(x, y);
+            }
+            auto d = buildDelaunator(largePoints);
+
+            for (size_t tri = 0; tri < d.triangles.size(); ++tri) {
+                DYNAMIC_SECTION("Triangle " << tri)
+                {
+                    size_t startTri = rand() % (d.triangles.size() / 3);
+
+                    const auto target = Point2D(randVal(),
+                                                randVal());
+                    const auto result = TestType::walk(d, target, startTri);
+                    REQUIRE(result.has_value());
+                    const auto triPoints = TrianglePoints::create(d, *result);
+                    REQUIRE(pointInTriangle(target, triPoints->p0, triPoints->p1, triPoints->p2));
+                }
+            }
+        }
+
+        // SECTION("point slightly off-center - EXPECTED TO FAIL without stochastic walk") {
+        //     // This point is NOT on a vertex or edge, so it needs the final
+        //     // remembering_stochastic_walk to converge properly
+        //     Point2D offCenter(1.3f, 1.3f);
+        //
+        //     auto result = TestType::walk(d, 0, offCenter);
+        //     REQUIRE(result.has_value());
+        //
+        //     // This SHOULD fail because we're just returning currentTri
+        //     // without the final stochastic walk refinement
+        //     auto tri = TrianglePoints::create(d, *result);
+        //     assert(tri != std::nullopt);
+        //     INFO("Result triangle: " << tri->p0.x() << "," << tri->p0.y() << " | "
+        //             << tri->p1.x() << "," << tri->p1.y() << " | "
+        //             << tri->p2.x() << "," << tri->p2.y());
+        //     REQUIRE(pointInTriangle(offCenter, tri->p0, tri->p1, tri->p2));
+        // }
+        //
+        // SECTION("point outside convex hull") {
+        //     Point2D outside(10.0f, 10.0f);
+        //
+        //     auto result = TestType::walk(d, 0, outside);
+        //     // Should return nullopt when point is outside
+        //     REQUIRE_FALSE(result.has_value());
+        // }
+    }
 }
 
 TEST_CASE("Delaunator triangle orientation is clockwise", "[orientation]") {
@@ -104,26 +353,26 @@ TEST_CASE("Helper function tests", "[helpers]") {
 }
 
 TEST_CASE("pointInTriangle", "pointInTriangle") {
-    // SECTION("Clearly in triangle") {
-    //     const std::vector<Point2D> points = {
-    //         Point2D(0.0f, 1.0f),
-    //         Point2D(0.5f, 0.0f),
-    //         Point2D(1.0f, 1.0f),
-    //     };
-    //     const Point2D pointInside(0.5f, 0.5f);
-    //
-    //     REQUIRE(pointInTriangle(pointInside, points[0], points[1], points[2]));
-    // }
-    // SECTION("Clearly OUTSIDE triangle") {
-    //     const std::vector<Point2D> points = {
-    //         Point2D(0.0f, 1.0f),
-    //         Point2D(0.5f, 0.0f),
-    //         Point2D(1.0f, 1.0f),
-    //     };
-    //     const Point2D pointOutside(1.5f, -0.5f);
-    //
-    //     REQUIRE_FALSE(pointInTriangle(pointOutside, points[0], points[1], points[2]));
-    // }
+    SECTION("Clearly in triangle") {
+        const std::vector<Point2D> points = {
+            Point2D(0.0f, 1.0f),
+            Point2D(0.5f, 0.0f),
+            Point2D(1.0f, 1.0f),
+        };
+        const Point2D pointInside(0.5f, 0.5f);
+
+        REQUIRE(pointInTriangle(pointInside, points[0], points[1], points[2]));
+    }
+    SECTION("Clearly OUTSIDE triangle") {
+        const std::vector<Point2D> points = {
+            Point2D(0.0f, 1.0f),
+            Point2D(0.5f, 0.0f),
+            Point2D(1.0f, 1.0f),
+        };
+        const Point2D pointOutside(1.5f, -0.5f);
+
+        REQUIRE_FALSE(pointInTriangle(pointOutside, points[0], points[1], points[2]));
+    }
     SECTION("On edge, where triangle's right side crosses test point's horizontal") {
         const std::vector<Point2D> points = {
             Point2D(0.0f, 200.0f),
@@ -208,31 +457,31 @@ TEST_CASE("getEdgeVertices tests", "[getEdgeVertices]") {
         }
     }
     SECTION("large random triangulation - edge vertices form valid edges") {
-    // Generate 100 random points
-    std::vector<Point2D> largePoints;
-    srand(42); // Fixed seed for reproducibility
-    for (int i = 0; i < 100; ++i) {
-        float x = static_cast<float>(rand()) / RAND_MAX * 10.0f;
-        float y = static_cast<float>(rand()) / RAND_MAX * 10.0f;
-        largePoints.emplace_back(x, y);
-    }
-    auto largeD = buildDelaunator(largePoints);
+        // Generate 100 random points
+        std::vector<Point2D> largePoints;
+        srand(42); // Fixed seed for reproducibility
+        for (int i = 0; i < 100; ++i) {
+            float x = static_cast<float>(rand()) / RAND_MAX * 10.0f;
+            float y = static_cast<float>(rand()) / RAND_MAX * 10.0f;
+            largePoints.emplace_back(x, y);
+        }
+        auto largeD = buildDelaunator(largePoints);
 
-    // Check all edges of all triangles
-    size_t numTriangles = largeD.triangles.size() / 3;
-    for (size_t tri = 0; tri < numTriangles; ++tri) {
-        for (size_t edgeIdx = 0; edgeIdx < 3; ++edgeIdx) {
-            auto [v1, v2] = getEdgeVertices(largeD, tri, edgeIdx);
+        // Check all edges of all triangles
+        size_t numTriangles = largeD.triangles.size() / 3;
+        for (size_t tri = 0; tri < numTriangles; ++tri) {
+            for (size_t edgeIdx = 0; edgeIdx < 3; ++edgeIdx) {
+                auto [v1, v2] = getEdgeVertices(largeD, tri, edgeIdx);
 
-            // Vertices should be different
-            REQUIRE(v1 != v2);
+                // Vertices should be different
+                REQUIRE(v1 != v2);
 
-            // Vertices should be valid indices
-            REQUIRE(v1 < largePoints.size());
-            REQUIRE(v2 < largePoints.size());
+                // Vertices should be valid indices
+                REQUIRE(v1 < largePoints.size());
+                REQUIRE(v2 < largePoints.size());
+            }
         }
     }
-}
 
     SECTION("large random triangulation - edge consistency") {
         // Generate 200 random points
@@ -415,8 +664,6 @@ TEST_CASE("isNeighbor tests", "[isNeighbor]") {
     }
 }
 
-
-
 TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
     {
         // 3x3 grid
@@ -486,7 +733,7 @@ TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
         for (size_t tri = 0; tri < d_big.triangles.size() / 3; ++tri) {
             DYNAMIC_SECTION("Triangle " << tri)
             {
-                const auto target = Timbre2DPoint(static_cast<float>(rand()) / RAND_MAX * 10.0f,
+                const auto target = Point2D(static_cast<float>(rand()) / RAND_MAX * 10.0f,
                                                   static_cast<float>(rand()) / RAND_MAX * 10.0f);
                 auto result = rememberingStochasticWalk(d_big, target, tri);
                 REQUIRE(result.has_value());
@@ -494,116 +741,5 @@ TEST_CASE("rememberingStochasticWalk basic tests", "[stochasticWalk]") {
                 REQUIRE(pointInTriangle(target, triPoints->p0, triPoints->p1, triPoints->p2));
             }
         }
-    }
-}
-
-TEST_CASE("hybridWalk basic tests", "[hybridWalk]") {
-    {
-        // 3x3 grid
-        std::vector<Point2D> points;
-        for (int y = 0; y < 3; ++y) {
-            for (int x = 0; x < 3; ++x) {
-                points.emplace_back(static_cast<float>(x), static_cast<float>(y));
-            }
-        }
-        auto d = buildDelaunator(points);
-
-        std::cout << "All triangles in triangulation:" << std::endl;
-        for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
-            auto t = TrianglePoints::create(d, tri);
-            assert(t != std::nullopt);
-            std::cout << "  Triangle " << tri << ": "
-                    << t->p0.x() << "," << t->p0.y() << " | "
-                    << t->p1.x() << "," << t->p1.y() << " | "
-                    << t->p2.x() << "," << t->p2.y();
-            if (pointInTriangle(Point2D(1.3f, 1.3f), t->p0, t->p1, t->p2)) {
-                std::cout << " <- CONTAINS (1.3, 1.3)";
-            }
-            std::cout << std::endl;
-        }
-
-        SECTION("point at vertex - early exit") {
-            // Point at vertex 0 (0,0), starting from triangle containing it
-            Point2D atVertex(0.0f, 0.0f);
-
-            // Find a triangle containing vertex 0
-            size_t startTri = 0;
-            for (size_t tri = 0; tri < d.triangles.size() / 3; ++tri) {
-                size_t t0 = tri * 3;
-                if (d.triangles[t0] == 0 || d.triangles[t0 + 1] == 0 || d.triangles[t0 + 2] == 0) {
-                    startTri = tri;
-                    break;
-                }
-            }
-
-            auto result = hybridWalk(d, atVertex, startTri);
-            REQUIRE(result.has_value());
-            REQUIRE(result.value() == startTri);
-        }
-
-        SECTION("a bunch of random points") {
-            std::vector<Point2D> largePoints;
-            srand(423);
-            auto randVal = [] () {
-                return ((static_cast<float>(rand()) / RAND_MAX) * 2.f - 1.f) * 2.0f;
-            };
-            for (int i = 0; i < 100; ++i) {
-                float x = randVal();
-                float y = randVal();
-                largePoints.emplace_back(x, y);
-            }
-            auto d = buildDelaunator(largePoints);
-
-            for (size_t tri = 0; tri < d.triangles.size(); ++tri) {
-                DYNAMIC_SECTION("Triangle " << tri)
-                {
-                    size_t startTri = rand() % (d.triangles.size() / 3);
-                    const auto target = Point2D(randVal(),
-                                                randVal());
-                    const auto result = hybridWalk(d, target, startTri);
-                    REQUIRE(result.has_value());
-                    const auto triPoints = TrianglePoints::create(d, *result);
-                    REQUIRE(pointInTriangle(target, triPoints->p0, triPoints->p1, triPoints->p2));
-                }
-            }
-        }
-
-        SECTION("point in center of grid") {
-            // Point (1,1) is at center, should work from any starting triangle
-            Point2D center(1.0f, 1.0f);
-
-            auto result = hybridWalk(d, center, 0);
-            REQUIRE(result.has_value());
-
-            // Verify the result triangle contains the point
-            auto tri = TrianglePoints::create(d, *result);
-            REQUIRE(pointInTriangle(center, tri->p0, tri->p1, tri->p2));
-        }
-
-        // SECTION("point slightly off-center - EXPECTED TO FAIL without stochastic walk") {
-        //     // This point is NOT on a vertex or edge, so it needs the final
-        //     // remembering_stochastic_walk to converge properly
-        //     Point2D offCenter(1.3f, 1.3f);
-        //
-        //     auto result = hybridWalk(d, 0, offCenter);
-        //     REQUIRE(result.has_value());
-        //
-        //     // This SHOULD fail because we're just returning currentTri
-        //     // without the final stochastic walk refinement
-        //     auto tri = TrianglePoints::create(d, *result);
-        //     assert(tri != std::nullopt);
-        //     INFO("Result triangle: " << tri->p0.x() << "," << tri->p0.y() << " | "
-        //             << tri->p1.x() << "," << tri->p1.y() << " | "
-        //             << tri->p2.x() << "," << tri->p2.y());
-        //     REQUIRE(pointInTriangle(offCenter, tri->p0, tri->p1, tri->p2));
-        // }
-        //
-        // SECTION("point outside convex hull") {
-        //     Point2D outside(10.0f, 10.0f);
-        //
-        //     auto result = hybridWalk(d, 0, outside);
-        //     // Should return nullopt when point is outside
-        //     REQUIRE_FALSE(result.has_value());
-        // }
     }
 }

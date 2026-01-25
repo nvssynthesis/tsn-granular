@@ -25,6 +25,8 @@
 #define jassert(x) assert(x)
 #endif
 
+
+
 namespace nvs::timbrespace {
 
 std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points){
@@ -51,32 +53,6 @@ std::vector<double> make2dCoordinates(const std::vector<Timbre5DPoint> &points){
         DBG("At least 1 dimension has no variance; these coordinates will cause an invalid triangulation\n");
     }
 	return coords;
-}
-
-void getUniqueEdges(const delaunator::Delaunator& d)
-/**
- use this to get all edges, non-redundantly, to then draw them
- */
-{
-	std::set<std::pair<size_t, size_t>> edges;
-
-	// Collect all edges from all triangles
-	for (size_t i = 0; i < d.triangles.size(); i += 3) {
-		size_t a = d.triangles[i];
-		size_t b = d.triangles[i + 1];
-		size_t c = d.triangles[i + 2];
-		
-		// Add edges (ensure consistent ordering)
-		edges.insert({std::min(a,b), std::max(a,b)});
-		edges.insert({std::min(b,c), std::max(b,c)});
-		edges.insert({std::min(c,a), std::max(c,a)});
-	}
-
-	// Draw all unique edges
-	for (const auto& [idx1, idx2] : edges) {
-//		drawLine(idx1, idx2);
-		fmt::print("{}, {}\n", idx1 , idx2);
-	}
 }
 
 using Point2D = Timbre2DPoint;
@@ -602,15 +578,24 @@ size_t getOppositeVertex(const delaunator::Delaunator& d,
 class _Vertex {
     // just used for keeping invariants together, NOT a general purpose vertex class!
 public:
-    _Vertex(const delaunator::Delaunator &d, const char *label) :   _d(d), _label(label) {}
+    _Vertex(const delaunator::Delaunator &d, const char *label)
+    :   _d(d)
+
+    , _label(label)
+
+    {}
     void set(size_t idx) {
         _id = idx;
         _p = getPointFromVertex(_d, _id);
+
         printPoint();
-    }
+
+        }
     void set(const Point2D &p) {
         _p = p;
+
         printPoint();
+
     }
     [[nodiscard]] const Point2D &point() const {
         return _p;
@@ -618,23 +603,31 @@ public:
     [[nodiscard]] size_t id() const {
         return _id;
     }
+
     void printPoint() {
+#ifndef WALK_STRING_DEBUGGING
         const auto s = fmt::format("{}_{}: {}\n", _label, _count++, str(_p));
         fmt::print("{}", s);
+#endif
     };
+
 private:
     size_t _id {SIZE_MAX};
     size_t _count {0};
     Point2D _p;
     const delaunator::Delaunator &_d;
+
     const char *_label;
+
 };
 
 // Remembering stochastic walk - refines the triangle location
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                                  const Point2D& p,
                                                  size_t startTri) {
+#ifndef WALK_STRING_DEBUGGING
     fmt::print("rememberingStochasticWalk called with:\n startTri={}\n target_p=({}, {})\n", startTri, p.x(), p.y());
+#endif
     size_t t = startTri;
     size_t previous = t;
 
@@ -649,18 +642,26 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
             const auto v1 = getPointFromVertex(d, edge_v1);
             const auto currentTrianglePoints = TrianglePoints::create(d, currentTriangle);
             if (currentTrianglePoints == std::nullopt) {
+#ifndef WALK_STRING_DEBUGGING
                 fmt::print("\t\tcurrent triangle not valid... not sure what to do quite yet.\n");
+#endif
                 jassertfalse;
             }
             else {
+#ifndef WALK_STRING_DEBUGGING
                 fmt::print("\t\tcurrent triangle points: {}\n", str(*currentTrianglePoints));
                 fmt::print("\t\tedge considered e: {}, {}\n", str(v0), str(v1));
+#endif
                 const auto neighborPoints = TrianglePoints::create(d, neighborThroughE);
                 if (neighborPoints == std::nullopt) {
+#ifndef WALK_STRING_DEBUGGING
                     fmt::print("\t\tneighbor through e not valid... not sure what to do yet.\n");
+#endif
                 }
                 else {
+#ifndef WALK_STRING_DEBUGGING
                     fmt::print("\t\tneighbor through e: {}\n", str(*neighborPoints));
+#endif
                 }
             }
         }
@@ -669,11 +670,15 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                 neighborThroughE != previousTriangle &&
                     pointOnOtherSide(d, currentTriangle, edgeIdx, p)) {
             {
+#ifndef WALK_STRING_DEBUGGING
                 fmt::print("\t\tYES the point is on that side (and it wasn't previously checked and not invalid)\n\n");
+#endif
             }
             return neighborThroughE;
         }
+#ifndef WALK_STRING_DEBUGGING
         fmt::print("\t\tNO the point NOT is on that side.\n\n");
+#endif
         return std::nullopt;
     };
 
