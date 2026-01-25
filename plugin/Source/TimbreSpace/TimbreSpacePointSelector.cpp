@@ -113,7 +113,8 @@ void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoi
         findPointsTriangulationBased(
             _target,
             _activePoints,
-            *_delaunator
+            *_delaunator,
+            &_lastTriangleIndex
         );
     jassert(weightedIndices.size() == 3);
 

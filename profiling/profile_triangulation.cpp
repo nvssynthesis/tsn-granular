@@ -75,7 +75,8 @@ struct BenchmarkResult {
 
 BenchmarkResult runBenchmark(const std::string& name,
                              const std::vector<Timbre5DPoint>& database,
-                             const std::vector<Timbre5DPoint>& targets) {
+                             const std::vector<Timbre5DPoint>& targets,
+                             size_t startTriangle) {
 
     std::cout << "Running benchmark: " << name << " (DB size: " << database.size()
               << ", Queries: " << targets.size() << ")" << std::endl;
@@ -90,7 +91,7 @@ BenchmarkResult runBenchmark(const std::string& name,
 
     // Warm up
     for (size_t i = 0; i < std::min(targets.size(), size_t(10)); ++i) {
-        auto result = findPointsTriangulationBased(targets[i], database, d);
+        auto result = findPointsTriangulationBased(targets[i], database, d, startTriangle);
     }
 
     // Actual benchmark
@@ -99,7 +100,7 @@ BenchmarkResult runBenchmark(const std::string& name,
 
     for (const auto& target : targets) {
         auto start = high_resolution_clock::now();
-        auto result = findPointsTriangulationBased(target, database, d);
+        auto result = findPointsTriangulationBased(target, database, d, startTriangle);
         auto end = high_resolution_clock::now();
 
         auto duration = duration_cast<nanoseconds>(end - start).count();
@@ -168,13 +169,14 @@ int main() {
         100000
     };
     const size_t numQueries = 10000;
+    size_t startTriangle = 0;
 
     for (size_t dbSize : dbSizes) {
         auto database = generateRandomDatabase(dbSize, rng);
         auto targets = generateRandomTargets(numQueries, rng);
 
         std::string testName = "DB_" + std::to_string(dbSize);
-        auto result = runBenchmark(testName, database, targets);
+        auto result = runBenchmark(testName, database, targets, startTriangle);
         results.push_back(result);
     }
 
@@ -192,7 +194,7 @@ int main() {
 
     for (const auto& target : testTargets) {
         Timbre2DPoint targetPoint = get2D(target);
-        auto triangleOpt = findContainingTriangle(d, targetPoint);
+        auto triangleOpt = findContainingTriangle(d, targetPoint, 0);
         if (triangleOpt.has_value()) {
             insideHull++;
         } else {

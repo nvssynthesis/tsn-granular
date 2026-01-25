@@ -79,17 +79,27 @@ bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const
     return (u >= 0) && (v >= 0) && (u + v <= 1);
 }
 
-// LINEAR search, this is what we're trying to discard
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
-                                              const Point2D& target)
+                                              const Point2D& target, const size_t startTriangle)
 {
+#if 1
+    const auto containingTriangle = straightWalk(d, target, startTriangle);
 
+    size_t idx0{0}, idx1{1}, idx2{2};
+    if (containingTriangle.has_value()) {
+        const size_t i = containingTriangle.value() / 3;
+        idx0 = d.triangles[i];
+        idx1 = d.triangles[i + 1];
+        idx2 = d.triangles[i + 2];
+    }
+#else
     // Iterate through all triangles
     for (size_t i = 0; i < d.triangles.size(); i += 3) {
         // Get triangle vertex indices
         size_t idx0 = d.triangles[i];
         size_t idx1 = d.triangles[i + 1];
         size_t idx2 = d.triangles[i + 2];
+#endif
 
         // Get triangle vertex coordinates
         Point2D a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
@@ -100,9 +110,6 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
         if (pointInTriangle(target, a, b, c)) {
             return std::array<size_t, 3>{idx0, idx1, idx2};
         }
-    }
-
-    // No triangle contains the point
     return std::nullopt;
 }
 
@@ -246,9 +253,9 @@ std::array<double, 3> computeBarycentricWeights(const Point2D& p,
 
 // triangulation-based point selection function
 std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
-    const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d)
+    const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d, size_t* startTriangle)
 {
-	if (database.empty()) { return {}; }
+	if (database.empty()) { return {{},{},{}}; }
     const auto dbSizeAtStart = database.size();
 
 	// Need at least 3 points for triangulation
@@ -256,7 +263,12 @@ std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& targe
 
 	// Find triangle containing the target point
 	const Point2D targetPoint = get2D(target);
-	const auto triangleOpt = findContainingTriangle(d, targetPoint);
+
+    const size_t _startTri = startTriangle != nullptr ? *startTriangle : 0;
+    const auto triangleOpt = findContainingTriangle(d, targetPoint, _startTri);
+    if (startTriangle != nullptr && triangleOpt != std::nullopt) {
+        *startTriangle = triangleOpt.value()[0];
+    }
 
 	if (!triangleOpt.has_value()) {
 		// Target point is outside the convex hull

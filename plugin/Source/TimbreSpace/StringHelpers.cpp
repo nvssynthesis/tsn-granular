@@ -29,7 +29,7 @@ std::string str(const TrianglePoints &tri) {
 }
 
 void printTriangles(const delaunator::Delaunator& d) {
-#ifdef WALK_STRING_DEBUGGING
+#if WALK_STRING_DEBUGGING
     fmt::print("All triangles in triangulation: \n");
     for (size_t t = 0; t < d.triangles.size(); t += 3) {
         const auto p0 = Timbre2DPoint(d.coords[d.triangles[t + 0] * 2], d.coords[d.triangles[t + 0] * 2 + 1]);
@@ -40,12 +40,12 @@ void printTriangles(const delaunator::Delaunator& d) {
 #endif
 }
 void printTriangleIdx(size_t idx) {
-#ifndef WALK_STRING_DEBUGGING
+#if WALK_STRING_DEBUGGING
     fmt::print("{}\n", idx);
 #endif
 }
 void printLine(const Timbre2DPoint &p, const Timbre2DPoint &q) {
-#ifndef WALK_STRING_DEBUGGING
+#if WALK_STRING_DEBUGGING
     fmt::print("{},{}\n", str(p), str(q));
 #endif
 }

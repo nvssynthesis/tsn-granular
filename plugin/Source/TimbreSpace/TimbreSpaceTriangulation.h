@@ -26,7 +26,8 @@ bool pointInTriangle(const Timbre2DPoint& p, const Timbre2DPoint& a, const Timbr
 
 // Find triangle containing target point using Delaunator results
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
-															const Timbre2DPoint& target);
+															const Timbre2DPoint& target,
+															size_t startTriangle);
 
 // Compute barycentric coordinates for interpolation weights
 std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
@@ -56,20 +57,24 @@ std::array<double, 3> computeBarycentricWeights(const Timbre2DPoint& p,
  }
 */
 
-// triangulation-based point selection function
+// triangulation-based point selection function. startTriangle is an in/out parameter.
 std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
-    const std::vector<Timbre5DPoint>& database, const delaunator::Delaunator &d);
+                                                    const std::vector<Timbre5DPoint>& database,
+                                                    const delaunator::Delaunator &d,
+                                                    size_t* startTriangle = nullptr);
 
 // Helper function for when target is outside convex hull
 std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
-														 const std::vector<Timbre5DPoint>& database,
-														 const delaunator::Delaunator& d);
+												 const std::vector<Timbre5DPoint>& database,
+												 const delaunator::Delaunator& d);
 
 //=============================================================================================================================
 
 size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
 size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2);
-[[deprecated("uses linear search")]] size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
+
+[[deprecated("uses linear search")]]
+size_t getVertexIndex(const delaunator::Delaunator& d, const Timbre2DPoint& point);
 size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx);
 Timbre2DPoint getPointFromVertex(const delaunator::Delaunator& d, size_t vertexIdx);
 std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,

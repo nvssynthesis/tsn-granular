@@ -31,6 +31,7 @@ private:
     TimbreSpace &_timbreSpace;
 
     Timbre5DPoint _target {};
+    size_t _lastTriangleIndex {0};
     std::vector<WeightedIdx> _currentPointIndices {{},{},{}};
 
     std::vector<WrappedPoint5D> _wrappedPoints {};
@@ -60,23 +61,5 @@ private:
 
     void actionListenerCallback(const String &message) override;
 };
-
-
-//=============================================================================================================================
-
-// std::vector<WeightedIdx> findPointsDistanceBased (const Timbre5DPoint& target,
-//                                                         const juce::Array<Timbre5DPoint>&  database,
-//                                                         int K,
-//                                                         int numToPick,
-//                                                         double sharpness,
-//                                                         float higher3Dweight);
-
-std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& target,
-                                                            const std::vector<Timbre5DPoint>& database,
-                                                            const delaunator::Delaunator &d);
-
-std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
-                                                         const std::vector<Timbre5DPoint>& database,
-                                                         const delaunator::Delaunator& d);
 
 }   // namespace nvs::timbrespace
