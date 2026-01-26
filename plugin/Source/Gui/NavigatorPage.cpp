@@ -178,7 +178,9 @@ void NavigatorPage::resized() {
 	        bounds.getHeight()
 	    };
 
-	    const auto leftTop = left.withTrimmedBottom(static_cast<int>(static_cast<double>(left.getHeight()) * 0.35));
+
+
+	    const auto leftTop = left.withTrimmedBottom(static_cast<int>(static_cast<double>(left.getHeight()) * 0.25));
 		if (timbreSpaceParamsPanel != nullptr){
 			timbreSpaceParamsPanel->setBounds(leftTop);
 		}
