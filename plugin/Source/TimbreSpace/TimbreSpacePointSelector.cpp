@@ -188,7 +188,6 @@ void TimbreSpacePointSelector::swapIfPending() {
         std::memory_order_acq_rel);                                     // acq_rel: "acquire the new data" + "release the nullptr write"
     if (pending)
     {
-        DBG("TimbreSpacePointSelector::swapIfPending exchanging delaunator and active points\n");
         _triangulationSnapshotCurrent = pending;
     }
 }

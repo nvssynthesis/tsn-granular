@@ -10,7 +10,7 @@ std::optional<TrianglePoints> TrianglePoints::create(const delaunator::Delaunato
     const size_t t1 = t0 + 1;
     const size_t t2 = t0 + 2;
 
-    if (t0 >= d.triangles.size()) {
+    if (t2 >= d.triangles.size()) {
         return std::nullopt;
     }
 

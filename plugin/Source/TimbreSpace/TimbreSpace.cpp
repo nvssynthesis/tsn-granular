@@ -87,7 +87,7 @@ void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramI
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
             settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
-            fullSelfUpdate(true);
+            fullSelfUpdate(false);
             return;
         }
     }
@@ -109,13 +109,13 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
             DBG("Histogram equalization changed to: " + juce::String(newValue));
             updateHistogramEqualization();
             DBG("tree changed! redrawing points...\n");
-            fullSelfUpdate(true);
+            fullSelfUpdate(false);
             return;
         }
         if (paramID == nvs::axiom::statistic) {
             updateStatistic();
             DBG("tree changed! redrawing points...\n");
-            fullSelfUpdate(true);
+            fullSelfUpdate(false);
             return;
         }
         updateDimensionwiseFeatureFromParam(paramID);
@@ -221,7 +221,7 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
             _onsetAnalysis = std::make_shared<analysis::OnsetAnalysisResult>(onsets, waveformHash, path);
         }
     }
-	fullSelfUpdate(true);
+	fullSelfUpdate(false);
 }
 
 juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> const &fullTimbreSpace,
@@ -401,7 +401,6 @@ void TimbreSpace::signalTimbreSpaceTreeChanged() const {
 void TimbreSpace::TimbreDataManager::swapIfPending() {
     if (_pendingUpdate.exchange(false, std::memory_order_acq_rel))
     {
-        DBG("TimbreDataManager::swapIfPending exchanging points\n");
         _timbres5D = std::move(_timbres5D_pending);
     }
 }
