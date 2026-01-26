@@ -31,8 +31,8 @@ std::vector<Timbre5DPoint> generateRandomDatabase(size_t numPoints, std::mt19937
 
 // Generate random target points
 std::vector<Timbre5DPoint> generateRandomTargets(size_t numTargets, std::mt19937& rng) {
-    static constexpr float r = 1.5f;
-    std::uniform_real_distribution<float> dist(-r, r); // Slightly outside to test edge cases
+    static constexpr float r = 0.96f;
+    std::uniform_real_distribution<float> dist(-r, r);
 
     std::vector<Timbre5DPoint> targets;
     targets.reserve(numTargets);
@@ -76,7 +76,7 @@ struct BenchmarkResult {
 BenchmarkResult runBenchmark(const std::string& name,
                              const std::vector<Timbre5DPoint>& database,
                              const std::vector<Timbre5DPoint>& targets,
-                             size_t startTriangle) {
+                             const size_t startTriangle) {
 
     std::cout << "Running benchmark: " << name << " (DB size: " << database.size()
               << ", Queries: " << targets.size() << ")" << std::endl;
@@ -90,8 +90,9 @@ BenchmarkResult runBenchmark(const std::string& name,
     std::cout << "  Triangulation build time: " << triTime << " ms" << std::endl;
 
     // Warm up
+    size_t startTriangleInternal = startTriangle;
     for (size_t i = 0; i < std::min(targets.size(), size_t(10)); ++i) {
-        auto result = findPointsTriangulationBased(targets[i], database, d, startTriangle);
+        auto result = findPointsTriangulationBased(targets[i], database, d, &startTriangleInternal);
     }
 
     // Actual benchmark
@@ -99,8 +100,9 @@ BenchmarkResult runBenchmark(const std::string& name,
     queryTimes.reserve(targets.size());
 
     for (const auto& target : targets) {
+        startTriangleInternal = startTriangle;
         auto start = high_resolution_clock::now();
-        auto result = findPointsTriangulationBased(target, database, d, startTriangle);
+        auto result = findPointsTriangulationBased(target, database, d, &startTriangleInternal);
         auto end = high_resolution_clock::now();
 
         auto duration = duration_cast<nanoseconds>(end - start).count();
@@ -164,11 +166,11 @@ int main() {
     std::vector<size_t> dbSizes = {
         10,
         100,
-        1000,
-        10000,
-        100000
+        1'000,
+        10'000,
+        100'000
     };
-    const size_t numQueries = 10000;
+    const size_t numQueries = 10'000;
     size_t startTriangle = 0;
 
     for (size_t dbSize : dbSizes) {

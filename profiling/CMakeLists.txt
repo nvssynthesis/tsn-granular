@@ -53,10 +53,12 @@ target_include_directories(tsn-profile-triangulation PRIVATE
         ${CMAKE_SOURCE_DIR}/plugin/Source
         ${CMAKE_SOURCE_DIR}/plugin/Source/TimbreSpace
         ${CMAKE_SOURCE_DIR}/plugin/delaunator-cpp/include
+        ${CMAKE_SOURCE_DIR}/build/_deps/fmt-src/include
 )
 
 target_link_libraries(tsn-profile-triangulation PRIVATE
         Eigen3::Eigen
+        fmt::fmt
 )
 
 target_compile_definitions(tsn-profile-triangulation PRIVATE

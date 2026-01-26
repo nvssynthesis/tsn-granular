@@ -84,14 +84,61 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
 {
 #if 1
     const auto containingTriangle = straightWalk(d, target, startTriangle);
-
-    size_t idx0{0}, idx1{1}, idx2{2};
-    if (containingTriangle.has_value()) {
-        const size_t i = containingTriangle.value() / 3;
-        idx0 = d.triangles[i];
-        idx1 = d.triangles[i + 1];
-        idx2 = d.triangles[i + 2];
+    if (!containingTriangle.has_value()) {
+        return std::nullopt;
     }
+
+    struct PointsAndIndices {
+        std::array<Point2D, 3> points;
+        std::array<size_t, 3> indices;
+    };
+    const auto pointsAndIndices = [&d](const size_t triangleIdx) -> std::optional<PointsAndIndices>
+    {
+        const size_t t0 = triangleIdx * 3;
+        const size_t t1 = t0 + 1;
+        const size_t t2 = t0 + 2;
+
+        if (t0 >= d.triangles.size()) {
+            return std::nullopt;
+        }
+
+        const size_t v0 = d.triangles[t0];
+        const size_t v1 = d.triangles[t1];
+        const size_t v2 = d.triangles[t2];
+
+        const auto pFromV = [&d](const size_t vertexIdx){
+            assert (vertexIdx < d.coords.size()-1);
+            return Point2D
+            {
+                static_cast<float>(d.coords[2 * vertexIdx + 0]),
+                static_cast<float>(d.coords[2 * vertexIdx + 1])
+            };
+        };
+
+        return PointsAndIndices {
+            .points = {
+                pFromV(v0),
+                pFromV(v1),
+                pFromV(v2)
+            },
+            .indices = {
+                v0,
+                v1,
+                v2
+            }
+        };
+    }(*containingTriangle);
+
+    if (!pointsAndIndices.has_value()) {
+        return std::nullopt;
+    }
+    const auto points = pointsAndIndices->points;
+    const auto indices = pointsAndIndices->indices;
+
+    if (pointInTriangle(target, points[0], points[1], points[2])) {
+        return indices;
+    }
+    return std::nullopt;
 #else
     // Iterate through all triangles
     for (size_t i = 0; i < d.triangles.size(); i += 3) {
@@ -99,8 +146,13 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
         size_t idx0 = d.triangles[i];
         size_t idx1 = d.triangles[i + 1];
         size_t idx2 = d.triangles[i + 2];
-#endif
-
+        size_t idx0{0}, idx1{1}, idx2{2};
+        if (containingTriangle.has_value()) {
+            const size_t i = containingTriangle.value() / 3;
+            idx0 = d.triangles[i];
+            idx1 = d.triangles[i + 1];
+            idx2 = d.triangles[i + 2];
+        }
         // Get triangle vertex coordinates
         Point2D a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
         Point2D b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
@@ -111,6 +163,8 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
             return std::array<size_t, 3>{idx0, idx1, idx2};
         }
     return std::nullopt;
+#endif
+
 }
 
 std::array<double, 3> computeDistanceWeights(const Point2D& p,
