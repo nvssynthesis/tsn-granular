@@ -174,10 +174,14 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 	        g.fillEllipse(xy.x - orbRadius, xy.y - orbRadius, orbRadius * 2, orbRadius * 2);
 	    }
     }
+    auto &timbreSpacePS = _proc->getTimbreSpacePointSelector();
+    auto const &timbres5D = timbreSpacePS.getTimbreSpacePoints();
+
+    _infoBox.setNumPoints(timbres5D.size());
+    _infoBox.paint(g);
+
     g.addTransform(AffineTransform::verticalFlip(h));
     {
-        auto &timbreSpacePS = _proc->getTimbreSpacePointSelector();
-        auto const &timbres5D = timbreSpacePS.getTimbreSpacePoints();
 	    if (timbres5D.empty()) {
 	        return;
 	    }
@@ -350,10 +354,18 @@ void TimbreSpaceComponent::updateCursor() {
 
 void TimbreSpaceComponent::resized() {
 	const auto b = getLocalBounds();
-	const auto proportionRect = juce::Rectangle<float> {0.1f, 0.05f,
-														0.8f, 0.05f};
-	auto progressBounds = b.getProportion(proportionRect);
-	progressIndicator.setBounds(progressBounds);
+    {
+	    const auto proportionRect = juce::Rectangle{0.1f, 0.05f,
+													0.8f, 0.05f};
+	    const auto progressBounds = b.getProportion(proportionRect);
+	    progressIndicator.setBounds(progressBounds);
+    }
+	{
+	    const auto proportionRect = juce::Rectangle{0.85f, 0.92f,
+                                                    0.15f, 0.15f};
+	    const auto infoBoxBounds = b.getProportion(proportionRect);
+        _infoBox.setBounds(infoBoxBounds);
+	}
 }
 
 void ProgressIndicator::paint(juce::Graphics &g) {

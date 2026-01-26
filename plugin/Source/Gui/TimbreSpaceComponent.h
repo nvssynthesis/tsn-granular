@@ -114,6 +114,32 @@ private:
 
 	std::unique_ptr<juce::FileChooser> fileChooser;
 	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos) const;
-	
+
+    class InfoBox {
+        Rectangle<int> positionRect;
+        const juce::String numPointsBaseTxt {"num points: "};
+        int _numPoints{0};
+    public:
+        void setNumPoints(const int numPoints) { _numPoints = numPoints; }
+        void setBounds (juce::Rectangle<int> bounds) {
+            positionRect = bounds;
+        }
+        void paint(juce::Graphics &g) const {
+            g.setColour(juce::Colours::grey.withAlpha(0.85f));
+            const auto pRectF = positionRect.toFloat();
+            // dont draw whole rectangle, just top vertical + left vertical.
+            // otherwise there can be e.g. 2 vertical lines drawn 1 pixel apart probably due to roundoff.
+            g.drawLine(pRectF.getX(), pRectF.getY(), pRectF.getRight(), pRectF.getY());
+            g.drawLine(pRectF.getX(), pRectF.getY(), pRectF.getX(), pRectF.getBottom());
+
+            const auto previousFont = g.getCurrentFont();
+            g.setFont(previousFont.withHeight(previousFont.getHeight() * 0.75f));
+            g.drawText( numPointsBaseTxt + juce::String(_numPoints),
+                positionRect,
+                Justification::topRight);
+            g.setFont(previousFont);
+        }
+    } _infoBox;
+
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TimbreSpaceComponent)
 };
