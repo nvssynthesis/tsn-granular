@@ -6,13 +6,24 @@
 #include <JuceHeader.h>
 #include "../slicer_granular/Source/Params/params.h"
 
-class AttachedRangeSlider final : public juce::Component,
-                                  private juce::Slider::Listener,
-                                  private juce::AudioProcessorValueTreeState::Listener
+class RangeSlider final : public Slider
+{
+public:
+    RangeSlider();
+private:
+    void mouseDown (const MouseEvent& event) override;
+    void mouseDrag (const MouseEvent& event) override;
+    void valueChanged() override;
+
+    bool mouseDragBetweenThumbs;
+    float xMinAtThumbDown;
+    float xMaxAtThumbDown;
+};
+
+class AttachedRangeSlider final : public juce::Component
 {
     using ParameterDef = nvs::param::ParameterDef;
     using Slider = juce::Slider;
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using Label = juce::Label;
     using String = juce::String;
 
@@ -20,123 +31,64 @@ public:
     AttachedRangeSlider(juce::AudioProcessorValueTreeState& apvts,
                        const juce::String& baseParamID,
                        juce::Slider::SliderStyle style)
-        : apvts(apvts)
-        , minParamID(baseParamID + "_min")
-        , maxParamID(baseParamID + "_max")
+    : _slider()
+    , _min_param_ID(baseParamID + "_min")
+    , _max_param_ID(baseParamID + "_max")
     {
+        const ParameterDef minParamDef = *std::ranges::find(nvs::param::ALL_PARAMETERS, _min_param_ID,
+            [](const auto& x){
+                return x.ID;
+            });
+        const ParameterDef maxParamDef = *std::ranges::find(nvs::param::ALL_PARAMETERS, _max_param_ID,
+        [](const auto& x){
+            return x.ID;
+        });
+        _min_param_name = minParamDef.displayName;
+        _max_param_name = maxParamDef.displayName;
+        
         // Verify both parameters exist
-        auto* minParam = apvts.getParameter(minParamID);
-        auto* maxParam = apvts.getParameter(maxParamID);
-        DBG("Looking for parameters: " << minParamID << " and " << maxParamID);
-
+        auto* minParam = apvts.getParameter(_min_param_ID);
+        auto* maxParam = apvts.getParameter(_max_param_ID);
         jassert(minParam != nullptr && maxParam != nullptr);
 
-        // Setup slider as two-value slider
-        jassert (style == juce::Slider::TwoValueVertical || style == juce::Slider::TwoValueHorizontal);
-        slider.setSliderStyle(style);
-        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        // Setup _slider as two-value _slider
+        jassert (style == Slider::TwoValueVertical || style == juce::Slider::TwoValueHorizontal);
 
-        // Get the range from the parameter
-        auto minParamRange = minParam->getNormalisableRange();
+        addAndMakeVisible(_slider);
+        _slider.setSliderStyle(style);
+        _slider.setNormalisableRange(minParamDef.createNormalisableRange<double>());
+        _slider.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
 
-        DBG("Setting slider range: " << minParamRange.start << " to " << minParamRange.end);
+        _slider.setColour(Slider::ColourIds::thumbColourId, juce::Colours::palevioletred);
+        _slider.setColour(Slider::ColourIds::textBoxTextColourId, juce::Colours::lightgrey);
 
-        // Set the range
-        slider.setRange(minParamRange.start, minParamRange.end, minParamRange.interval);
-
-        // Get normalized values from parameters (0-1)
-        float minNormalized = minParam->getValue();
-        float maxNormalized = maxParam->getValue();
-
-        DBG("Min param normalized value: " << minNormalized);
-        DBG("Max param normalized value: " << maxNormalized);
-
-        // Denormalize to actual slider range
-        float minActual = minNormalized * (minParamRange.end - minParamRange.start) + minParamRange.start;
-        float maxActual = maxNormalized * (minParamRange.end - minParamRange.start) + minParamRange.start;
-
-        DBG("Min actual value: " << minActual);
-        DBG("Max actual value: " << maxActual);
-
-        // IMPORTANT: Set these AFTER setting the range
-        slider.setMinValue(minActual, juce::dontSendNotification);
-        slider.setMaxValue(maxActual, juce::dontSendNotification);
-
-        DBG("Slider min value after set: " << slider.getMinValue());
-        DBG("Slider max value after set: " << slider.getMaxValue());
-
-        // Add listeners
-        slider.addListener(this);
-        apvts.addParameterListener(minParamID, this);
-        apvts.addParameterListener(maxParamID, this);
+        _slider.setLookAndFeel(&lookAndFeel);
 
         // Label
+        addAndMakeVisible(_label);
         juce::String displayName = baseParamID.replace("_", " ");
-        label.setText(displayName, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centred);
-        label.attachToComponent(&slider, false);
-
-        addAndMakeVisible(slider);
-        addAndMakeVisible(label);
-    }
-
-    ~AttachedRangeSlider() override
-    {
-        apvts.removeParameterListener(minParamID, this);
-        apvts.removeParameterListener(maxParamID, this);
-        slider.removeListener(this);
+        _label.setText(displayName, juce::dontSendNotification);
+        _label.setJustificationType(juce::Justification::centred);
+        _label.attachToComponent(&_slider, false);
     }
 
     void resized() override
     {
-        slider.setBounds(getLocalBounds());
+        _slider.setBounds(getLocalBounds());
     }
 
 private:
-    void sliderValueChanged(juce::Slider* s) override
-    {
-        // Normalize slider value to 0-1 for APVTS parameter
-        auto normalizeValue = [this](double sliderValue) {
-            return (sliderValue - slider.getMinimum()) / (slider.getMaximum() - slider.getMinimum());
-        };
+    juce::LookAndFeel_V4 lookAndFeel;
 
-        // Update both parameters
-        if (auto* minParam = apvts.getParameter(minParamID))
-        {
-            float normalised = normalizeValue(s->getMinValue());
-            minParam->setValueNotifyingHost(normalised);
-        }
+    RangeSlider _slider;
 
-        if (auto* maxParam = apvts.getParameter(maxParamID))
-        {
-            float normalised = normalizeValue(s->getMaxValue());
-            maxParam->setValueNotifyingHost(normalised);
-        }
-    }
+    juce::String _min_param_ID;
+    juce::String _max_param_ID;
 
-    void parameterChanged(const juce::String& parameterID, float newValue) override
-    {
-        // Denormalize from 0-1 to slider range
-        auto denormalised = newValue * (slider.getMaximum() - slider.getMinimum()) + slider.getMinimum();
+    juce::Label _label;
 
-        if (parameterID == minParamID)
-        {
-            // slider.setMinValue(denormalised, juce::dontSendNotification);
-            slider.setMinValue(0.f, juce::dontSendNotification);
-        }
-        else if (parameterID == maxParamID)
-        {
-            // slider.setMaxValue(denormalised, juce::dontSendNotification);
-            slider.setMaxValue(1.f, juce::dontSendNotification);
-        }
-    }
-
-    juce::AudioProcessorValueTreeState& apvts;
-    juce::Slider slider;
-    juce::Label label;
-
-    juce::String minParamID;
-    juce::String maxParamID;
+    String _min_param_name;
+    String _max_param_name;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedRangeSlider)
 };
