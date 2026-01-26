@@ -37,10 +37,10 @@ void RangeSlider::mouseDrag (const MouseEvent& event)
 
     if (mouseDragBetweenThumbs)
     {
-        // )
         const auto lower = nvs::memoryless::clamp((xMinAtThumbDown + distanceFromStart) / getWidth(), 0.f, 1.f);
-        setMinValue (proportionOfLengthToValue (lower));
         const auto upper = nvs::memoryless::clamp((xMaxAtThumbDown + distanceFromStart) / getWidth(), 0.f, 1.f);
+
+        setMinValue (proportionOfLengthToValue (lower));
         setMaxValue (proportionOfLengthToValue (upper));
     }
     else
@@ -49,20 +49,4 @@ void RangeSlider::mouseDrag (const MouseEvent& event)
     }
 }
 
-// This makes one thumb slide if the other is moved against it.
-void RangeSlider::valueChanged()
-{
-    if (getMinValue() == getMaxValue())
-    {
-        constexpr int minimalIntervalBetweenMinAndMax = 1;
-        if (getMaxValue() + minimalIntervalBetweenMinAndMax <= getMaximum())
-        {
-            setMaxValue(getMaxValue() + minimalIntervalBetweenMinAndMax);
-        }
-        else
-        {
-            setMinValue(getMinValue() - minimalIntervalBetweenMinAndMax);
-        }
-    }
-}
 

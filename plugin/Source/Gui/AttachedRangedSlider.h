@@ -13,7 +13,6 @@ public:
 private:
     void mouseDown (const MouseEvent& event) override;
     void mouseDrag (const MouseEvent& event) override;
-    void valueChanged() override;
 
     bool mouseDragBetweenThumbs;
     float xMinAtThumbDown;
