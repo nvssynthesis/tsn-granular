@@ -133,10 +133,23 @@ private:
             g.drawLine(pRectF.getX(), pRectF.getY(), pRectF.getX(), pRectF.getBottom());
 
             const auto previousFont = g.getCurrentFont();
-            g.setFont(previousFont.withHeight(previousFont.getHeight() * 0.75f));
-            g.drawText( numPointsBaseTxt + juce::String(_numPoints),
-                positionRect,
-                Justification::topRight);
+            const auto newFont = previousFont.withHeight(previousFont.getHeight() * 0.75f);
+            g.setFont(newFont);
+            auto text = numPointsBaseTxt + juce::String(_numPoints);
+            auto textWidth = GlyphArrangement::getStringWidth(newFont, text);
+
+            const auto textRect = positionRect.withTrimmedRight(2);
+
+            if (textWidth > textRect.getWidth()) {
+                text = "num: " + std::to_string(_numPoints);
+                textWidth = GlyphArrangement::getStringWidth(newFont, text);
+                if (textWidth > textRect.getWidth()) {
+                    text = std::to_string(_numPoints);
+                }
+            }
+            g.drawText(text,
+                        textRect,
+                        Justification::topRight);
             g.setFont(previousFont);
         }
     } _infoBox;
