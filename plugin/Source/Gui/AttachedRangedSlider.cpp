@@ -103,9 +103,6 @@ AttachedRangeSlider::AttachedRangeSlider(juce::AudioProcessorValueTreeState& apv
     _label.setJustificationType(juce::Justification::centred);
     _label.attachToComponent(&_slider, false);
 }
-void AttachedRangeSlider::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
-    DBG("TREE REDIRECTED!");
-}
 void AttachedRangeSlider::sliderValueChanged (Slider *) {
     // Update both parameters
     if (auto* minParam = _apvts.getParameter(_min_param_ID))
@@ -125,7 +122,6 @@ void AttachedRangeSlider::sliderValueChanged (Slider *) {
 
 void AttachedRangeSlider::parameterChanged(const juce::String& parameterID, float newValue)
 {
-    DBG("PARAMETER CHANGED");
     // Denormalize from 0-1 to slider range
     auto denormalised = newValue * (_slider.getMaximum() - _slider.getMinimum()) + _slider.getMinimum();
 

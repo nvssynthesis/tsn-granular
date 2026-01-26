@@ -22,7 +22,6 @@ private:
 class AttachedRangeSlider final : public juce::Component
 ,                                private juce::Slider::Listener
 ,                                private juce::AudioProcessorValueTreeState::Listener
-,   						     private juce::ValueTree::Listener
 {
     using ParameterDef = nvs::param::ParameterDef;
     using Slider = juce::Slider;
@@ -55,7 +54,6 @@ private:
 
     void sliderValueChanged (Slider *) override;
     void parameterChanged(const juce::String& parameterID, float newValue) override;
-    void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedRangeSlider)
 };
