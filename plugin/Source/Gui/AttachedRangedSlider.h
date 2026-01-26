@@ -20,6 +20,8 @@ private:
 };
 
 class AttachedRangeSlider final : public juce::Component
+,                                private juce::Slider::Listener
+,                                private juce::AudioProcessorValueTreeState::Listener
 {
     using ParameterDef = nvs::param::ParameterDef;
     using Slider = juce::Slider;
@@ -29,56 +31,18 @@ class AttachedRangeSlider final : public juce::Component
 public:
     AttachedRangeSlider(juce::AudioProcessorValueTreeState& apvts,
                        const juce::String& baseParamID,
-                       juce::Slider::SliderStyle style)
-    : _slider()
-    , _min_param_ID(baseParamID + "_min")
-    , _max_param_ID(baseParamID + "_max")
-    {
-        const ParameterDef minParamDef = *std::ranges::find(nvs::param::ALL_PARAMETERS, _min_param_ID,
-            [](const auto& x){
-                return x.ID;
-            });
-        const ParameterDef maxParamDef = *std::ranges::find(nvs::param::ALL_PARAMETERS, _max_param_ID,
-        [](const auto& x){
-            return x.ID;
-        });
-        _min_param_name = minParamDef.displayName;
-        _max_param_name = maxParamDef.displayName;
-        
-        // Verify both parameters exist
-        auto* minParam = apvts.getParameter(_min_param_ID);
-        auto* maxParam = apvts.getParameter(_max_param_ID);
-        jassert(minParam != nullptr && maxParam != nullptr);
-
-        // Setup _slider as two-value _slider
-        jassert (style == Slider::TwoValueVertical || style == juce::Slider::TwoValueHorizontal);
-
-        addAndMakeVisible(_slider);
-        _slider.setSliderStyle(style);
-        _slider.setNormalisableRange(minParamDef.createNormalisableRange<double>());
-        _slider.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-
-        _slider.setColour(Slider::ColourIds::thumbColourId, juce::Colours::palevioletred);
-        _slider.setColour(Slider::ColourIds::textBoxTextColourId, juce::Colours::lightgrey);
-
-        _slider.setLookAndFeel(&lookAndFeel);
-
-        // Label
-        addAndMakeVisible(_label);
-        juce::String displayName = baseParamID.replace("_", " ");
-        _label.setText(displayName, juce::dontSendNotification);
-        _label.setJustificationType(juce::Justification::centred);
-        _label.attachToComponent(&_slider, false);
-    }
+                       juce::Slider::SliderStyle style);
 
     void resized() override
     {
         _slider.setBounds(getLocalBounds());
     }
 
+    void sliderValueChanged (Slider *) override;
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
 private:
     juce::LookAndFeel_V4 lookAndFeel;
-
+    AudioProcessorValueTreeState& _apvts;
     RangeSlider _slider;
 
     juce::String _min_param_ID;
