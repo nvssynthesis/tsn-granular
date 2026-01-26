@@ -458,7 +458,7 @@ extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
             case Feature_e::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
             case Feature_e::SpectralCrest:       childName = axiom::SpectralCrest; break;
             case Feature_e::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
-            case Feature_e::StrongPeak:          childName = axiom::StrongPeak; break;
+            case Feature_e::StrongPeak:          childName = axiom::StrongPeak;  break;
             case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
             case Feature_e::Loudness:            childName = axiom::Loudness;    break;
             case Feature_e::f0:                  childName = axiom::f0;          break;
@@ -526,14 +526,17 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
 		return;
 	}
-	_eventwiseExtractedTimbrePoints.clear();
-	_eventwiseExtractedTimbrePoints.reserve(_treeManager.getNumFrames());
+    _rawExtractedFeatures.clearAll();
+    _rawExtractedFeatures.reserveAll(_treeManager.getNumFrames());
 	
 	auto const &timbralFramesTree = _treeManager.getTimbralFramesTree();
 	for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
 		ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
 		std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
-		_eventwiseExtractedTimbrePoints.push_back(v);
+	    jassert(v.size() == 5);
+	    for (size_t featIdx = 0; featIdx < v.size(); ++featIdx) {
+	        _rawExtractedFeatures.features[featIdx].push_back(v[featIdx]);
+	    }
 	}
 }
 
@@ -568,29 +571,36 @@ void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
     if(verbose)
         DBG("updating timbre points\n");
 
-	if (_eventwiseExtractedTimbrePoints.empty()){
+	if (_rawExtractedFeatures.allEmpty()){
 		if (verbose)
-		    DBG("updateAndDrawTimbreSpacePoints: timbreSpace empty, returning...\n");
+		    DBG("updateAndDrawTimbreSpacePoints: raw features empty, returning...\n");
 		return;
 	}
+	if (!_rawExtractedFeatures.inValidState()) {
+	    if (verbose)
+	        DBG("updateAndDrawTimbreSpacePoints: raw features in invalid state, returning...\n");
+	    return;
+	}
 	{
-		auto const n_dim = _eventwiseExtractedTimbrePoints[0].size();
+		auto const n_dim = _rawExtractedFeatures.features.size();
 		_ranges.clear();
 		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_eventwiseExtractedTimbrePoints, i));
+			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_rawExtractedFeatures.features[i]));
 		}
 	}
 	{
 		std::vector<float> allDim0, allDim1;
-		allDim0.reserve(_eventwiseExtractedTimbrePoints.size());
-		allDim1.reserve(_eventwiseExtractedTimbrePoints.size());
-		for (auto const& frame : _eventwiseExtractedTimbrePoints){
-			allDim0.push_back(frame[0]);	// e.g. bfcc1
-			allDim1.push_back(frame[1]);	// e.g. bfcc2
+		allDim0.reserve(_rawExtractedFeatures.features[0].size());
+		allDim1.reserve(_rawExtractedFeatures.features[0].size());
+		for (auto const& frame : _rawExtractedFeatures.features[0]){
+			allDim0.push_back(frame);	// e.g. bfcc1
 		}
-		_histoEqualizedD0 = getHistoEqualizationVec(allDim0);
+        for (auto const& frame : _rawExtractedFeatures.features[1]){
+            allDim1.push_back(frame);	// e.g. bfcc2
+        }
+        _histoEqualizedD0 = getHistoEqualizationVec(allDim0);
 		_histoEqualizedD1 = getHistoEqualizationVec(allDim1);
 	}
 }
@@ -599,14 +609,18 @@ void TimbreSpace::reshape(const bool verbose)
     if (verbose)
         DBG("reshaping timbre space\n");
 
-    if (_eventwiseExtractedTimbrePoints.empty()){
+    if (_rawExtractedFeatures.allEmpty()){
         if (verbose)
-            DBG("drawTimbreSpacePoints: _eventwiseExtractedTimbrePoints empty, returning...");
+            DBG("drawTimbreSpacePoints: raw features empty, returning...");
         return;
     }
-    
-    std::vector<std::vector<float>> const &timbreSpaceRepr = _eventwiseExtractedTimbrePoints;
-    if (timbreSpaceRepr[0].size() != _ranges.size()){
+    if (!_rawExtractedFeatures.inValidState()) {
+        if (verbose)
+            DBG("drawTimbreSpacePoints: raw features in invalid state, returning...\n");
+        return;
+    }
+    static constexpr size_t nDim {5};
+    if (_rawExtractedFeatures.features.size() != _ranges.size() || nDim != _rawExtractedFeatures.features.size()){
         if (verbose)
             DBG("drawTimbreSpacePoints: point size mismatch, exiting early");
         jassertfalse;
@@ -628,19 +642,16 @@ void TimbreSpace::reshape(const bool verbose)
 
     // clear points of timbreSpaceHolds
     clearPoints(); // clearing to make way for points we're about to be adding
+    const auto numFrames = _rawExtractedFeatures.features[0].size();
 
     std::vector<Timbre5DPoint> points;
-    points.reserve(timbreSpaceRepr.size());
-    for (size_t i = 0; i < timbreSpaceRepr.size(); ++i) {
-        static constexpr size_t nDim {5};
-        std::vector<float> const &timbreFrame = timbreSpaceRepr[i];
-        
-        jassert (timbreFrame.size() >= nDim);
-
+    points.reserve(numFrames);
+    const auto &features = _rawExtractedFeatures.features;
+    for (size_t i = 0; i < numFrames; ++i) {
         // ========================================2D========================================
         // squash normalized points within dimension range
-        Timbre2DPoint pNL(foo(timbreFrame[0], _ranges[0]),
-                          foo(timbreFrame[1], _ranges[1]));
+        Timbre2DPoint pNL(foo(features[0][i], _ranges[0]),
+                          foo(features[1][i], _ranges[1]));
         
         // histogram equalization
         float const &equalizedX = _histoEqualizedD0[i];
@@ -654,9 +665,9 @@ void TimbreSpace::reshape(const bool verbose)
         Timbre2DPoint p = (1.f - c) * pNL + c * pHE; 
         
         // ========================================3D========================================
-        Timbre3DPoint color(normalizer(timbreFrame[2], _ranges[2]),
-                           normalizer(timbreFrame[3], _ranges[3]),
-                           normalizer(timbreFrame[4], _ranges[4]));
+        Timbre3DPoint color(normalizer(features[2][i], _ranges[2]),
+                           normalizer(features[3][i], _ranges[3]),
+                           normalizer(features[4][i], _ranges[4]));
         
         // with this method, there is the guarantee that
         // the Nth member of timbreSpaceComponent._timbres5D corresponds to

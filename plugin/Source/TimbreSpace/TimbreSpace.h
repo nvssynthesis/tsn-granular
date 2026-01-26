@@ -46,8 +46,7 @@ public:
 private:
 	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
-	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally calls analyzerUpdated
-    // void analyzerUpdated(nvs::analysis::ThreadedAnalyzer &a);
+	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally updates other state if analyzer has been updated
 
     void updateDimensionwiseFeatureFromParam(const String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
@@ -125,7 +124,38 @@ private:
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
-    std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
+    struct RawExtractedFeatures {
+        std::array<std::vector<float>, 5> features {};
+        void clearAll() {
+            for (auto &feature : features) {
+                feature.clear();
+            }
+        }
+        void reserveAll(const size_t numFrames) {
+            for (auto &feature : features) {
+                feature.reserve(numFrames);
+            }
+        }
+        bool inValidState() const {
+            const auto properSize = features[0].size();
+            for (size_t i = 1; i < features.size(); ++i) {
+                if (features[i].size() != properSize) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        bool allEmpty() const {
+            for (const auto &f : features) {
+                if (!f.empty()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        RawExtractedFeatures() {clearAll();}
+    } _rawExtractedFeatures;
+    // std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
     //=============================================================================================================================
     // the following are used in reshape():
     typedef std::pair<float, float> Range;

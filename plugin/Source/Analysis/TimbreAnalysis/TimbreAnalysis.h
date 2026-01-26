@@ -29,7 +29,8 @@ FeatureContainer<vecReal> calculateTimbres(std::span<Real const> waveSpan, Analy
 
 vecVecReal PCA(vecVecReal const &V, int num_features_out);
 
-std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim);
+std::pair<Real, Real> calculateRangeOfDimension(vecReal const &V);  // single-dimensional input
+std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, size_t dim);   // eventwise input
 Real calculateNormalizationMultiplier(const std::pair<Real, Real> &range);
 
 } // namespace nvs::analysis

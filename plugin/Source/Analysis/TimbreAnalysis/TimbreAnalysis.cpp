@@ -378,6 +378,22 @@ vecVecReal PCA(vecVecReal const &V, int num_features_out){
     return PCAmat;
 }
 
+std::pair<Real, Real> calculateRangeOfDimension(vecReal const &V){
+    Real min {std::numeric_limits<Real>::max()};
+    Real max {std::numeric_limits<Real>::lowest()};
+
+    for (const float val : V){
+        if (val < min){
+            min = val;
+        }
+        if (val > max){
+            max = val;
+        }
+    }
+
+    return std::make_pair(min, max);
+}
+
 std::pair<Real, Real> calculateRangeOfDimension(vecVecReal const &V, const size_t dim){
     Real min {std::numeric_limits<Real>::max()};
     Real max {std::numeric_limits<Real>::lowest()};
