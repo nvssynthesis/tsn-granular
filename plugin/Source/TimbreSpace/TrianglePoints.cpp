@@ -4,7 +4,7 @@
 namespace nvs::timbrespace {
 
 
-std::optional<TrianglePoints> TrianglePoints::create(const delaunator::Delaunator& d, size_t triangleIdx)
+std::optional<TrianglePoints> TrianglePoints::create(const delaunator::Delaunator& d, const size_t triangleIdx)
 {
     const size_t t0 = triangleIdx * 3;
     const size_t t1 = t0 + 1;

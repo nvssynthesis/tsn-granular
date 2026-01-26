@@ -14,10 +14,10 @@ RangeSlider::RangeSlider ()
 // To enable the section between the two thumbs to be draggable.
 void RangeSlider::mouseDown (const MouseEvent& event)
 {
-    const float currentMouseX = event.getPosition().getX();
-    const int thumbRadius = getLookAndFeel().getSliderThumbRadius (*this);
-    xMinAtThumbDown = valueToProportionOfLength (getMinValue()) * getWidth();
-    xMaxAtThumbDown = valueToProportionOfLength (getMaxValue()) * getWidth();
+    const auto currentMouseX = static_cast<float>(event.getPosition().getX());
+    const auto thumbRadius = static_cast<float>(getLookAndFeel().getSliderThumbRadius (*this));
+    xMinAtThumbDown = static_cast<float>(valueToProportionOfLength (getMinValue()) * getWidth());
+    xMaxAtThumbDown = static_cast<float>(valueToProportionOfLength (getMaxValue()) * getWidth());
 
     if (currentMouseX > xMinAtThumbDown + thumbRadius && currentMouseX < xMaxAtThumbDown - thumbRadius)
     {
@@ -29,16 +29,18 @@ void RangeSlider::mouseDown (const MouseEvent& event)
         Slider::mouseDown (event);
     }
 }
-
 // To enable the section between the two thumbs to be draggable.
 void RangeSlider::mouseDrag (const MouseEvent& event)
 {
-    const float distanceFromStart = event.getDistanceFromDragStartX();
+    if (xMinAtThumbDown == 0.f && xMaxAtThumbDown == 0.f) {    // not set
+        return;
+    }
+    const auto distanceFromStart = static_cast<float>(event.getDistanceFromDragStartX());
 
     if (mouseDragBetweenThumbs)
     {
-        const auto lower = nvs::memoryless::clamp((xMinAtThumbDown + distanceFromStart) / getWidth(), 0.f, 1.f);
-        const auto upper = nvs::memoryless::clamp((xMaxAtThumbDown + distanceFromStart) / getWidth(), 0.f, 1.f);
+        const auto lower = nvs::memoryless::clamp((xMinAtThumbDown + distanceFromStart) / static_cast<float>(getWidth()), 0.f, 1.f);
+        const auto upper = nvs::memoryless::clamp((xMaxAtThumbDown + distanceFromStart) / static_cast<float>(getWidth()), 0.f, 1.f);
 
         setMinValue (proportionOfLengthToValue (lower));
         setMaxValue (proportionOfLengthToValue (upper));
@@ -87,6 +89,13 @@ AttachedRangeSlider::AttachedRangeSlider(juce::AudioProcessorValueTreeState& apv
     _slider.setLookAndFeel(&lookAndFeel);
     _slider.addListener(this);
 
+    _apvts.addParameterListener(_min_param_ID, this);
+    _apvts.addParameterListener(_max_param_ID, this);
+    _slider.setMinAndMaxValues(
+        *_apvts.getRawParameterValue(_min_param_ID),
+        *_apvts.getRawParameterValue(_max_param_ID),
+        juce::dontSendNotification);
+
     // Label
     addAndMakeVisible(_label);
     juce::String displayName = baseParamID.replace("_", " ");
@@ -94,19 +103,21 @@ AttachedRangeSlider::AttachedRangeSlider(juce::AudioProcessorValueTreeState& apv
     _label.setJustificationType(juce::Justification::centred);
     _label.attachToComponent(&_slider, false);
 }
-
+void AttachedRangeSlider::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
+    DBG("TREE REDIRECTED!");
+}
 void AttachedRangeSlider::sliderValueChanged (Slider *) {
     // Update both parameters
     if (auto* minParam = _apvts.getParameter(_min_param_ID))
     {
-        const float minVal = _slider.getMinValue();
+        const float minVal = static_cast<float>(_slider.getMinValue());
         DBG(minVal);
         minParam->setValueNotifyingHost(minVal);
     }
 
     if (auto* maxParam = _apvts.getParameter(_max_param_ID))
     {
-        const float maxVal = _slider.getMaxValue();
+        const float maxVal = static_cast<float>(_slider.getMaxValue());
         DBG(maxVal);
         maxParam->setValueNotifyingHost(maxVal);
     }
@@ -114,6 +125,7 @@ void AttachedRangeSlider::sliderValueChanged (Slider *) {
 
 void AttachedRangeSlider::parameterChanged(const juce::String& parameterID, float newValue)
 {
+    DBG("PARAMETER CHANGED");
     // Denormalize from 0-1 to slider range
     auto denormalised = newValue * (_slider.getMaximum() - _slider.getMinimum()) + _slider.getMinimum();
 

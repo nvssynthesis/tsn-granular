@@ -15,13 +15,14 @@ private:
     void mouseDrag (const MouseEvent& event) override;
 
     bool mouseDragBetweenThumbs;
-    float xMinAtThumbDown;
-    float xMaxAtThumbDown;
+    float xMinAtThumbDown {0.f};
+    float xMaxAtThumbDown {0.f};
 };
 
 class AttachedRangeSlider final : public juce::Component
 ,                                private juce::Slider::Listener
 ,                                private juce::AudioProcessorValueTreeState::Listener
+,   						     private juce::ValueTree::Listener
 {
     using ParameterDef = nvs::param::ParameterDef;
     using Slider = juce::Slider;
@@ -38,8 +39,7 @@ public:
         _slider.setBounds(getLocalBounds());
     }
 
-    void sliderValueChanged (Slider *) override;
-    void parameterChanged(const juce::String& parameterID, float newValue) override;
+
 private:
     juce::LookAndFeel_V4 lookAndFeel;
     AudioProcessorValueTreeState& _apvts;
@@ -52,6 +52,10 @@ private:
 
     String _min_param_name;
     String _max_param_name;
+
+    void sliderValueChanged (Slider *) override;
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
+    void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AttachedRangeSlider)
 };

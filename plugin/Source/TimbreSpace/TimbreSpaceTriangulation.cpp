@@ -734,7 +734,7 @@ size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx
     return d.triangles[halfedgeIdx];
 }
 
-std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Point2D &_p, const size_t startTri) {
+std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Point2D &_p, size_t startTri) {
     // traverses the triangulation T, following the line segment from q to p.
 
     printTriangles(d);
@@ -747,6 +747,7 @@ std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Point2
     _Vertex l(d, "l");
     _Vertex s(d, "s");
 
+    startTri = std::min(startTri, d.triangles.size() / 3); // prevent lookup error int triangle points::create
     const auto qrlOpt = TrianglePoints::create(d, startTri);
     assert(qrlOpt != std::nullopt);
 
