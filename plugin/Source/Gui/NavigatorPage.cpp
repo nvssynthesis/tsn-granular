@@ -9,7 +9,7 @@
 */
 
 #include "NavigatorPage.h"
-
+#include "AttachedRangedSlider.h"
 #include "Navigation/Navigator.h"
 
 NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts,
@@ -17,15 +17,42 @@ NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts,
                                const bool isHorizontal)
     : horizontal(isHorizontal)
 {
+    std::set<juce::String> processedRangeBases;  // track any range pairs already created
+
     for (auto &p : nvs::param::ParameterRegistry::getParametersForSubGroup(paramsSubGroup)){
-        if (p.getParameterType() == nvs::param::ParameterType::Float) {
+        // Check if this is a min/max parameter
+        if (p.ID.endsWith("_min") || p.ID.endsWith("_max")) {
+            // Extract base ID (everything before _min or _max)
+            juce::String baseID = p.ID.endsWith("_min")
+                ? p.ID.dropLastCharacters(4)  // Remove "_min"
+                : p.ID.dropLastCharacters(4); // Remove "_max"
+
+            // Skip if we already processed this range pair
+            if (processedRangeBases.count(baseID) > 0) {
+                continue;
+            }
+
+            // Mark as processed
+            processedRangeBases.insert(baseID);
+
+            // Create range slider
+            auto rangeSlider = std::make_unique<AttachedRangeSlider>(
+                apvts,
+                baseID,
+                isHorizontal ? Slider::SliderStyle::TwoValueVertical
+                             : Slider::SliderStyle::TwoValueHorizontal
+            );
+            addAndMakeVisible(rangeSlider.get());
+            components.push_back(std::move(rangeSlider));
+        }
+        else if (p.getParameterType() == nvs::param::ParameterType::Float) {
             auto slider = std::make_unique<AttachedSlider>(apvts, p, isHorizontal ? Slider::SliderStyle::LinearVertical : Slider::SliderStyle::LinearHorizontal);
             addAndMakeVisible(slider.get());
             components.push_back(std::move(slider));
         }
         else if (p.getParameterType() == nvs::param::ParameterType::Choice) {
             if (p.ID == nvs::axiom::statistic) {
-                continue;
+                continue;   // more of a sanity check/understanding and debugging param, not for users
             }
             auto cb = std::make_unique<AttachedComboBox>(apvts, p);
             addAndMakeVisible(cb.get());
