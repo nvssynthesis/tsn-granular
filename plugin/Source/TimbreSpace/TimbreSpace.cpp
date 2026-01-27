@@ -526,8 +526,8 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
 		return;
 	}
-    _rawExtractedFeatures.clearAll();
-    _rawExtractedFeatures.reserveAll(_treeManager.getNumFrames());
+    _extractedFeatures.clearAll();
+    _extractedFeatures.reserveAll(_treeManager.getNumFrames());
 	
 	auto const &timbralFramesTree = _treeManager.getTimbralFramesTree();
 	for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
@@ -535,9 +535,38 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 		std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
 	    jassert(v.size() == 5);
 	    for (size_t featIdx = 0; featIdx < v.size(); ++featIdx) {
-	        _rawExtractedFeatures.features[featIdx].push_back(v[featIdx]);
+	        _extractedFeatures.features[featIdx].push_back(v[featIdx]);
 	    }
 	}
+    {
+        // decorrelate!
+        using namespace essentia;
+        auto &features = _extractedFeatures.features;
+
+        // compute means
+        const auto x0_mean = mean(features[0]);
+        const auto x1_mean = mean(features[1]);
+
+        // center in place
+        std::transform(features[0].begin(), features[0].end(), features[0].begin(),
+                       [x0_mean](float x) { return x - x0_mean; });
+        std::transform(features[1].begin(), features[1].end(), features[1].begin(),
+                       [x1_mean](float x) { return x - x1_mean; });
+
+        // compute covariance and variance on centered data (pass 0.0 as mean)
+        const auto x0_x1_covar = covariance(features[0], 0.0f,
+                                            features[1], 0.0f);
+        const auto x0_var = variance(features[0], 0.0f);
+
+        // decorrelate x1 from x0
+        const float beta = x0_x1_covar / x0_var;
+        std::transform(features[1].begin(), features[1].end(),
+                       features[0].begin(),
+                       features[1].begin(),
+                       [beta](float x1, float x0) {
+                           return x1 - beta * x0;
+                       });
+    }
 }
 
 std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
@@ -571,33 +600,33 @@ void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
     if(verbose)
         DBG("updating timbre points\n");
 
-	if (_rawExtractedFeatures.allEmpty()){
+	if (_extractedFeatures.allEmpty()){
 		if (verbose)
 		    DBG("updateAndDrawTimbreSpacePoints: raw features empty, returning...\n");
 		return;
 	}
-	if (!_rawExtractedFeatures.inValidState()) {
+	if (!_extractedFeatures.inValidState()) {
 	    if (verbose)
 	        DBG("updateAndDrawTimbreSpacePoints: raw features in invalid state, returning...\n");
 	    return;
 	}
 	{
-		auto const n_dim = _rawExtractedFeatures.features.size();
+		auto const n_dim = _extractedFeatures.features.size();
 		_ranges.clear();
 		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_rawExtractedFeatures.features[i]));
+			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_extractedFeatures.features[i]));
 		}
 	}
 	{
 		std::vector<float> allDim0, allDim1;
-		allDim0.reserve(_rawExtractedFeatures.features[0].size());
-		allDim1.reserve(_rawExtractedFeatures.features[0].size());
-		for (auto const& frame : _rawExtractedFeatures.features[0]){
+		allDim0.reserve(_extractedFeatures.features[0].size());
+		allDim1.reserve(_extractedFeatures.features[0].size());
+		for (auto const& frame : _extractedFeatures.features[0]){
 			allDim0.push_back(frame);	// e.g. bfcc1
 		}
-        for (auto const& frame : _rawExtractedFeatures.features[1]){
+        for (auto const& frame : _extractedFeatures.features[1]){
             allDim1.push_back(frame);	// e.g. bfcc2
         }
         _histoEqualizedD0 = getHistoEqualizationVec(allDim0);
@@ -609,44 +638,47 @@ void TimbreSpace::reshape(const bool verbose)
     if (verbose)
         DBG("reshaping timbre space\n");
 
-    if (_rawExtractedFeatures.allEmpty()){
+    if (_extractedFeatures.allEmpty()){
         if (verbose)
             DBG("drawTimbreSpacePoints: raw features empty, returning...");
         return;
     }
-    if (!_rawExtractedFeatures.inValidState()) {
+    if (!_extractedFeatures.inValidState()) {
         if (verbose)
             DBG("drawTimbreSpacePoints: raw features in invalid state, returning...\n");
         return;
     }
     static constexpr size_t nDim {5};
-    if (_rawExtractedFeatures.features.size() != _ranges.size() || nDim != _rawExtractedFeatures.features.size()){
+    if ((_extractedFeatures.features.size() != _ranges.size()) || (nDim != _ranges.size())){
         if (verbose)
             DBG("drawTimbreSpacePoints: point size mismatch, exiting early");
         jassertfalse;
         return;
     }
     
-    auto normalizer = [](float x, std::pair<float, float> range) -> float
+    auto normalizer = [](const float x, const std::pair<float, float> &range) -> float
     {
-        auto r = (range.second - range.first);
+        const auto r = (range.second - range.first);
         auto y01 = (x - range.first);
         if (r != 0){
             y01 /= r;
         }
         return juce::jmap(y01, -1.f, 1.f);
     };
-    
+
     auto squash = [](const float xNorm) -> float { return std::asinh(10.0f*xNorm) / static_cast<float>(M_PI); };
-    auto foo = [&](const float x, const std::pair<float, float> &range) -> float { return squash(normalizer(x, range)); };
+    auto foo = [&](const float x, const std::pair<float, float> &range) -> float {
+        return normalizer(x, range);
+        // return squash(normalizer(x, range));
+    };
 
     // clear points of timbreSpaceHolds
     clearPoints(); // clearing to make way for points we're about to be adding
-    const auto numFrames = _rawExtractedFeatures.features[0].size();
+    const auto numFrames = _extractedFeatures.features[0].size();
 
     std::vector<Timbre5DPoint> points;
     points.reserve(numFrames);
-    const auto &features = _rawExtractedFeatures.features;
+    const auto &features = _extractedFeatures.features;
     for (size_t i = 0; i < numFrames; ++i) {
         // ========================================2D========================================
         // squash normalized points within dimension range

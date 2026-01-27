@@ -124,7 +124,7 @@ private:
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
-    struct RawExtractedFeatures {
+    struct ExtractedFeatures {
         std::array<std::vector<float>, 5> features {};
         void clearAll() {
             for (auto &feature : features) {
@@ -153,8 +153,8 @@ private:
             }
             return true;
         }
-        RawExtractedFeatures() {clearAll();}
-    } _rawExtractedFeatures;
+        ExtractedFeatures() {clearAll();}
+    } _extractedFeatures;
     // std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
     //=============================================================================================================================
     // the following are used in reshape():
