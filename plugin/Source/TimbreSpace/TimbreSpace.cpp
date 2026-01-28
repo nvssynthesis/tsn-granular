@@ -548,10 +548,10 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
         const auto x1_mean = mean(features[1]);
 
         // center in place
-        std::transform(features[0].begin(), features[0].end(), features[0].begin(),
-                       [x0_mean](float x) { return x - x0_mean; });
-        std::transform(features[1].begin(), features[1].end(), features[1].begin(),
-                       [x1_mean](float x) { return x - x1_mean; });
+        std::ranges::transform(features[0], features[0].begin(),
+                               [x0_mean](float x) { return x - x0_mean; });
+        std::ranges::transform(features[1], features[1].begin(),
+                               [x1_mean](float x) { return x - x1_mean; });
 
         // compute covariance and variance on centered data (pass 0.0 as mean)
         const auto x0_x1_covar = covariance(features[0], 0.0f,
