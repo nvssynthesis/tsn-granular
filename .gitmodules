@@ -4,3 +4,6 @@
 [submodule "plugin/delaunator-cpp"]
         path = plugin/delaunator-cpp
         url = https://github.com/nvssynthesis/delaunator-cpp.git
+[submodule "tsn-analyzer"]
+	path = tsn-analyzer
+	url = https://github.com/nvssynthesis/tsn-analyzer.git
