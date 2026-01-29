@@ -11,7 +11,7 @@
 #include "Analysis/ThreadedAnalyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetProcessing.h"
 #include "StringAxiom.h"
-#include "../../slicer_granular/Source/misc_util_juce.h"
+#include "util.h"
 
 namespace nvs::analysis {
 

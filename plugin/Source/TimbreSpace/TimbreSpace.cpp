@@ -17,6 +17,7 @@
 #include "fmt/core.h"
 #include "StringAxiom.h"
 #include "dsp_util.h"
+#include "Analysis/util.h"
 
 namespace nvs::timbrespace {
 
@@ -265,7 +266,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 			frameTree.addChild(bfccsTree, -1, nullptr);
 			
 			// Add single-value features
-		    for (auto feature : nvs::util::Iterator<analysis::Feature_e, static_cast<analysis::Feature_e>(analysis::NumBFCC), analysis::Feature_e::f0>()) {
+		    for (auto feature : util::Iterator<analysis::Feature_e, static_cast<analysis::Feature_e>(analysis::NumBFCC), analysis::Feature_e::f0>()) {
 		        ValueTree featureTree(analysis::toString(feature));
 		        addEventwiseStatistics(featureTree, timbreFrame[feature]);
 		        frameTree.addChild(featureTree, -1, nullptr);

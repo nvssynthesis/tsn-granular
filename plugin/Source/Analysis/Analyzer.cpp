@@ -10,14 +10,16 @@
 
 #include "Analysis/Analyzer.h"
 #include "Analysis/OnsetAnalysis/OnsetAnalysis.h"
+#include "util.h"
 #include "../plugin/slicer_granular/Source/algo_util.h"
 #include "../plugin/slicer_granular/Source/misc_util_juce.h"
 #include <concepts>
 
+
 namespace nvs::analysis {
 
 Analyzer::Analyzer()
-:	ess_init()  // don't delete this seemingly unnecessary construction-it is a good reminder that ess_init MUST be initialized first
+:	ess_init()  // NOLINT don't delete this seemingly unnecessary construction-it is a good reminder that ess_init MUST be initialized first
 ,	ess_hold(ess_init)
 {}
 
