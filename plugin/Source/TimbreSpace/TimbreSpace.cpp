@@ -11,13 +11,13 @@
 #include "TimbreSpace.h"
 #include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "../../slicer_granular/Source/misc_util_juce.h"
-#include "Analysis/ThreadedAnalyzer.h"
-#include "Analysis/FeatureOperations.h"
+#include "ThreadedAnalyzer.h"
+#include "FeatureOperations.h"
 #include <ranges>
 #include "fmt/core.h"
 #include "StringAxiom.h"
 #include "dsp_util.h"
-#include "Analysis/util.h"
+#include "../tsn-analyzer/Source/lib/util.h"
 
 namespace nvs::timbrespace {
 

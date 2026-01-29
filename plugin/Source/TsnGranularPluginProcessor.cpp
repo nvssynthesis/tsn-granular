@@ -3,8 +3,8 @@
 #include "StringAxiom.h"
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
-#include "Analysis/Settings.h"
-#include "Analysis/OnsetAnalysis/OnsetProcessing.h"
+#include "Settings.h"
+#include "OnsetAnalysis/OnsetProcessing.h"
 
 //==============================================================================
 
@@ -73,11 +73,11 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
      themselves, which would allow to load analysis file and populate the settings of the plugin instance?
     */
     const auto tsTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree();
-	auto timbreSpaceMetaDataTree = tsTree.getChildWithName(nvs::axiom::Metadata);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::sampleFilePath, apvts.state.getProperty(nvs::axiom::sampleFilePath), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::sampleRate, apvts.state.getProperty(nvs::axiom::sampleRate), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::audioHash, sampleManagementGuts.getWaveformHash(), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::settingsHash, _analyzer.getSettingsHash(), nullptr);
+	auto timbreSpaceMetaDataTree = tsTree.getChildWithName(nvs::axiom::tsn::Metadata);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::sampleFilePath, apvts.state.getProperty(nvs::axiom::tsn::sampleFilePath), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::sampleRate, apvts.state.getProperty(nvs::axiom::tsn::sampleRate), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::audioHash, sampleManagementGuts.getWaveformHash(), nullptr);
+	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::settingsHash, _analyzer.getSettingsHash(), nullptr);
 	analysisVT.addChild(tsTree, 1, nullptr);
 
     DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisVT).toStdString()));
@@ -160,7 +160,7 @@ void TSNGranularAudioProcessor::writeEvents(){
 		return;
 	}
 
-    auto settingsVT = apvts.state.getChildWithName(nvs::axiom::Settings);
+    auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
     _analyzer.updateSettings(settingsVT, true);
 
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
@@ -173,12 +173,12 @@ void TSNGranularAudioProcessor::writeEvents(){
 	std::vector<float> onsetsTmp = sharedOnsets->onsets;
 
     auto const par = settingsVT.getParent();
-    const auto fileInfoTree = par.getChildWithName(nvs::axiom::FileInfo);
-    jassert (fileInfoTree.hasProperty(nvs::axiom::sampleRate));
+    const auto fileInfoTree = par.getChildWithName(nvs::axiom::tsn::FileInfo);
+    jassert (fileInfoTree.hasProperty(nvs::axiom::tsn::sampleRate));
 
     const auto sampleFilePath = [fileInfoTree, sharedOnsets]()-> std::string {
-        jassert (fileInfoTree.hasProperty(nvs::axiom::sampleFilePath));
-	    const juce::String sfp = fileInfoTree.getProperty(nvs::axiom::sampleFilePath);
+        jassert (fileInfoTree.hasProperty(nvs::axiom::tsn::sampleFilePath));
+	    const juce::String sfp = fileInfoTree.getProperty(nvs::axiom::tsn::sampleFilePath);
 	    jassert(!sfp.isEmpty());
 	    if (sharedOnsets->audioFileAbsPath != sfp) {
 	        DBG("TSNGranularAudioProcessor::writeEvents failed: file path mismatch, returning early\n");
@@ -190,7 +190,7 @@ void TSNGranularAudioProcessor::writeEvents(){
         return; // file path mismatch
     }
 
-    const float sr = fileInfoTree.getProperty(nvs::axiom::sampleRate);
+    const float sr = fileInfoTree.getProperty(nvs::axiom::tsn::sampleRate);
 	nvs::analysis::denormalizeOnsets(onsetsTmp, nvs::analysis::getLengthInSeconds(wave.size(), sr));
 	
 	nvs::analysis::RunLoopStatus rls;
@@ -212,23 +212,23 @@ void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
 }
 
 void TSNGranularAudioProcessor::ensureSettingsStructure() {
-    if (const auto settings = apvts.state.getChildWithName(nvs::axiom::Settings);
+    if (const auto settings = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
         !nvs::analysis::verifySettingsStructure(settings))
     {
-        juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::Settings, nullptr);
+        juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
         nvs::analysis::initializeSettingsBranches(settingsVT);
     }
 }
 bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
     /// designated directory, manual find, and give up (just perform fresh analysis)
-    const auto fileInfo = apvts.state.getChildWithName(nvs::axiom::FileInfo);
+    const auto fileInfo = apvts.state.getChildWithName(nvs::axiom::tsn::FileInfo);
 	writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
     if (!fileInfo.isValid()) {
 		writeToLog("file info value tree invalid\n");
     	return false;
     }
-    const juce::String analysisFilePath = fileInfo.getProperty(nvs::axiom::analysisFile, {});
+    const juce::String analysisFilePath = fileInfo.getProperty(nvs::axiom::tsn::analysisFile, {});
 	writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
 
     if (analysisFilePath.isEmpty()) {
@@ -248,12 +248,12 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
 
     const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
 
-    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName(nvs::axiom::TimbreAnalysis);
+    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
         analysisFileTree.isValid())
     {
         DBG(fmt::format("tree being set: {}", nvs::util::valueTreeToXmlStringSafe(analysisFileTree).toStdString()));
     	// we need to know if we even SHOULD load the analysisFile pointed to by the state
-    	if (auto metadataTree = analysisFileTree.getChildWithName(nvs::axiom::Metadata);
+    	if (auto metadataTree = analysisFileTree.getChildWithName(nvs::axiom::tsn::Metadata);
 			metadataTree.isValid() &&
 			nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     	{

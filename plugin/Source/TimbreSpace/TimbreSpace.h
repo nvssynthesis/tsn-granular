@@ -9,11 +9,12 @@
 */
 
 #pragma once
-#include "../Analysis/Features.h"
-#include "../Analysis/Statistics.h"
-#include "../Analysis/OnsetAnalysis/OnsetAnalysisResult.h"
+#include "Features.h"
+#include "Statistics.h"
+#include "OnsetAnalysis/OnsetAnalysisResult.h"
 #include "TimbrePointTypes.h"
 #include "../../delaunator-cpp/include/delaunator.hpp"
+#include <JuceHeader.h>
 
 namespace nvs::timbrespace {
 

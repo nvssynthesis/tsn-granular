@@ -9,14 +9,10 @@
 */
 
 #pragma once
-#include "Analysis/ThreadedAnalyzer.h"
+#include "ThreadedAnalyzer.h"
+#include "OnsetAnalysis/OnsetAnalysisResult.h"
 #include "../slicer_granular/Source/Synthesis/GranularSynthesis.h"
-#include "Analysis/OnsetAnalysis/OnsetAnalysisResult.h"
 #include "../slicer_granular/Source/IndexTypes.h"
-#include <JuceHeader.h>
-
-#include "Navigation/NavigationManager.h"
-
 
 /** TODO:
 	-bake in some way to be sure that the currently held onsets match the current span

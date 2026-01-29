@@ -6,7 +6,8 @@
 #include "TimbreSpacePointSelector.h"
 #include "TimbreSpaceTriangulation.h"
 #include "dsp_util.h"
-#include "StringAxiom.h"
+#include "../slicer_granular/Source/StringAxiom.h"
+#include "../tsn-analyzer/Source/lib/StringAxiom.h"
 
 namespace nvs::timbrespace {
 
@@ -28,12 +29,12 @@ void TimbreSpacePointSelector::valueTreePropertyChanged (ValueTree &alteredTree,
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
-        if (paramID == nvs::axiom::filtered_feature) {
+        if (paramID == nvs::axiom::tsn::filtered_feature) {
             updateRanksForFilteredFeature();
             updateGlobalFilter();
             return;
         }
-        if ((paramID == nvs::axiom::filtered_feature_min) || (paramID == nvs::axiom::filtered_feature_max)) {
+        if ((paramID == nvs::axiom::tsn::filtered_feature_min) || (paramID == nvs::axiom::tsn::filtered_feature_max)) {
             // ideally we should only update these when their slider is RELEASED, not as it drags!
             updateGlobalFilter();
             return;
@@ -42,12 +43,12 @@ void TimbreSpacePointSelector::valueTreePropertyChanged (ValueTree &alteredTree,
 }
 
 void TimbreSpacePointSelector::actionListenerCallback(const String &message) {
-    if (message == axiom::timbreSpaceTreeChanged) {
+    if (message == axiom::tsn::timbreSpaceTreeChanged) {
         _featurewiseRankIndices.clear();    // first time around for new dataset, we must clear its state
         updateRanksForFilteredFeature();    // and then fill it in for the currently selected feature
         reserveWrappedPoints();
     }
-    if (message == axiom::shapedPointsAvailable) {
+    if (message == axiom::tsn::shapedPointsAvailable) {
         updateGlobalFilter();
     }
 }
@@ -61,8 +62,8 @@ void TimbreSpacePointSelector::reserveWrappedPoints() {
 void TimbreSpacePointSelector::updateGlobalFilter() {
     const auto &rawPoints = _timbreSpace.getTimbreSpacePoints();
 
-    const float minFrac = _apvts.getRawParameterValue(nvs::axiom::filtered_feature_min)->load();
-    const float maxFrac = _apvts.getRawParameterValue(nvs::axiom::filtered_feature_max)->load();
+    const float minFrac = _apvts.getRawParameterValue(nvs::axiom::tsn::filtered_feature_min)->load();
+    const float maxFrac = _apvts.getRawParameterValue(nvs::axiom::tsn::filtered_feature_max)->load();
 
     typedef signed long long SLL;
 
@@ -174,9 +175,9 @@ std::vector<size_t> computeRanks(const std::vector<float>& featureValues) {
     return ranks;
 }
 void TimbreSpacePointSelector::updateRanksForFilteredFeature() {
-    _filteredFeature = static_cast<nvs::analysis::Feature_e>(_apvts.getRawParameterValue(axiom::filtered_feature)->load());
-    _filteredFeatureTargetRangeNormalized.first = _apvts.getRawParameterValue(axiom::filtered_feature_min)->load();
-    _filteredFeatureTargetRangeNormalized.second = _apvts.getRawParameterValue(axiom::filtered_feature_max)->load();
+    _filteredFeature = static_cast<nvs::analysis::Feature_e>(_apvts.getRawParameterValue(axiom::tsn::filtered_feature)->load());
+    _filteredFeatureTargetRangeNormalized.first = _apvts.getRawParameterValue(axiom::tsn::filtered_feature_min)->load();
+    _filteredFeatureTargetRangeNormalized.second = _apvts.getRawParameterValue(axiom::tsn::filtered_feature_max)->load();
 
     const auto vals = _timbreSpace.getRawFeatureValues(_filteredFeature);
 

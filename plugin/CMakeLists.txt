@@ -6,247 +6,30 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
-include(ExternalProject)
 
 # Options for external dependencies
 option(USE_SYSTEM_LIBRARIES "Use system-installed libraries instead of fetching" OFF)
 
-# JUCE setup options - these will be passed to slicer_granular
+# JUCE setup options
 set(JUCE_DIR "" CACHE PATH "Path to JUCE framework (leave empty to use bundled JUCE in slicer_granular/JUCE subdirectory)")
 option(JUCE_FETCH_IF_MISSING "Automatically fetch JUCE if JUCE_DIR is not set and JUCE/ subdirectory doesn't exist" ON)
 set(JUCE_VERSION "8.0.10" CACHE STRING "JUCE version to fetch if JUCE_FETCH_IF_MISSING is ON")
 
 find_package(Eigen3 REQUIRED NO_MODULE)
 
-# Set the Eigen include directory for use in your build
 if(TARGET Eigen3::Eigen)
     get_target_property(EIGEN_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
     message(STATUS "Found Eigen3: ${EIGEN_INCLUDE_DIR}")
-else()
-    # Fallback if the target approach doesn't work
-    find_path(EIGEN_INCLUDE_DIR
-            NAMES Eigen/Dense
-            PATHS
-            /opt/homebrew/include/eigen3
-            /usr/local/include/eigen3
-            /usr/include/eigen3
-            NO_DEFAULT_PATH
-    )
-    if(EIGEN_INCLUDE_DIR)
-        message(STATUS "Found Eigen3 headers: ${EIGEN_INCLUDE_DIR}")
-    else()
-        message(FATAL_ERROR "Could not find Eigen3 headers")
-    endif()
-endif()
-
-# Check if Essentia directory exists and has content, if not clone it
-set(ESSENTIA_DIR "${CMAKE_SOURCE_DIR}/essentia")
-set(ESSENTIA_INSTALL_DIR "${CMAKE_BINARY_DIR}/essentia_install")
-
-if(NOT EXISTS "${ESSENTIA_DIR}/wscript")
-    message(STATUS "Essentia not found or incomplete, cloning from GitHub...")
-
-    if(EXISTS "${ESSENTIA_DIR}")
-        message(STATUS "Removing incomplete Essentia directory...")
-        file(REMOVE_RECURSE "${ESSENTIA_DIR}")
-    endif()
-
-    execute_process(
-            COMMAND git clone --depth 1 https://github.com/MTG/essentia.git "${ESSENTIA_DIR}"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            RESULT_VARIABLE GIT_CLONE_RESULT
-            OUTPUT_VARIABLE GIT_CLONE_OUTPUT
-            ERROR_VARIABLE GIT_CLONE_ERROR
-    )
-
-    if(NOT GIT_CLONE_RESULT EQUAL 0)
-        message(STATUS "Git clone output: ${GIT_CLONE_OUTPUT}")
-        message(STATUS "Git clone error: ${GIT_CLONE_ERROR}")
-        message(FATAL_ERROR "Failed to clone Essentia repository")
-    endif()
-
-    message(STATUS "Essentia cloned successfully")
-else()
-    message(STATUS "Found existing Essentia directory: ${ESSENTIA_DIR}")
-endif()
-
-# Build Essentia using its waf build system
-message(STATUS "Building Essentia with waf...")
-
-# Find Python executable
-find_program(PYTHON3_EXECUTABLE
-        NAMES python3.11 python3.10 python3.9 python3.8 python3
-        DOC "Python 3 interpreter for building Essentia"
-)
-
-if(NOT PYTHON3_EXECUTABLE)
-    message(FATAL_ERROR "Could not find Python 3 executable")
-endif()
-
-message(STATUS "Using Python: ${PYTHON3_EXECUTABLE}")
-
-# Check Python version
-execute_process(
-        COMMAND ${PYTHON3_EXECUTABLE} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
-        OUTPUT_VARIABLE PYTHON_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-message(STATUS "Python version: ${PYTHON_VERSION}")
-
-# Configure Essentia with minimal dependencies
-message(STATUS "Configuring Essentia...")
-
-# Set up proper environment for macOS
-if(APPLE)
-    # Find the macOS SDK
-    execute_process(
-            COMMAND xcrun --show-sdk-path
-            OUTPUT_VARIABLE MACOS_SDK_PATH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    message(STATUS "macOS SDK path: ${MACOS_SDK_PATH}")
-
-    set(ESSENTIA_ENV
-            "SDKROOT=${MACOS_SDK_PATH}"
-            "CPPFLAGS=-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}"
-            "CFLAGS=-isysroot ${MACOS_SDK_PATH}"
-            "CXXFLAGS=-isysroot ${MACOS_SDK_PATH} -I${EIGEN_INCLUDE_DIR}"
-            "LDFLAGS=-isysroot ${MACOS_SDK_PATH}"
-    )
-else()
-    # For Linux, just add Eigen to the compiler flags
-    set(ESSENTIA_ENV
-            "CPPFLAGS=-I${EIGEN_INCLUDE_DIR}"
-            "CXXFLAGS=-I${EIGEN_INCLUDE_DIR}"
-    )
-endif()
-message(STATUS "Using Eigen from: ${EIGEN_INCLUDE_DIR}")
-
-# Set parallel jobs - use a default if CMAKE_BUILD_PARALLEL_LEVEL is not set
-if(NOT CMAKE_BUILD_PARALLEL_LEVEL)
-    set(CMAKE_BUILD_PARALLEL_LEVEL 4)
-endif()
-
-# Use ExternalProject_Add to build Essentia properly
-ExternalProject_Add(essentia_external
-        SOURCE_DIR ${ESSENTIA_DIR}
-        DOWNLOAD_COMMAND ""  # Already cloned above
-        CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
-        ${PYTHON3_EXECUTABLE} waf configure
-        --build-static
-        --prefix=${ESSENTIA_INSTALL_DIR}
-        --lightweight=libsamplerate
-        --fft=ACCELERATE
-        --no-msse
-        BUILD_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
-        ${PYTHON3_EXECUTABLE} waf -j ${CMAKE_BUILD_PARALLEL_LEVEL}
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E env ${ESSENTIA_ENV}
-        ${PYTHON3_EXECUTABLE} waf install
-        BUILD_IN_SOURCE 1
-        BUILD_ALWAYS 0  # Only build when needed
-        LOG_CONFIGURE ON
-        LOG_BUILD ON
-        LOG_INSTALL ON
-)
-
-set(ESSENTIA_INCLUDE_DIRS
-        "${ESSENTIA_DIR}/src"
-        "${EIGEN_INCLUDE_DIR}"
-)
-
-if(APPLE)
-    # Only essential system frameworks for basic functionality
-    find_library(ACCELERATE_FRAMEWORK Accelerate)
-    find_library(CORE_AUDIO_FRAMEWORK CoreAudio)
-    find_library(AUDIO_TOOLBOX_FRAMEWORK AudioToolbox)
-
-    set(ESSENTIA_SYSTEM_LIBRARIES
-            ${ACCELERATE_FRAMEWORK}
-            ${CORE_AUDIO_FRAMEWORK}
-            ${AUDIO_TOOLBOX_FRAMEWORK}
-    )
-
-    # Try to find some basic libraries that might be available
-    find_library(FFTW3_LIB fftw3 PATHS /usr/local/lib /opt/local/lib)
-    find_library(FFTW3F_LIB fftw3f PATHS /usr/local/lib /opt/local/lib)
-
-    # Add libsamplerate for Resample algorithm
-    find_library(SAMPLERATE_LIB samplerate PATHS /usr/local/lib /opt/local/lib /opt/homebrew/lib)
-
-    if(FFTW3_LIB AND FFTW3F_LIB)
-        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${FFTW3_LIB} ${FFTW3F_LIB})
-        message(STATUS "Found FFTW3 libraries: ${FFTW3_LIB}, ${FFTW3F_LIB}")
-    else()
-        message(STATUS "FFTW3 not found, using built-in FFT")
-    endif()
-
-    if(SAMPLERATE_LIB)
-        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${SAMPLERATE_LIB})
-        message(STATUS "Found libsamplerate: ${SAMPLERATE_LIB}")
-    else()
-        message(FATAL_ERROR "libsamplerate not found, but required for Resample algorithm")
-    endif()
-elseif(UNIX)
-    # Minimal Linux dependencies
-    set(ESSENTIA_SYSTEM_LIBRARIES pthread m)
-
-    # Try to find FFTW3 on Linux
-    find_library(FFTW3_LIB fftw3)
-    find_library(FFTW3F_LIB fftw3f)
-    find_library(SAMPLERATE_LIB samplerate)
-
-    if(FFTW3_LIB AND FFTW3F_LIB)
-        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${FFTW3_LIB} ${FFTW3F_LIB})
-    endif()
-
-    if(SAMPLERATE_LIB)
-        list(APPEND ESSENTIA_SYSTEM_LIBRARIES ${SAMPLERATE_LIB})
-    else()
-        message(FATAL_ERROR "libsamplerate not found, but required for Resample algorithm")
-    endif()
-endif()
-
-
-if(EXISTS "${ESSENTIA_INSTALL_DIR}/include")
-    list(APPEND ESSENTIA_INCLUDE_DIRS "${ESSENTIA_INSTALL_DIR}/include")
-    if(EXISTS "${ESSENTIA_INSTALL_DIR}/include/essentia")
-        list(APPEND ESSENTIA_INCLUDE_DIRS "${ESSENTIA_INSTALL_DIR}/include/essentia")
-    endif()
-endif()
-
-set(ESSENTIA_LIBRARY_DIRS "${ESSENTIA_INSTALL_DIR}/lib")
-set(ESSENTIA_LIBRARY "${ESSENTIA_INSTALL_DIR}/lib/libessentia.a")
-
-add_library(essentia_built STATIC IMPORTED GLOBAL)
-set_target_properties(essentia_built PROPERTIES
-        IMPORTED_LOCATION "${ESSENTIA_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${ESSENTIA_INCLUDE_DIRS}"
-        INTERFACE_LINK_LIBRARIES "${ESSENTIA_SYSTEM_LIBRARIES}"
-)
-add_dependencies(essentia_built essentia_external)
-
-# check if library exists at configure time and warn user
-if(NOT EXISTS "${ESSENTIA_LIBRARY}")
-    message(WARNING
-            "Essentia library not found at: ${ESSENTIA_LIBRARY}\n"
-            "If build fails, run: cmake --build . --target essentia_external\n"
-            "Then build again."
-    )
 endif()
 
 # Handle JUCE setup with fallback logic
 if(JUCE_DIR)
-    # User specified their own JUCE path
     message(STATUS "Using user-specified JUCE from: ${JUCE_DIR}")
     add_subdirectory(${JUCE_DIR} juce_build)
 elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/slicer_granular/JUCE/CMakeLists.txt")
-    # Use bundled JUCE in slicer_granular subdirectory (existing setup)
     message(STATUS "Using bundled JUCE from slicer_granular/JUCE/ subdirectory")
     add_subdirectory(slicer_granular/JUCE)
 elseif(JUCE_FETCH_IF_MISSING)
-    # Auto-fetch JUCE if allowed
     message(STATUS "JUCE not found. Fetching JUCE ${JUCE_VERSION}...")
     FetchContent_Declare(
             JUCE
@@ -266,9 +49,15 @@ else()
     )
 endif()
 
+# Add the tsn-analyzer library (handles Essentia internally)
+add_subdirectory(
+        ../tsn-analyzer/Source/lib
+        tsn-analyzer-lib
+)
+
 # Create the plugin target
 juce_add_plugin(tsn-granular
-        COMPANY_NAME "Corrode Audio"
+        COMPANY_NAME "CorrodeAudio"
         IS_SYNTH TRUE
         NEEDS_MIDI_INPUT TRUE
         NEEDS_MIDI_OUTPUT TRUE
@@ -285,15 +74,15 @@ juce_add_plugin(tsn-granular
         AU_SANDBOX_SAFE TRUE
 )
 
-add_dependencies(tsn-granular essentia_external)
-
-# Collect TSN-specific source files
+# Collect TSN-specific source files (excluding Analysis submodule)
 file(GLOB_RECURSE TSN_SOURCE_FILES
         "Source/*.cpp"
         "Source/*.h"
 )
+# Remove the Analysis submodule files from the glob
+list(FILTER TSN_SOURCE_FILES EXCLUDE REGEX "Source/Analysis/.*")
 
-# Add delaunator source directly (bypassing its CMakeLists.txt)
+# Add delaunator source directly
 set(DELAUNATOR_SOURCES
         "delaunator-cpp/src/delaunator.cpp"
 )
@@ -317,15 +106,13 @@ list(REMOVE_ITEM SLICER_SOURCES "${SLICER_SOURCE_DIR}/createPluginFilter.cpp")
 
 target_sources(tsn-granular PRIVATE ${SLICER_SOURCES})
 
-# Copy the dependency fetch logic from slicer_granular/CMakeLists.txt
-# (Xoshiro, and any other FetchContent dependencies)
+# Xoshiro dependency
 set(XOSHIRO_DIR "${CMAKE_SOURCE_DIR}/xoshiro-cpp")
 
 if(USE_SYSTEM_LIBRARIES AND DEFINED XOSHIRO_ROOT)
     set(XOSHIRO_INCLUDE_DIR ${XOSHIRO_ROOT})
     message(STATUS "Using system Xoshiro from: ${XOSHIRO_INCLUDE_DIR}")
 else()
-    # Check if Xoshiro header exists
     if(NOT EXISTS "${XOSHIRO_DIR}/XoshiroCpp.hpp")
         message(STATUS "Xoshiro not found or incomplete, cloning from GitHub...")
 
@@ -373,15 +160,12 @@ target_include_directories(tsn-granular
         SYSTEM PRIVATE  # Suppresses warnings from these includes
         slicer_granular/nvs_libraries/nvs_libraries/external/sprout
         ${XOSHIRO_INCLUDE_DIR}
-        ${ESSENTIA_INCLUDE_DIRS}
+#        ${ESSENTIA_INCLUDE_DIRS}
         delaunator-cpp/include
         PRIVATE
         Source
         slicer_granular/Source
         slicer_granular/nvs_libraries
-        ${EIGEN_INCLUDE_DIR}
-        PUBLIC
-        ${ESSENTIA_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}
 )
 
@@ -389,7 +173,7 @@ target_include_directories(tsn-granular
 target_link_libraries(tsn-granular
         PRIVATE
         fmt::fmt
-        essentia_built
+        tsn_analyzer  # brings in Essentia, Eigen, and JUCE modules automatically
         Eigen3::Eigen
         juce::juce_audio_basics
         juce::juce_audio_devices
@@ -450,8 +234,6 @@ endif()
 # Print configuration info
 message(STATUS "TSN Granular Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
-message(STATUS "  Essentia directory: ${ESSENTIA_DIR}")
-message(STATUS "  Essentia library: ${ESSENTIA_LIBRARY}")
 if(APPLE)
     message(STATUS "  macOS deployment target: 13.0")
 endif()

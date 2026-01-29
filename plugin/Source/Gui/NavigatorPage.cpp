@@ -51,7 +51,7 @@ NavigatorPanel::NavigatorPanel(juce::AudioProcessorValueTreeState &apvts,
             components.push_back(std::move(slider));
         }
         else if (p.getParameterType() == nvs::param::ParameterType::Choice) {
-            if (p.ID == nvs::axiom::statistic) {
+            if (p.ID == nvs::axiom::tsn::statistic) {
                 continue;   // more of a sanity check/understanding and debugging param, not for users
             }
             auto cb = std::make_unique<AttachedComboBox>(apvts, p);

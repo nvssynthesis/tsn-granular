@@ -11,7 +11,7 @@
 #pragma once
 #include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
-#include "../Analysis/Settings.h"
+#include "Settings.h"
 
 class SettingsWindow  : public juce::DocumentWindow
 {

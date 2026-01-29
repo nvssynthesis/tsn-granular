@@ -3,7 +3,7 @@
 */
 #pragma once
 
-#include "./Analysis/ThreadedAnalyzer.h"
+#include "ThreadedAnalyzer.h"
 
 #include "./Synthesis/TSNPolyGrain.h"
 #include "./Synthesis/TSNGranularSynthesizer.h"

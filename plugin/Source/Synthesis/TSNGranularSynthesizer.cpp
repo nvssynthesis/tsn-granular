@@ -54,7 +54,7 @@ TSNGranularSynthesizer::~TSNGranularSynthesizer() {
 }
 //==============================================================================
 void TSNGranularSynthesizer::actionListenerCallback(const String &message) {
-    if (message == nvs::axiom::onsetsAvailable) {
+    if (message == nvs::axiom::tsn::onsetsAvailable) {
         loadOnsets(_timbreSpace.shareOnsets());
     }
 }

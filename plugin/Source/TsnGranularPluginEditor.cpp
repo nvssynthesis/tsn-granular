@@ -11,7 +11,7 @@
 #include "Gui/SettingsWindow.h"
 #include "Gui/SegmentedWaveformComponent.h"
 #include "Gui/NavigatorPage.h"
-#include "Analysis/RunLoopStatus.h"
+#include "RunLoopStatus.h"
 
 //==============================================================================
 
