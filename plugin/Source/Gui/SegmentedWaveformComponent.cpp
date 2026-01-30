@@ -63,7 +63,7 @@ void SegmentedWaveformComponent::changeListenerCallback (juce::ChangeBroadcaster
     WaveformComponent::changeListenerCallback(source);
 }
 void SegmentedWaveformComponent::actionListenerCallback(const String &message) {
-    if (message == nvs::axiom::onsetsAvailable) { // comes from TimbreSpace
+    if (message == nvs::axiom::tsn::onsetsAvailable) { // comes from TimbreSpace
         _onsetAnalysis = _tsn_proc.getTimbreSpace().shareOnsets();
         paintOnsetMarkers();
     }

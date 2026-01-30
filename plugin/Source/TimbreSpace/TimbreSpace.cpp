@@ -9,15 +9,14 @@
 */
 
 #include "TimbreSpace.h"
-#include "../../slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../../slicer_granular/Source/misc_util_juce.h"
+#include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
+#include "../plugin/slicer_granular/Source/misc_util_juce.h"
+#include "../plugin/slicer_granular/Source/StringAxiom.h"
 #include "ThreadedAnalyzer.h"
 #include "FeatureOperations.h"
 #include <ranges>
-#include "fmt/core.h"
-#include "StringAxiom.h"
 #include "dsp_util.h"
-#include "../tsn-analyzer/Source/lib/util.h"
+#include "juce_utils.h"
 
 namespace nvs::timbrespace {
 
@@ -77,11 +76,11 @@ bool TimbreSpace::hasValidAnalysisFor(juce::String const &waveformHash) const {
 }
 
 static const std::map<juce::String, size_t> pidToDimensionMap {
-    {nvs::axiom::x_axis, 0},
-    {nvs::axiom::y_axis, 1},
-    {nvs::axiom::z_axis, 2},
-    {nvs::axiom::u_axis, 3},
-    {nvs::axiom::v_axis, 4},
+    {nvs::axiom::tsn::x_axis, 0},
+    {nvs::axiom::tsn::y_axis, 1},
+    {nvs::axiom::tsn::z_axis, 2},
+    {nvs::axiom::tsn::u_axis, 3},
+    {nvs::axiom::tsn::v_axis, 4},
 };
 
 void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramID) {
@@ -106,14 +105,14 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
-        if (paramID == nvs::axiom::histogram_equalization) {
+        if (paramID == nvs::axiom::tsn::histogram_equalization) {
             DBG("Histogram equalization changed to: " + juce::String(newValue));
             updateHistogramEqualization();
             DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(false);
             return;
         }
-        if (paramID == nvs::axiom::statistic) {
+        if (paramID == nvs::axiom::tsn::statistic) {
             updateStatistic();
             DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(false);
@@ -184,36 +183,36 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 //=============================================================================================================================
 
 void TimbreSpace::updateHistogramEqualization() {
-    settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::histogram_equalization);
+    settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::histogram_equalization);
 }
 void TimbreSpace::updateStatistic() {
-    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::statistic)->load());
+    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::statistic)->load());
 }
 
 
 void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
-	tree.setProperty(axiom::mean, stats.mean, nullptr);
-	tree.setProperty(axiom::median, stats.median, nullptr);
-	tree.setProperty(axiom::variance, stats.variance, nullptr);
-	tree.setProperty(axiom::skewness, stats.skewness, nullptr);
-	tree.setProperty(axiom::kurtosis, stats.kurtosis, nullptr);
+	tree.setProperty(axiom::tsn::mean, stats.mean, nullptr);
+	tree.setProperty(axiom::tsn::median, stats.median, nullptr);
+	tree.setProperty(axiom::tsn::variance, stats.variance, nullptr);
+	tree.setProperty(axiom::tsn::skewness, stats.skewness, nullptr);
+	tree.setProperty(axiom::tsn::kurtosis, stats.kurtosis, nullptr);
 }
 analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueTree const &vt){
 	return {
-		.mean = vt.getProperty(axiom::mean),
-		.median = vt.getProperty(axiom::median),
-		.variance = vt.getProperty(axiom::variance),
-		.skewness = vt.getProperty(axiom::skewness),
-		.kurtosis = vt.getProperty(axiom::kurtosis)
+		.mean = vt.getProperty(axiom::tsn::mean),
+		.median = vt.getProperty(axiom::tsn::median),
+		.variance = vt.getProperty(axiom::tsn::variance),
+		.skewness = vt.getProperty(axiom::tsn::skewness),
+		.kurtosis = vt.getProperty(axiom::tsn::kurtosis)
 	};
 }
 void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
 	_treeManager.setTimbreSpaceTree(timbreSpaceTree);
     signalTimbreSpaceTreeChanged();
-    const auto onsetsVar = timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
+    const auto onsetsVar = timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
     if (const Array<var> *onsetsArray = onsetsVar.getArray()) {
 
-        const juce::ValueTree mdTree = timbreSpaceTree.getChildWithName(axiom::Metadata);
+        const juce::ValueTree mdTree = timbreSpaceTree.getChildWithName(axiom::tsn::Metadata);
         const auto waveformHash = mdTree.getProperty(axiom::audioHash).toString();
         if (const auto path = mdTree.getProperty(axiom::AudioFilePathAbsolute).toString();
             !(waveformHash.isEmpty() || path.isEmpty()))
@@ -229,14 +228,14 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 									std::vector<float> const &normalizedOnsets,
 									const juce::String& waveformHash,
 									const juce::String& audioAbsPath){
-	ValueTree vt(axiom::TimbreAnalysis);
+	ValueTree vt(axiom::tsn::TimbreAnalysis);
 	{
-		ValueTree md(axiom::Metadata);
+		ValueTree md(axiom::tsn::Metadata);
 		md.setProperty(axiom::Version, ProjectInfo::versionString, nullptr);
 		md.setProperty(axiom::audioHash, waveformHash, nullptr);
 		md.setProperty(axiom::AudioFilePathAbsolute, audioAbsPath, nullptr);
-		md.setProperty(axiom::CreationTime, {}, nullptr);
-		md.setProperty(axiom::AnalysisSettings, {}, nullptr);
+		md.setProperty(axiom::tsn::CreationTime, {}, nullptr);
+		md.setProperty(axiom::tsn::AnalysisSettings, {}, nullptr);
 		vt.addChild(md, 0, nullptr);
 	}
 	{
@@ -244,7 +243,7 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		for (auto const &o : normalizedOnsets) {
 			onsetArray.append(o);
 		}
-		vt.setProperty(axiom::NormalizedOnsets, onsetArray, nullptr);
+		vt.setProperty(axiom::tsn::NormalizedOnsets, onsetArray, nullptr);
 	}
 	{
 		ValueTree timbreMeasurements("TimbreMeasurements");
@@ -252,9 +251,9 @@ juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<
 		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
 			const auto &timbreFrame = fullTimbreSpace[frameIdx];
 			
-			ValueTree frameTree(axiom::Frame);
+			ValueTree frameTree(axiom::tsn::Frame);
 			
-			ValueTree bfccsTree(axiom::BFCCs);
+			ValueTree bfccsTree(axiom::tsn::BFCCs);
 		    {
 			    const auto &bfccs = timbreFrame.bfccs();
 		        for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
@@ -286,7 +285,7 @@ std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> valueTreeToTi
 
 	std::vector<FeatureContainer<EventwiseStatisticsF>> timbreSpace;
 	
-	auto timbreMeasurements = vt.getChildWithName(axiom::TimbreMeasurements);
+	auto timbreMeasurements = vt.getChildWithName(axiom::tsn::TimbreMeasurements);
 	if (!timbreMeasurements.isValid())
 		return timbreSpace;
 	
@@ -301,7 +300,7 @@ std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> valueTreeToTi
 		FeatureContainer<EventwiseStatisticsF> frame;
 		
 		// Extract BFCCs
-		if (auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
+		if (auto bfccsTree = frameTree.getChildWithName(axiom::tsn::BFCCs);
 		    bfccsTree.isValid())
 		{
 			for (int bfccIdx = 0; bfccIdx < bfccsTree.getNumChildren(); ++bfccIdx)
@@ -330,7 +329,7 @@ std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
 {
 	std::vector<float> normalizedOnsets;
 
-	const auto onsetArray = vt.getProperty(axiom::NormalizedOnsets);
+	const auto onsetArray = vt.getProperty(axiom::tsn::NormalizedOnsets);
 	if (!onsetArray.isArray())
 		return normalizedOnsets;
 	
@@ -359,7 +358,7 @@ TimbreSpace::TreeManager::~TreeManager() {
 }
 
 juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
-	return _timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
+	return _timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
 }
 juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
 	return _timbreSpaceTree.getChildWithName("TimbreMeasurements");
@@ -371,7 +370,7 @@ void TimbreSpace::TreeManager::setTimbreSpaceTree(ValueTree timbreSpaceTree) {
     _timbreSpaceTree = timbreSpaceTree;
 }
 int TimbreSpace::TreeManager::getNumFrames() const {
-	const auto& onsets = _timbreSpaceTree.getProperty(axiom::NormalizedOnsets);
+	const auto& onsets = _timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
 	jassert(onsets.isArray());
 	int const numFrames = onsets.size();
 #ifdef DBG
@@ -387,16 +386,16 @@ int TimbreSpace::TreeManager::getNumFrames() const {
 }
 
 void TimbreSpace::signalSaveAnalysisOption() const {
-	sendActionMessage(axiom::saveAnalysis); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
+	sendActionMessage(axiom::tsn::saveAnalysis); // sends message, just to timbreSpaceComponent if one exists, to popup option to save analysis
 }
 void TimbreSpace::signalOnsetsAvailable() const {
-	sendActionMessage(axiom::onsetsAvailable);	// who needs it? SegmentedWaveformComponent, TsnGranularPluginProcessor (for calling synth->loadOnsets())
+	sendActionMessage(axiom::tsn::onsetsAvailable);	// who needs it? SegmentedWaveformComponent, TsnGranularPluginProcessor (for calling synth->loadOnsets())
 }
 void TimbreSpace::signalShapedPointsAvailable() const {
-    sendActionMessage(axiom::shapedPointsAvailable);
+    sendActionMessage(axiom::tsn::shapedPointsAvailable);
 }
 void TimbreSpace::signalTimbreSpaceTreeChanged() const {
-    sendActionMessage(axiom::timbreSpaceTreeChanged);   // for TimbreSpacePointSelector to know to update filtered feature
+    sendActionMessage(axiom::tsn::timbreSpaceTreeChanged);   // for TimbreSpacePointSelector to know to update filtered feature
 }
 
 void TimbreSpace::TimbreDataManager::swapIfPending() {
@@ -432,11 +431,11 @@ extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
 
     juce::String statPropName;
     switch (statisticToUse) {
-       case Statistic::Mean:     statPropName = axiom::mean;     break;
-       case Statistic::Median:   statPropName = axiom::median;   break;
-       case Statistic::Variance: statPropName = axiom::variance; break;
-       case Statistic::Skewness: statPropName = axiom::skewness; break;
-       case Statistic::Kurtosis: statPropName = axiom::kurtosis; break;
+       case Statistic::Mean:     statPropName = axiom::tsn::mean;     break;
+       case Statistic::Median:   statPropName = axiom::tsn::median;   break;
+       case Statistic::Variance: statPropName = axiom::tsn::variance; break;
+       case Statistic::Skewness: statPropName = axiom::tsn::skewness; break;
+       case Statistic::Kurtosis: statPropName = axiom::tsn::kurtosis; break;
        default: jassertfalse;
     }
 
@@ -445,7 +444,7 @@ extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
        Real value = 0.0f;
 
        if (0 <= idx && idx < NumBFCC) {
-          const auto bfccsTree = frameTree.getChildWithName(axiom::BFCCs);
+          const auto bfccsTree = frameTree.getChildWithName(axiom::tsn::BFCCs);
           if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
              auto bfccTree = bfccsTree.getChild(idx);
              value = bfccTree.getProperty(statPropName, 0.0f);
@@ -454,15 +453,15 @@ extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
        else {
           juce::String childName;
           switch (f) {
-            case Feature_e::SpectralCentroid:    childName = axiom::SpectralCentroid; break;
-            case Feature_e::SpectralDecrease:    childName = axiom::SpectralDecrease; break;
-            case Feature_e::SpectralFlatness:    childName = axiom::SpectralFlatness; break;
-            case Feature_e::SpectralCrest:       childName = axiom::SpectralCrest; break;
-            case Feature_e::SpectralComplexity:  childName = axiom::SpectralComplexity; break;
-            case Feature_e::StrongPeak:          childName = axiom::StrongPeak;  break;
-            case Feature_e::Periodicity:         childName = axiom::Periodicity; break;
-            case Feature_e::Loudness:            childName = axiom::Loudness;    break;
-            case Feature_e::f0:                  childName = axiom::f0;          break;
+            case Feature_e::SpectralCentroid:    childName = axiom::tsn::SpectralCentroid; break;
+            case Feature_e::SpectralDecrease:    childName = axiom::tsn::SpectralDecrease; break;
+            case Feature_e::SpectralFlatness:    childName = axiom::tsn::SpectralFlatness; break;
+            case Feature_e::SpectralCrest:       childName = axiom::tsn::SpectralCrest; break;
+            case Feature_e::SpectralComplexity:  childName = axiom::tsn::SpectralComplexity; break;
+            case Feature_e::StrongPeak:          childName = axiom::tsn::StrongPeak;  break;
+            case Feature_e::Periodicity:         childName = axiom::tsn::Periodicity; break;
+            case Feature_e::Loudness:            childName = axiom::tsn::Loudness;    break;
+            case Feature_e::f0:                  childName = axiom::tsn::f0;          break;
             default: jassertfalse;
           }
 
