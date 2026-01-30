@@ -49,11 +49,8 @@ else()
     )
 endif()
 
-# Add the tsn-analyzer library (handles Essentia internally)
-add_subdirectory(
-        ../tsn-analyzer/Source/lib
-        tsn-analyzer-lib
-)
+add_subdirectory(../tsn-analyzer/juce_utils tsn-analyzer-juce-utils)
+add_subdirectory(../tsn-analyzer/Source/lib tsn-analyzer-lib)
 
 # Create the plugin target
 juce_add_plugin(tsn-granular
