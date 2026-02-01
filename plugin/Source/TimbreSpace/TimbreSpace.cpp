@@ -15,8 +15,8 @@
 #include "ThreadedAnalyzer.h"
 #include "FeatureOperations.h"
 #include <ranges>
-#include "dsp_util.h"
 #include "juce_utils.h"
+#include "TSNValueTreeUtilities.h"
 
 namespace nvs::timbrespace {
 
@@ -134,14 +134,6 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
     }
 }
 
-using EventwiseStatisticsF = nvs::analysis::EventwiseStatistics<float>;
-
-
-juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> const &fullTimbreSpace,
-                                    std::vector<float> const &normalizedOnsets,
-                                    const juce::String& waveformHash,
-                                    const juce::String& audioAbsPath);
-
 void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
     // could there be any reason to clear the tree? re-assigning it wouldn't need that, but
     // what if the rest of this func fails? do we want a cleared tree at that point?
@@ -189,23 +181,6 @@ void TimbreSpace::updateStatistic() {
     settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::statistic)->load());
 }
 
-
-void addEventwiseStatistics(juce::ValueTree& tree, const analysis::EventwiseStatistics<analysis::Real>& stats) {
-	tree.setProperty(axiom::tsn::mean, stats.mean, nullptr);
-	tree.setProperty(axiom::tsn::median, stats.median, nullptr);
-	tree.setProperty(axiom::tsn::variance, stats.variance, nullptr);
-	tree.setProperty(axiom::tsn::skewness, stats.skewness, nullptr);
-	tree.setProperty(axiom::tsn::kurtosis, stats.kurtosis, nullptr);
-}
-analysis::EventwiseStatistics<analysis::Real> toEventwiseStatistics(juce::ValueTree const &vt){
-	return {
-		.mean = vt.getProperty(axiom::tsn::mean),
-		.median = vt.getProperty(axiom::tsn::median),
-		.variance = vt.getProperty(axiom::tsn::variance),
-		.skewness = vt.getProperty(axiom::tsn::skewness),
-		.kurtosis = vt.getProperty(axiom::tsn::kurtosis)
-	};
-}
 void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
 	_treeManager.setTimbreSpaceTree(timbreSpaceTree);
     signalTimbreSpaceTreeChanged();
@@ -222,129 +197,6 @@ void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
         }
     }
 	fullSelfUpdate(false);
-}
-
-juce::ValueTree timbreSpaceReprToVT(std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> const &fullTimbreSpace,
-									std::vector<float> const &normalizedOnsets,
-									const juce::String& waveformHash,
-									const juce::String& audioAbsPath){
-	ValueTree vt(axiom::tsn::TimbreAnalysis);
-	{
-		ValueTree md(axiom::tsn::Metadata);
-		md.setProperty(axiom::Version, ProjectInfo::versionString, nullptr);
-		md.setProperty(axiom::audioHash, waveformHash, nullptr);
-		md.setProperty(axiom::AudioFilePathAbsolute, audioAbsPath, nullptr);
-		md.setProperty(axiom::tsn::CreationTime, {}, nullptr);
-		md.setProperty(axiom::tsn::AnalysisSettings, {}, nullptr);
-		vt.addChild(md, 0, nullptr);
-	}
-	{
-		var onsetArray;
-		for (auto const &o : normalizedOnsets) {
-			onsetArray.append(o);
-		}
-		vt.setProperty(axiom::tsn::NormalizedOnsets, onsetArray, nullptr);
-	}
-	{
-		ValueTree timbreMeasurements("TimbreMeasurements");
-		
-		for (int frameIdx = 0; frameIdx < static_cast<int>(fullTimbreSpace.size()); ++frameIdx){
-			const auto &timbreFrame = fullTimbreSpace[frameIdx];
-			
-			ValueTree frameTree(axiom::tsn::Frame);
-			
-			ValueTree bfccsTree(axiom::tsn::BFCCs);
-		    {
-			    const auto &bfccs = timbreFrame.bfccs();
-		        for (int bfccIdx = 0; bfccIdx < static_cast<int>(bfccs.size()); ++bfccIdx){
-		            ValueTree bfccTree("BFCC" + juce::String(bfccIdx));
-		            addEventwiseStatistics(bfccTree, bfccs[bfccIdx]);
-		            bfccsTree.addChild(bfccTree, bfccIdx, nullptr);
-		        }
-		    }
-			frameTree.addChild(bfccsTree, -1, nullptr);
-			
-			// Add single-value features
-		    for (auto feature : util::Iterator<analysis::Feature_e, static_cast<analysis::Feature_e>(analysis::NumBFCC), analysis::Feature_e::f0>()) {
-		        ValueTree featureTree(analysis::toString(feature));
-		        addEventwiseStatistics(featureTree, timbreFrame[feature]);
-		        frameTree.addChild(featureTree, -1, nullptr);
-		    }
-
-			timbreMeasurements.addChild(frameTree, frameIdx, nullptr);
-			
-			vt.addChild(timbreMeasurements, 1, nullptr);
-		}
-	}
-
-	return vt;
-}
-std::vector<nvs::analysis::FeatureContainer<EventwiseStatisticsF>> valueTreeToTimbreSpace(juce::ValueTree const &vt)
-{
-    using namespace analysis;
-
-	std::vector<FeatureContainer<EventwiseStatisticsF>> timbreSpace;
-	
-	auto timbreMeasurements = vt.getChildWithName(axiom::tsn::TimbreMeasurements);
-	if (!timbreMeasurements.isValid())
-		return timbreSpace;
-	
-	// Reserve space for efficiency
-	timbreSpace.reserve(timbreMeasurements.getNumChildren());
-
-    static_assert(static_cast<Feature_e>(0) == Feature_e::bfcc0); // we will be casting ints to Features for the BFCCs
-    static_assert(static_cast<Feature_e>(12) == Feature_e::bfcc12);
-	for (int frameIdx = 0; frameIdx < timbreMeasurements.getNumChildren(); ++frameIdx)
-	{
-		auto frameTree = timbreMeasurements.getChild(frameIdx);
-		FeatureContainer<EventwiseStatisticsF> frame;
-		
-		// Extract BFCCs
-		if (auto bfccsTree = frameTree.getChildWithName(axiom::tsn::BFCCs);
-		    bfccsTree.isValid())
-		{
-			for (int bfccIdx = 0; bfccIdx < bfccsTree.getNumChildren(); ++bfccIdx)
-			{
-				auto bfccTree = bfccsTree.getChild(bfccIdx);
-				frame[static_cast<Feature_e>(bfccIdx)] = (toEventwiseStatistics(bfccTree));
-			}
-		}
-		
-		// Extract single-value features
-	    for (auto const feature :  nvs::util::Iterator<Feature_e, static_cast<Feature_e>(NumBFCC), Feature_e::f0>()) {
-	        if (auto featureTree = frameTree.getChildWithName(toString(feature));
-                featureTree.isValid())
-	        {
-	            frame[feature] = toEventwiseStatistics(featureTree);
-	        }
-	    }
-
-		timbreSpace.push_back(std::move(frame));
-	}
-	
-	return timbreSpace;
-}
-
-std::vector<float> valueTreeToNormalizedOnsets(juce::ValueTree const &vt)
-{
-	std::vector<float> normalizedOnsets;
-
-	const auto onsetArray = vt.getProperty(axiom::tsn::NormalizedOnsets);
-	if (!onsetArray.isArray())
-		return normalizedOnsets;
-	
-	auto* array = onsetArray.getArray();
-	if (!array)
-		return normalizedOnsets;
-	
-	normalizedOnsets.reserve(array->size());
-	
-	for (auto && e : *array)
-	{
-		normalizedOnsets.push_back(static_cast<float>(e));
-	}
-	
-	return normalizedOnsets;
 }
 
 TimbreSpace::TreeManager::TreeManager(AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
@@ -414,89 +266,6 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
 
     signalShapedPointsAvailable();
 }
-// Internal template that works with any container
-template<typename Container>
-[[nodiscard]]
-inline std::vector<analysis::Real>
-extractFeaturesFromTreeImpl(const juce::ValueTree &frameTree,
-                             const Container &featuresToUse,
-                             const analysis::Statistic statisticToUse)
-{
-    using namespace analysis;
-    std::vector<Real> out;
-
-    if constexpr (requires { featuresToUse.size(); }) {
-        out.reserve(featuresToUse.size());
-    }
-
-    juce::String statPropName;
-    switch (statisticToUse) {
-       case Statistic::Mean:     statPropName = axiom::tsn::mean;     break;
-       case Statistic::Median:   statPropName = axiom::tsn::median;   break;
-       case Statistic::Variance: statPropName = axiom::tsn::variance; break;
-       case Statistic::Skewness: statPropName = axiom::tsn::skewness; break;
-       case Statistic::Kurtosis: statPropName = axiom::tsn::kurtosis; break;
-       default: jassertfalse;
-    }
-
-    for (auto f : featuresToUse) {
-       const int idx = static_cast<int>(f);
-       Real value = 0.0f;
-
-       if (0 <= idx && idx < NumBFCC) {
-          const auto bfccsTree = frameTree.getChildWithName(axiom::tsn::BFCCs);
-          if (bfccsTree.isValid() && idx < bfccsTree.getNumChildren()) {
-             auto bfccTree = bfccsTree.getChild(idx);
-             value = bfccTree.getProperty(statPropName, 0.0f);
-          }
-       }
-       else {
-          juce::String childName;
-          switch (f) {
-            case Feature_e::SpectralCentroid:    childName = axiom::tsn::SpectralCentroid; break;
-            case Feature_e::SpectralDecrease:    childName = axiom::tsn::SpectralDecrease; break;
-            case Feature_e::SpectralFlatness:    childName = axiom::tsn::SpectralFlatness; break;
-            case Feature_e::SpectralCrest:       childName = axiom::tsn::SpectralCrest; break;
-            case Feature_e::SpectralComplexity:  childName = axiom::tsn::SpectralComplexity; break;
-            case Feature_e::StrongPeak:          childName = axiom::tsn::StrongPeak;  break;
-            case Feature_e::Periodicity:         childName = axiom::tsn::Periodicity; break;
-            case Feature_e::Loudness:            childName = axiom::tsn::Loudness;    break;
-            case Feature_e::f0:                  childName = axiom::tsn::f0;          break;
-            default: jassertfalse;
-          }
-
-            if (auto scalarTree = frameTree.getChildWithName(childName);
-                scalarTree.isValid())
-            {
-                value = scalarTree.getProperty(statPropName, 0.0f);
-            }
-       }
-
-       out.push_back(value);
-    }
-
-    return out;
-}
-
-[[nodiscard]]
-inline std::vector<analysis::Real>
-extractFeaturesFromTree(const juce::ValueTree &frameTree,
-                        const std::vector<analysis::Feature_e> &featuresToUse,
-                        const analysis::Statistic statisticToUse)
-{
-    return extractFeaturesFromTreeImpl(frameTree, featuresToUse, statisticToUse);
-}
-
-// Overload for single feature - wraps it in a std::array for iteration
-[[nodiscard]]
-inline std::vector<analysis::Real>
-extractFeaturesFromTree(const juce::ValueTree &frameTree,
-                        const analysis::Feature_e featureToUse,
-                        const analysis::Statistic statisticToUse)
-{
-    const std::array features{featureToUse};
-    return extractFeaturesFromTreeImpl(frameTree, features, statisticToUse);
-}
 
 std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature_e feature) const {
     auto const s = nvs::analysis::toString(feature);
@@ -509,7 +278,7 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature
 
     for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
         ValueTree const &frame = timbreTree.getChild(feat_idx);
-        std::vector<float> v = extractFeaturesFromTree(frame, feature, settings.statistic);
+        std::vector<float> v = nvs::analysis::extractFeaturesFromTree(frame, feature, settings.statistic);
         jassert (v.size() == 1);
         extractedFramewiseFeatureValues.push_back(v[0]);
     }
