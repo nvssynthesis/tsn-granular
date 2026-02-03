@@ -17,6 +17,7 @@
 #include <ranges>
 #include "juce_utils.h"
 #include "TSNValueTreeUtilities.h"
+#include "essentia/essentiamath.h"
 
 namespace nvs::timbrespace {
 
