@@ -19,7 +19,7 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	writeToLog("TsnGranularAudioProcessor RELEASE MODE\n");
 #endif
 	
-	juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
+	ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
 	nvs::analysis::initializeSettingsBranches(settingsVT, false);
 
     _analyzer.addChangeListener(this);
@@ -38,19 +38,19 @@ void TSNGranularAudioProcessor::initSynth() {
     _tsnGranularSynth = static_cast<TSNGranularSynth*>(_granularSynth.get());
 	_analyzer.addChangeListener(&_tsnGranularSynth->getTimbreSpace());
 }
-juce::AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
+AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
     const auto ed = new TsnGranularAudioProcessorEditor (*this);
 	return ed;
 }
 
 void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-	const std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+	const std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 	if (xmlState == nullptr || !xmlState->hasTagName("PLUGIN_STATE")) {
 		return;
 	}
 
-	const juce::ValueTree root = juce::ValueTree::fromXml(*xmlState);
+	const ValueTree root = ValueTree::fromXml(*xmlState);
 	apvts.replaceState(root);	// also causes _presetManager, a ValueTreeListener, to call loadAnalysisFileFromState via valueTreeRedirected
 
 	ensureSettingsStructure();
@@ -58,7 +58,7 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 	writeToLog("setStateInformation fully successful\n");
 }
 
-void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) const {
+void TSNGranularAudioProcessor::saveAnalysisToFile(const String& filePath, std::function<void(bool)> resultCallback) const {
 	// inform plugin state of what the associated analysis file will be
 	auto fileInfo = apvts.state.getChildWithName("FileInfo");
 	if (!fileInfo.isValid()) return;
@@ -68,11 +68,12 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 	    apvts.state.getProperty(nvs::axiom::tsn::sampleFilePath),
 	    apvts.state.getProperty(nvs::axiom::tsn::sampleRate),
 	    sampleManagementGuts.getWaveformHash(),
-	    _analyzer.getSettingsHash());
+	    _analyzer.getSettingsHash(),
+	    _analyzer.getSettingsParentTree());
 
     DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisSuperVT).toStdString()));
 	bool success = [vt=analysisSuperVT, filePath](bool useBinary){
-		juce::File const file(filePath);
+		File const file(filePath);
 		if (useBinary){
 			return nvs::util::saveValueTreeToBinary(vt, file);
 		}
@@ -80,12 +81,12 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath,
 			return nvs::util::saveValueTreeToJSON(vt, file);
 		}
 	}(true);
-	juce::MessageManager::callAsync([resultCallback, success](){
+	MessageManager::callAsync([resultCallback, success](){
 		resultCallback(success);
 	});
 }
 //==============================================================================
-void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor){
+void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(File const f, bool notifyEditor){
 	writeToLog("TSN: loadAudioFileAndUpdateState\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFileAndUpdateState(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
@@ -122,11 +123,11 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
 	_analyzer.updateSettings(settingsVT, true);
 	
-	if (_analyzer.startThread(juce::Thread::Priority::high)){	// only entry point to analysis
+	if (_analyzer.startThread(Thread::Priority::high)){	// only entry point to analysis
 		writeToLog("analyzer onset thread started");
 	}
 }
-void TSNGranularAudioProcessor::changeListenerCallback (juce::ChangeBroadcaster *source) {
+void TSNGranularAudioProcessor::changeListenerCallback (ChangeBroadcaster *source) {
     if (source == &_analyzer) {
         if (!_analyzer.onsetsReady()) {
             DBG("TSNGranularAudioProcessor: onsets not ready, returning\n");
@@ -168,7 +169,7 @@ void TSNGranularAudioProcessor::writeEvents(){
 
     const auto sampleFilePath = [fileInfoTree, sharedOnsets]()-> std::string {
         jassert (fileInfoTree.hasProperty(nvs::axiom::tsn::sampleFilePath));
-	    const juce::String sfp = fileInfoTree.getProperty(nvs::axiom::tsn::sampleFilePath);
+	    const String sfp = fileInfoTree.getProperty(nvs::axiom::tsn::sampleFilePath);
 	    jassert(!sfp.isEmpty());
 	    if (sharedOnsets->audioFileAbsPath != sfp) {
 	        DBG("TSNGranularAudioProcessor::writeEvents failed: file path mismatch, returning early\n");
@@ -188,9 +189,9 @@ void TSNGranularAudioProcessor::writeEvents(){
 	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath, _analyzer.getAnalyzer(), rls, shouldExitFn);
 }
 
-void TSNGranularAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+void TSNGranularAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages) {
 	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
-		juce::ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
+		ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());
 		}
@@ -205,7 +206,7 @@ void TSNGranularAudioProcessor::ensureSettingsStructure() {
     if (const auto settings = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
         !nvs::analysis::verifySettingsStructure(settings))
     {
-        juce::ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
+        ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
         nvs::analysis::initializeSettingsBranches(settingsVT);
     }
 }
@@ -244,7 +245,7 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
 }
 
 //==============================================================================
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
 	return SlicerGranularAudioProcessor::create<TSNGranularAudioProcessor>();
 }
