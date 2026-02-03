@@ -5,6 +5,7 @@
 #include "fmt/core.h"
 #include "Settings.h"
 #include "OnsetAnalysis/OnsetProcessing.h"
+#include "TSNValueTreeUtilities.h"
 
 //==============================================================================
 
@@ -56,32 +57,21 @@ void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeI
 
 	writeToLog("setStateInformation fully successful\n");
 }
+
 void TSNGranularAudioProcessor::saveAnalysisToFile(const juce::String& filePath, std::function<void(bool)> resultCallback) const {
 	// inform plugin state of what the associated analysis file will be
 	auto fileInfo = apvts.state.getChildWithName("FileInfo");
 	if (!fileInfo.isValid()) return;
 	fileInfo.setProperty("analysisFile", filePath, nullptr);
 
-	juce::ValueTree analysisVT("super");
+	ValueTree analysisSuperVT = nvs::analysis::makeSuperTree(_tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree(),
+	    apvts.state.getProperty(nvs::axiom::tsn::sampleFilePath),
+	    apvts.state.getProperty(nvs::axiom::tsn::sampleRate),
+	    sampleManagementGuts.getWaveformHash(),
+	    _analyzer.getSettingsHash());
 
-	/* metadata needs:
-     -audio sample absolute path (for loading audio file when analysis is imported)
-     -audio file sample rate?
-     -settings hash (to quickly confirm that analysis has/has not been done for a given analysisSettings on a given
-     audio file) -audio wave hash (for confirming that the analysis is definitely relevant for a given audio file (e.g.
-     if the audio gets analyzed, but then is later edited, this will require new analysis)) -later: maybe the settings
-     themselves, which would allow to load analysis file and populate the settings of the plugin instance?
-    */
-    const auto tsTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree();
-	auto timbreSpaceMetaDataTree = tsTree.getChildWithName(nvs::axiom::tsn::Metadata);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::sampleFilePath, apvts.state.getProperty(nvs::axiom::tsn::sampleFilePath), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::sampleRate, apvts.state.getProperty(nvs::axiom::tsn::sampleRate), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::audioHash, sampleManagementGuts.getWaveformHash(), nullptr);
-	timbreSpaceMetaDataTree.setProperty(nvs::axiom::tsn::settingsHash, _analyzer.getSettingsHash(), nullptr);
-	analysisVT.addChild(tsTree, 1, nullptr);
-
-    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisVT).toStdString()));
-	bool success = [vt=analysisVT, filePath](bool useBinary){
+    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisSuperVT).toStdString()));
+	bool success = [vt=analysisSuperVT, filePath](bool useBinary){
 		juce::File const file(filePath);
 		if (useBinary){
 			return nvs::util::saveValueTreeToBinary(vt, file);
@@ -228,41 +218,28 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
 		writeToLog("file info value tree invalid\n");
     	return false;
     }
-    const juce::String analysisFilePath = fileInfo.getProperty(nvs::axiom::tsn::analysisFile, {});
+    const String analysisFilePath = fileInfo.getProperty(nvs::axiom::tsn::analysisFile, {});
 	writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
 
     if (analysisFilePath.isEmpty()) {
     	writeToLog("analysisFilePath is empty");
 	    return false;
     }
-    const juce::File analysisFile(analysisFilePath);
-    auto analysisFileInputStream = juce::FileInputStream(analysisFile);
-
-    if (analysisFileInputStream.failedToOpen()) {
-        writeToLog(fmt::format("failed to open {}; error message: {}",
-            analysisFilePath.toStdString(),
-            analysisFileInputStream.getStatus().getErrorMessage().toStdString()));
-        // TODO: Give popup opportunity for user to find the file
-        return false;
+    const File analysisFile(analysisFilePath);
+    const ValueTree analysisVT = nvs::util::loadValueTreeFromBinary(analysisFile);
+    if (!analysisVT.isValid()) {
+        writeToLog("analysis file tree invalid");
+        return false; // TODO: Give popup opportunity for user to find the file
     }
-
-    const auto analysisFileValueTree = juce::ValueTree::readFromStream(analysisFileInputStream);
-
-    if (const auto analysisFileTree = analysisFileValueTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
-        analysisFileTree.isValid())
+    if (auto metadataTree = analysisVT.getChildWithName(nvs::axiom::tsn::Metadata);
+        metadataTree.isValid() &&
+        nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     {
-        DBG(fmt::format("tree being set: {}", nvs::util::valueTreeToXmlStringSafe(analysisFileTree).toStdString()));
-    	// we need to know if we even SHOULD load the analysisFile pointed to by the state
-    	if (auto metadataTree = analysisFileTree.getChildWithName(nvs::axiom::tsn::Metadata);
-			metadataTree.isValid() &&
-			nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
-    	{
-    		writeToLog("setting via setStateInformation");
-    		_tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisFileTree);
-    		return true;
-    	}
+     	writeToLog("setting via setStateInformation");
+     	_tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisVT);
+     	return true;
     }
-    writeToLog("analysis file tree invalid");
+    writeToLog("analysis file tree metadata mismatch");
     return false;
 }
 

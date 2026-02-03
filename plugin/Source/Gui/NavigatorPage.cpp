@@ -65,14 +65,17 @@ void NavigatorPanel::resized()
 {
     const auto localBounds = getLocalBounds();
 
+    jassert (components.size() < std::numeric_limits<int>::max());
+    const auto numComponentsI = static_cast<int>(components.size());
+
     if (horizontal) {
         // Left to right layout
         int const allottedCompHeight = localBounds.getHeight();
         // auto const sliderHeight = allottedCompHeight * 0.8;
         // auto const labelHeight = allottedCompHeight - sliderHeight;
-        int const allottedCompWidth = localBounds.getWidth() / components.size();
+        auto const allottedCompWidth = localBounds.getWidth() / numComponentsI;
 
-        for (size_t i = 0; i < components.size(); ++i){
+        for (size_t i = 0; i < components.size(); ++i) {
             const int left = static_cast<int>(i) * allottedCompWidth + localBounds.getX();
             auto const comp = components[i].get();
             comp->setBounds(juce::Rectangle<int>(left, 0, allottedCompWidth, allottedCompHeight).reduced(pad));
@@ -81,9 +84,9 @@ void NavigatorPanel::resized()
     else {
         // Top to bottom layout
         int const allottedCompWidth = localBounds.getWidth();
-        int const allottedCompHeight = localBounds.getHeight() / static_cast<int>(components.size());
+        int const allottedCompHeight = localBounds.getHeight() / numComponentsI;
 
-        for (size_t i = 0; i < components.size(); ++i){
+        for (size_t i = 0; i < components.size(); ++i) {
             const int top = static_cast<int>(i) * allottedCompHeight + localBounds.getY();
             auto const comp = components[i].get();
             comp->setBounds(juce::Rectangle<int>(0, top, allottedCompWidth, allottedCompHeight).reduced(pad));
@@ -91,7 +94,7 @@ void NavigatorPanel::resized()
     }
 }
 void NavigatorPanel::paint(juce::Graphics &g) {
-	g.setColour(juce::Colours::whitesmoke.withAlpha(0.33f));
+	g.setColour(Colours::whitesmoke.withAlpha(0.33f));
 	g.drawRoundedRectangle(getLocalBounds().reduced(pad).toFloat(), 5.f, 1.f);
 }
 

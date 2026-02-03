@@ -192,6 +192,9 @@ target_link_libraries(tsn-granular
         juce::juce_recommended_warning_flags
 )
 
+get_target_property(TSN_ANALYZER_INCLUDES tsn_analyzer INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(tsn-granular SYSTEM PRIVATE ${TSN_ANALYZER_INCLUDES})
+
 # Compiler definitions
 target_compile_definitions(tsn-granular
         PRIVATE

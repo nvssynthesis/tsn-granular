@@ -40,7 +40,7 @@ public:
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
     explicit TimbreSpaceComponent(juce::AudioProcessor &proc);
-    ~TimbreSpaceComponent();
+    ~TimbreSpaceComponent() override;
 	//==========================================================================================
 	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 	void actionListenerCallback (const juce::String &message) override;
