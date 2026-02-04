@@ -20,41 +20,41 @@
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
 */
 
-struct ProgressIndicator final :	public juce::Component
+struct ProgressIndicator final :	public Component
 {
-	void paint(juce::Graphics &g) override;
+	void paint(Graphics &g) override;
 	void resized() override;
 
-	juce::String message {""};
+	String message {""};
 	double progress {0.0};
 };
 
-class TimbreSpaceComponent final :	public juce::Component
-, 								public juce::ChangeListener
-, 								public juce::Thread::Listener
-,								private juce::ActionListener
+class TimbreSpaceComponent final :	public Component
+, 								public ChangeListener
+, 								public Thread::Listener
+,								private ActionListener
 {
 public:
 	using Timbre2DPoint = nvs::timbrespace::Timbre2DPoint;
 	using Timbre3DPoint = nvs::timbrespace::Timbre3DPoint;
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
-    explicit TimbreSpaceComponent(juce::AudioProcessor &proc);
+    explicit TimbreSpaceComponent(AudioProcessor &proc);
     ~TimbreSpaceComponent() override;
 	//==========================================================================================
-	void changeListenerCallback (juce::ChangeBroadcaster* source) override;
-	void actionListenerCallback (const juce::String &message) override;
+	void changeListenerCallback (ChangeBroadcaster* source) override;
+	void actionListenerCallback (const String &message) override;
 	void exitSignalSent() override;
 	//==========================================================================================
-	void paint(juce::Graphics &g) override;
+	void paint(Graphics &g) override;
 	void resized() override;
-	void mouseDown (const juce::MouseEvent &event) override;
-	void mouseUp (const juce::MouseEvent &event) override;
-	void mouseDrag (const juce::MouseEvent &event) override;
-	void mouseDragOrDown(juce::Point<int> mousePos);
-	void mouseEnter(const juce::MouseEvent &event) override;
-	void mouseExit (const juce::MouseEvent &event) override;
-	void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+	void mouseDown (const MouseEvent &event) override;
+	void mouseUp (const MouseEvent &event) override;
+	void mouseDrag (const MouseEvent &event) override;
+	void mouseDragOrDown(Point<int> mousePos);
+	void mouseEnter(const MouseEvent &event) override;
+	void mouseExit (const MouseEvent &event) override;
+	void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
 	//==========================================================================================
 
 	std::vector<nvs::timbrespace::WeightedIdx> getCurrentPointIndices() const;
@@ -75,7 +75,7 @@ private:
 			createMouseImage();
 		}
 		Timbre3DPoint _uvz {0.f, 0.6f, 0.f};
-		juce::Image _image;
+		Image _image;
 		bool _dragging {false};
 	};
 	void updateCursor();
@@ -101,7 +101,7 @@ private:
 	} nav;
 	
 	void showAnalysisSaveDialog();
-	class Callback final :	public juce::ModalComponentManager::Callback
+	class Callback final :	public ModalComponentManager::Callback
 	{
 	public:
         explicit Callback(TimbreSpaceComponent &comp);
@@ -112,20 +112,20 @@ private:
 
 	void saveAnalysis();
 
-	std::unique_ptr<juce::FileChooser> fileChooser;
-	juce::Point<float> normalizePosition_neg1_pos1(juce::Point<int> pos) const;
+	std::unique_ptr<FileChooser> fileChooser;
+	Point<float> normalizePosition_neg1_pos1(Point<int> pos) const;
 
     class InfoBox {
         Rectangle<int> positionRect;
-        const juce::String numPointsBaseTxt {"num points: "};
+        const String numPointsBaseTxt {"num points: "};
         int _numPoints{0};
     public:
         void setNumPoints(const int numPoints) { _numPoints = numPoints; }
-        void setBounds (juce::Rectangle<int> bounds) {
+        void setBounds (Rectangle<int> bounds) {
             positionRect = bounds;
         }
-        void paint(juce::Graphics &g) const {
-            g.setColour(juce::Colours::grey.withAlpha(0.85f));
+        void paint(Graphics &g) const {
+            g.setColour(Colours::grey.withAlpha(0.85f));
             const auto pRectF = positionRect.toFloat();
             // dont draw whole rectangle, just top vertical + left vertical.
             // otherwise there can be e.g. 2 vertical lines drawn 1 pixel apart probably due to roundoff.
@@ -135,7 +135,7 @@ private:
             const auto previousFont = g.getCurrentFont();
             const auto newFont = previousFont.withHeight(previousFont.getHeight() * 0.75f);
             g.setFont(newFont);
-            auto text = numPointsBaseTxt + juce::String(_numPoints);
+            auto text = numPointsBaseTxt + String(_numPoints);
             auto textWidth = GlyphArrangement::getStringWidth(newFont, text);
 
             const auto textRect = positionRect.withTrimmedRight(2);

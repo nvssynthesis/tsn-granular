@@ -19,15 +19,15 @@
 namespace {
 using namespace nvs::timbrespace;
 
-juce::Point<float> p2DtoJucePoint(Timbre2DPoint p2D) {
+Point<float> p2DtoJucePoint(Timbre2DPoint p2D) {
     return {p2D[0], p2D[1]};
 }
 
-Timbre2DPoint jucePointToTimbre2DPoint(const juce::Point<float> p2D) {
+Timbre2DPoint jucePointToTimbre2DPoint(const Point<float> p2D) {
     return Timbre2DPoint {p2D.x, p2D.y};
 }
 
-juce::Rectangle<float> pointToRect(const Timbre2DPoint p, float pt_sz) {
+Rectangle<float> pointToRect(const Timbre2DPoint &p, const float pt_sz) {
 	Timbre2DPoint upperLeft{p}, bottomRight{p};
     const float halfDotSize {2.f * pt_sz};
 	upperLeft += Timbre2DPoint(-halfDotSize, -halfDotSize);
@@ -37,8 +37,8 @@ juce::Rectangle<float> pointToRect(const Timbre2DPoint p, float pt_sz) {
 	    p2DtoJucePoint(bottomRight)
 	};
 }
-juce::Rectangle<float> pointToRect(const juce::Point<float> p, const float pt_sz) {
-    juce::Point<float> upperLeft{p}, bottomRight{p};
+Rectangle<float> pointToRect(const Point<float> p, const float pt_sz) {
+    Point<float> upperLeft{p}, bottomRight{p};
     const float halfDotSize {2.f * pt_sz};
     upperLeft.addXY(-halfDotSize, -halfDotSize);
     bottomRight.addXY(halfDotSize, halfDotSize);
@@ -63,7 +63,7 @@ Timbre2DPoint bipolar2dPointToComponentSpace(const Timbre2DPoint& p2D, const flo
 
 auto softclip = [](const float  x, const float  bias = -0.2f, const float  q = 0.2f, const float  s = 0.6f, const float  scale = 5.f) -> float
 {
-	const float  y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias/2;
+	const float  y = scale * ((q*x - bias) / (s + std::abs(q*x - bias))) + bias / 2;
 	return y;
 };
 
@@ -72,19 +72,19 @@ Timbre3DPoint biuni(const Timbre3DPoint &bipolar_p3){
 	Timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
 	return uni_pts3;
 }
-auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){
+auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){ // NOLINT
 	return out_low + (x - in_low) * (out_high - out_low) / (in_high - in_low);
 }
-juce::Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
+Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
 	const float  h = p3[0];
 	const float  s = p3[1];
 	float v = p3[2];
 	assert (v >= 0.0);
 	assert (v <= 1.0);
 	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
-	return juce::Colour(h, s, v, alpha);
+	return {h, s, v, alpha};
 }
-void setLfoOffsetParamsFromPoint(const juce::AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
+void setLfoOffsetParamsFromPoint(const AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
 	apvts.getParameterAsValue(nvs::axiom::tsn::nav_tendency_x) = p2D(0);
 	apvts.getParameterAsValue(nvs::axiom::tsn::nav_tendency_y) = p2D(1);
 }
@@ -98,7 +98,7 @@ bool containsValue(const std::vector<T>& vec, T value) {
 
 
 //===================================================================================================================
-TimbreSpaceComponent::TimbreSpaceComponent(juce::AudioProcessor &proc)
+TimbreSpaceComponent::TimbreSpaceComponent(AudioProcessor &proc)
 {
 	_proc = dynamic_cast<TSNGranularAudioProcessor *>(&proc);
 	if (_proc == nullptr) {
@@ -120,8 +120,8 @@ void TimbreSpaceComponent::showAnalysisSaveDialog() {
     _proc->getTimbreSpace().setSavePending(false);
 	const auto callback = new Callback(*this);
 	
-	auto const result = juce::AlertWindow::showYesNoCancelBox(
-								  juce::MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
+	auto const result = AlertWindow::showYesNoCancelBox(
+								  MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
 								  "Save Analysis?", // const String &title
 								  "Would you like to save the current timbral analysis for future use?", // const String &message
 								  "Save", // const String &button1Text
@@ -131,18 +131,18 @@ void TimbreSpaceComponent::showAnalysisSaveDialog() {
 								callback); // ModalComponentManager::Callback *callback
 }
 
-void TimbreSpaceComponent::paint(juce::Graphics &g) {
+void TimbreSpaceComponent::paint(Graphics &g) {
 	// keep these out of the following scope as long as i want to reuse them for the navigator
 	Rectangle<float> r_bounds = g.getClipBounds().toFloat();
 	auto centre = r_bounds.getCentre();
-	float radius = juce::jmax (r_bounds.getWidth(), r_bounds.getHeight()) * 0.5f;
+	float radius = jmax (r_bounds.getWidth(), r_bounds.getHeight()) * 0.5f;
 	
 	ColourGradient radialGrad (
-		Colours::white.withAlpha(0.5f),    // centre colour
-		centre,                        			 // centre point
-		Colours::darkgrey.withAlpha(0.5f), // edge colour
-		centre.translated (radius, 0),  		 // a point on the circumference
-		true                           			 // isRadial = true
+		Colours::white.withAlpha(0.5f),             // centre colour
+		centre,                        			    // centre point
+		Colours::darkgrey.withAlpha(0.5f),          // edge colour
+		centre.translated (radius, 0),  // a point on the circumference
+		true                           			    // isRadial = true
 	);
 	g.setGradientFill (radialGrad);
 	g.fillRect (r_bounds);
@@ -208,7 +208,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
 				// also draw glowing orb under the point
 				const float orb_radius = rect.getWidth() * 1.5f;
-				juce::ColourGradient gradient(
+				ColourGradient gradient(
 					fillColour.withAlpha(1.0f),	// Center color (fully opaque white)
 					p2.x, p2.y,					// Center position
 					fillColour.withAlpha(0.0f),	// Edge color (fully transparent)
@@ -236,7 +236,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
 				const auto b = 2.f * (0.5f - a);
 				return jlimit(0.1f, 1.f, b * b * b + 0.1f);
 			}();
-			g.setColour(juce::Colours::whitesmoke.withAlpha(norm));
+			g.setColour(Colours::whitesmoke.withAlpha(norm));
 			g.drawLine(l, 1.f);
 		}
 	}
@@ -246,7 +246,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
             !history.empty())
         {
             // Collect all points
-            std::vector<juce::Point<float>> points;
+            std::vector<Point<float>> points;
             points.push_back(p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h)));
             for (const auto& p : history) {
                 points.push_back(p2DtoJucePoint(bipolar2dPointToComponentSpace(p, w, h)));
@@ -270,7 +270,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
                         float t2 = static_cast<float>(j + 1) / subdiv;
 
                         // Calculate both points on Catmull-Rom curve
-                        auto calcPoint = [&](float t) -> juce::Point<float> {
+                        auto calcPoint = [&](float t) -> Point<float> {
                             float t_sq = t * t;
                             float t_cube = t_sq * t;
 
@@ -295,8 +295,8 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
                         const float alpha = std::pow(1.0f - globalT, 3.f);
                         const float thickness = 2.5f * std::pow(1.0f - globalT, 2.f);
 
-                        g.setColour(juce::Colours::black.withAlpha(alpha));
-                        g.drawLine(juce::Line<float>(point1, point2), thickness);
+                        g.setColour(Colours::black.withAlpha(alpha));
+                        g.drawLine(Line<float>(point1, point2), thickness);
 
                         segmentIndex++;
                     }
@@ -310,7 +310,7 @@ void TimbreSpaceComponent::paint(juce::Graphics &g) {
     }
 }
 
-void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
+void TimbreSpaceComponent::mouseDragOrDown (Point<int> mousePos) {
 	tsn_mouse._dragging = true;
     mousePos = mousePos.transformedBy(AffineTransform::verticalFlip(static_cast<float>(getHeight())));
 	const auto p2D_norm =  jucePointToTimbre2DPoint(normalizePosition_neg1_pos1(mousePos));
@@ -318,74 +318,74 @@ void TimbreSpaceComponent::mouseDragOrDown (juce::Point<int> mousePos) {
 	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
 }
 
-void TimbreSpaceComponent::mouseDrag(const juce::MouseEvent &event) {
+void TimbreSpaceComponent::mouseDrag(const MouseEvent &event) {
 	mouseDragOrDown(event.getPosition());
 }
-void TimbreSpaceComponent::mouseDown (const juce::MouseEvent &event) {
+void TimbreSpaceComponent::mouseDown (const MouseEvent &event) {
 	mouseDragOrDown(event.getMouseDownPosition());
 }
-void TimbreSpaceComponent::mouseUp (const juce::MouseEvent &event) {
+void TimbreSpaceComponent::mouseUp (const MouseEvent &event) {
 	tsn_mouse._dragging = false;
 }
 
-void TimbreSpaceComponent::mouseEnter(const juce::MouseEvent &event) {
-	juce::MouseCursor newCursor(tsn_mouse._image, 0, 0);
+void TimbreSpaceComponent::mouseEnter(const MouseEvent &event) {
+	MouseCursor newCursor(tsn_mouse._image, 0, 0);
 	setMouseCursor(newCursor);
 }
 
-void TimbreSpaceComponent::mouseExit(const juce::MouseEvent &event) {
-	setMouseCursor(juce::MouseCursor::NormalCursor);
+void TimbreSpaceComponent::mouseExit(const MouseEvent &event) {
+	setMouseCursor(MouseCursor::NormalCursor);
 }
-void TimbreSpaceComponent::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) {
+void TimbreSpaceComponent::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) {
 	if (tsn_mouse._dragging) {
 		return;
 	}
 	float &u = tsn_mouse._uvz[0];
-	u = juce::jlimit(0.f, 1.f, u + wheel.deltaY);
+	u = jlimit(0.f, 1.f, u + wheel.deltaY);
 		
 	updateCursor();
 }
 void TimbreSpaceComponent::updateCursor() {
 	tsn_mouse.createMouseImage();
-	auto mouseImage = tsn_mouse._image;
-	juce::MouseCursor customCursor(mouseImage, mouseImage.getWidth() / 2, mouseImage.getHeight() / 2);
+	const auto mouseImage = tsn_mouse._image;
+	const MouseCursor customCursor(mouseImage, mouseImage.getWidth() / 2, mouseImage.getHeight() / 2);
 	setMouseCursor(customCursor);
 }
 
 void TimbreSpaceComponent::resized() {
 	const auto b = getLocalBounds();
     {
-	    const auto proportionRect = juce::Rectangle{0.1f, 0.05f,
+	    const auto proportionRect = Rectangle{0.1f, 0.05f,
 													0.8f, 0.05f};
 	    const auto progressBounds = b.getProportion(proportionRect);
 	    progressIndicator.setBounds(progressBounds);
     }
 	{
-	    const auto proportionRect = juce::Rectangle{0.85f, 0.92f,
+	    const auto proportionRect = Rectangle{0.85f, 0.92f,
                                                     0.15f, 0.15f};
 	    const auto infoBoxBounds = b.getProportion(proportionRect);
         _infoBox.setBounds(infoBoxBounds);
 	}
 }
 
-void ProgressIndicator::paint(juce::Graphics &g) {
+void ProgressIndicator::paint(Graphics &g) {
 	const auto b = getLocalBounds();
-	g.setColour(juce::Colours::whitesmoke);
+	g.setColour(Colours::whitesmoke);
 	g.fillRect(b);
-	g.setColour(juce::Colours::black);
+	g.setColour(Colours::black);
 	g.drawRect(b, 2.f);
 
 	const auto partialW = static_cast<int>(b.getWidth() * progress);
 	const auto progressBar = b.withWidth(partialW);
 	g.fillRect(progressBar);
-	
-	g.setColour(juce::Colours::whitesmoke);
-	g.setFont(juce::FontOptions("Courier New", 15.f, juce::Font::FontStyleFlags::plain));
-	g.drawText(message, b, juce::Justification::centred);
+
+	g.setColour(Colours::whitesmoke);
+	g.setFont(FontOptions("Courier New", 15.f, Font::FontStyleFlags::plain));
+	g.drawText(message, b, Justification::centred);
 }
 void ProgressIndicator::resized() {}
 
-void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* source) {
+void TimbreSpaceComponent::changeListenerCallback (ChangeBroadcaster* source) {
 	if (auto *rls = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
 		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
 		addAndMakeVisible(progressIndicator);
@@ -399,7 +399,7 @@ void TimbreSpaceComponent::changeListenerCallback (juce::ChangeBroadcaster* sour
 		progressIndicator.setVisible(false);
 	}
 }
-void TimbreSpaceComponent::actionListenerCallback (const juce::String &message) {
+void TimbreSpaceComponent::actionListenerCallback (const String &message) {
 	if (message == nvs::axiom::tsn::saveAnalysis) {
 		showAnalysisSaveDialog();
 	}
@@ -410,26 +410,26 @@ void TimbreSpaceComponent::exitSignalSent() {
 }
 
 void TimbreSpaceComponent::TSNMouse::createMouseImage() {
-	juce::Image image(juce::Image::ARGB, 16, 16, true);
-	juce::Graphics g(image);
+	const Image image(Image::ARGB, 16, 16, true);
+	Graphics g(image);
 	
-	juce::Path triPath;
-	auto b = image.getBounds();
-	
-	auto x0 = b.getX();
-	auto x1 = x0 + (0.05 * b.getWidth());
-	auto x2 = x0 + (0.45 * b.getWidth());
-	auto x3 = b.getRight();
+	Path triPath;
+	const auto b = image.getBounds();
 
-	auto y0 = b.getY();
-	auto y1 = y0 + (0.86 * b.getHeight());
-	auto y2 = b.getBottom();
+	const auto x0 = b.getX();
+	const auto x1 = x0 + (0.05 * b.getWidth());
+	const auto x2 = x0 + (0.45 * b.getWidth());
+
+	const auto y0 = b.getY();
+	const auto y1 = y0 + (0.86 * b.getHeight());
+	const auto y2 = b.getBottom();
 	
-	using Point = juce::Point<float>;
-	triPath.startNewSubPath (Point(x1, y0));	// A
-	triPath.lineTo        	(Point(x0, y2));	// B
-	triPath.lineTo        	(Point(x2, y1));	// C
-	triPath.closeSubPath();						// back to A
+	using Point = Point<float>;
+    auto d2f = [](const double f) {return static_cast<float>(f);};
+	triPath.startNewSubPath (Point(d2f(x1), d2f(y0)));	    // A
+	triPath.lineTo        	(Point(d2f(x0), d2f(y2)));	// B
+	triPath.lineTo        	(Point(d2f(x2), d2f(y1)));	// C
+	triPath.closeSubPath();						                        // back to A
 	
 	g.setColour(p3ToColour(biuni(_uvz)));
 	g.fillPath  (triPath);
@@ -442,7 +442,7 @@ std::vector<WeightedIdx> TimbreSpaceComponent::getCurrentPointIndices() const {
 	return tsps.getCurrentPointIndices();
 }
 
-juce::Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(const juce::Point<int> pos) const {
+Point<float> TimbreSpaceComponent::normalizePosition_neg1_pos1(const Point<int> pos) const {
 	auto x = static_cast<float>(pos.getX());
 	auto y = static_cast<float>(pos.getY());
 	auto bounds = getLocalBounds().toFloat();
@@ -464,15 +464,15 @@ ProgressIndicator& TimbreSpaceComponent::getProgressIndicator(){
 }
 
 void TimbreSpaceComponent::saveAnalysis(){
-	auto analysesDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+	auto analysesDir = File::getSpecialLocation(File::userDocumentsDirectory)
 		.getChildFile(nvs::axiom::tsn::tsn_granular)
 		.getChildFile(nvs::axiom::tsn::Analyses);
 
     if (const auto result = analysesDir.createDirectory();
         result.failed())
     {
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::MessageBoxIconType::WarningIcon,
+        AlertWindow::showMessageBoxAsync(
+            MessageBoxIconType::WarningIcon,
             "Cannot Save Analysis",
             "Failed to create directory: " + result.getErrorMessage(),
             "OK",
@@ -480,10 +480,10 @@ void TimbreSpaceComponent::saveAnalysis(){
         return;
     }
 	auto absPath = _proc->getTimbreSpace().getAudioAbsolutePath();
-	absPath = juce::File(absPath).getFileNameWithoutExtension();
+	absPath = File(absPath).getFileNameWithoutExtension();
 	analysesDir = analysesDir.getChildFile(absPath);
 	
-	fileChooser = std::make_unique<juce::FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
+	fileChooser = std::make_unique<FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
 															analysesDir,
 															"*.tsb",	//  const String &filePatternsAllowed=String(),
 															true,	// bool useOSNativeDialogBox
@@ -497,10 +497,10 @@ void TimbreSpaceComponent::saveAnalysis(){
 	fmt::print("par: {}\n", par.getType().toString().toStdString());
 	// Show async save dialog
 	fileChooser->launchAsync
-	(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
-	 [this](const juce::FileChooser& fc)
+	(FileBrowserComponent::saveMode | FileBrowserComponent::canSelectFiles,
+	 [this](const FileChooser& fc)
 	 {
-		 if (auto file = fc.getResult(); file != juce::File{}) {
+		 if (auto file = fc.getResult(); file != File{}) {
 			// Ensure proper extension
 			if (!file.hasFileExtension(".tsb")) {
 				file = file.withFileExtension(".tsb");
@@ -508,8 +508,8 @@ void TimbreSpaceComponent::saveAnalysis(){
 			_proc->saveAnalysisToFile(file.getFullPathName(), [this](bool success)
 			{
 				if (!success){
-					juce::AlertWindow::showMessageBoxAsync(
-						juce::AlertWindow::WarningIcon,	// iconType
+					AlertWindow::showMessageBoxAsync(
+						AlertWindow::WarningIcon,	// iconType
 						"Save Error",	// title
 						"Could not save the timbral analysis file. Please check the file location and try again.",	// message
 						"",	// buttonText
