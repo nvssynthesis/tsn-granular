@@ -123,7 +123,9 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::
     }
 }
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
-    if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceTree()){
+    if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceSuperTree()){
+        jassert (treeWhichHasBeenChanged.isValid());
+        jassert(treeWhichHasBeenChanged.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).hasProperty(nvs::axiom::tsn::NormalizedOnsets));
         signalOnsetsAvailable();
     } else if (&treeWhichHasBeenChanged == &_treeManager.getAPVTS().state) {
         // if we get here, the plugin state has been loaded. we need to deal with setting internal params from those of the state.
@@ -165,8 +167,19 @@ void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
 
         if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
             DBG("Discrepancy between onsets and timbre analysis\n");
+            jassertfalse;
+            return;
         }
-        setTimbreSpaceTree(timbreSpaceReprToVT(tspace, onsets, waveformHash, absFilePath));
+        const auto timbreSpaceVT = timbreSpaceReprToVT(tspace, onsets);
+        const auto superTree = analysis::makeSuperTree(timbreSpaceVT,
+            analysisResult->audioFileAbsPath,
+            analysisResult->sampleRate,
+            waveformHash,
+            waveformHash,
+            a->getSettingsParentTree());
+
+        jassert(timbreSpaceVT.getParent() == superTree);
+        setTimbreSpaceSuperTree(superTree);
 
         setSavePending(true);
         signalSaveAnalysisOption();
@@ -179,51 +192,64 @@ void TimbreSpace::updateHistogramEqualization() {
     settings.histogramEqualization = *_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::histogram_equalization);
 }
 void TimbreSpace::updateStatistic() {
-    settings.statistic = static_cast<nvs::analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::statistic)->load());
+    settings.statistic = static_cast<analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::statistic)->load());
 }
 
-void TimbreSpace::setTimbreSpaceTree(ValueTree const &timbreSpaceTree) {
-	_treeManager.setTimbreSpaceTree(timbreSpaceTree);
-    signalTimbreSpaceTreeChanged();
-    const auto onsetsVar = timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
-    if (const Array<var> *onsetsArray = onsetsVar.getArray()) {
+void TimbreSpace::setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree) {
+    // FIRST check metadata, THEN update
+    jassert(timbreSpaceSuperTree.hasType(axiom::tsn::super));
+    const ValueTree mdTree = timbreSpaceSuperTree.getChildWithName(axiom::tsn::Metadata);
+    jassert(mdTree.isValid());
 
-        const juce::ValueTree mdTree = timbreSpaceTree.getChildWithName(axiom::tsn::Metadata);
-        const auto waveformHash = mdTree.getProperty(axiom::audioHash).toString();
-        if (const auto path = mdTree.getProperty(axiom::AudioFilePathAbsolute).toString();
-            !(waveformHash.isEmpty() || path.isEmpty()))
-        {
+    const auto waveformHash = mdTree.getProperty(axiom::audioHash).toString();
+    const auto path = mdTree.getProperty(axiom::sampleFilePath).toString();
+
+    jassert(mdTree.getProperty(axiom::sampleRate).isDouble());
+    const auto sr = static_cast<double>(mdTree.getProperty(axiom::sampleRate));
+
+    if (! (waveformHash.isEmpty() || path.isEmpty()) )
+    {
+        _treeManager.setTimbreSpaceSuperTree(timbreSpaceSuperTree);
+        signalTimbreSpaceTreeChanged();
+
+        const auto onsetsVar = timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
+        if (const Array<var> *onsetsArray = onsetsVar.getArray()) {
             std::vector<float> onsets(onsetsArray->begin(), onsetsArray->end());
-            _onsetAnalysis = std::make_shared<analysis::OnsetAnalysisResult>(onsets, waveformHash, path);
+            _onsetAnalysis = std::make_shared<analysis::OnsetAnalysisResult>(onsets, waveformHash, path, sr);
         }
+        fullSelfUpdate(false);
     }
-	fullSelfUpdate(false);
 }
 
 TimbreSpace::TreeManager::TreeManager(AudioProcessorValueTreeState &apvts, TimbreSpace &timbreSpace)
 : _apvts(apvts), _timbreSpace(timbreSpace) {
-    _timbreSpaceTree.addListener(&_timbreSpace);
+    _timbreSpaceSuperTree.addListener(&_timbreSpace);
     _apvts.state.addListener(&_timbreSpace);
 }
 TimbreSpace::TreeManager::~TreeManager() {
-    _timbreSpaceTree.removeListener(&_timbreSpace);
+    _timbreSpaceSuperTree.removeListener(&_timbreSpace);
     _apvts.state.removeListener(&_timbreSpace);
 }
 
 juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
-	return _timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
+	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 }
 juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
-	return _timbreSpaceTree.getChildWithName("TimbreMeasurements");
+	return _timbreSpaceSuperTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).getChildWithName("TimbreMeasurements");
 }
-const juce::ValueTree &TimbreSpace::TreeManager::getTimbreSpaceTree() const {
-    return _timbreSpaceTree;
+const juce::ValueTree &TimbreSpace::TreeManager::getTimbreSpaceSuperTree() const {
+    if(_timbreSpaceSuperTree.isValid()) {
+        jassert(_timbreSpaceSuperTree.hasType(axiom::tsn::super));
+    }
+    return _timbreSpaceSuperTree;
 }
-void TimbreSpace::TreeManager::setTimbreSpaceTree(ValueTree timbreSpaceTree) {
-    _timbreSpaceTree = timbreSpaceTree;
+void TimbreSpace::TreeManager::setTimbreSpaceSuperTree(const ValueTree &timbreSpaceSuperTree) {
+    jassert(timbreSpaceSuperTree.hasType(axiom::tsn::super));
+    _timbreSpaceSuperTree = timbreSpaceSuperTree;
+    jassert(_timbreSpaceSuperTree.hasType(axiom::tsn::super));
 }
 int TimbreSpace::TreeManager::getNumFrames() const {
-	const auto& onsets = _timbreSpaceTree.getProperty(axiom::tsn::NormalizedOnsets);
+	const auto& onsets = _timbreSpaceSuperTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 	jassert(onsets.isArray());
 	int const numFrames = onsets.size();
 #ifdef DBG
@@ -231,7 +257,7 @@ int TimbreSpace::TreeManager::getNumFrames() const {
     if(auto const numChildren = timbralFramesTree.getNumChildren();
         !numChildren == numFrames)
     {
-	    DBG(util::valueTreeToXmlStringSafe(_timbreSpaceTree));
+	    DBG(util::valueTreeToXmlStringSafe(_timbreSpaceSuperTree));
 	    jassertfalse;
 	}
 #endif
@@ -271,7 +297,8 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
 std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature_e feature) const {
     auto const s = nvs::analysis::toString(feature);
 
-    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){ return {}; }
+    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){ return {}; }
+    jassert(_treeManager.getTimbreSpaceSuperTree().isValid());
 
     auto const &timbreTree = _treeManager.getTimbralFramesTree();
 
@@ -291,7 +318,7 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
         DBG("Extracting timbre points\n");
 
 	auto const &featuresToExtract = settings.dimensionwiseFeatures;
-	if (nvs::util::isEmpty(_treeManager.getTimbreSpaceTree())){
+	if (nvs::util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){
 		if (verbose)
 		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
 		return;

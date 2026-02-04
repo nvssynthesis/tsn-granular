@@ -65,15 +65,10 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const String& filePath, std::
 	if (!fileInfo.isValid()) return;
 	fileInfo.setProperty("analysisFile", filePath, nullptr);
 
-	ValueTree analysisSuperVT = nvs::analysis::makeSuperTree(_tsnGranularSynth->getTimbreSpace().getTimbreSpaceTree(),
-	    apvts.state.getProperty(nvs::axiom::tsn::sampleFilePath),
-	    apvts.state.getProperty(nvs::axiom::tsn::sampleRate),
-	    sampleManagementGuts.getWaveformHash(),
-	    _analyzer.getSettingsHash(),
-	    _analyzer.getSettingsParentTree());
+    const auto tsSuperTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceSuperTree();
 
-    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(analysisSuperVT).toStdString()));
-	bool success = [vt=analysisSuperVT, filePath](bool useBinary){
+    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(tsSuperTree).toStdString()));
+	bool success = [vt=tsSuperTree, filePath](bool useBinary){
 		File const file(filePath);
 		if (useBinary){
 			return nvs::util::saveValueTreeToBinary(vt, file);
@@ -227,18 +222,25 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     	writeToLog("analysisFilePath is empty");
 	    return false;
     }
-    const File analysisFile(analysisFilePath);
-    const ValueTree analysisVT = nvs::util::loadValueTreeFromBinary(analysisFile);
-    if (!analysisVT.isValid()) {
+    const ValueTree analysisSuperVT = nvs::util::loadValueTreeFromBinary(File(analysisFilePath));
+
+    jassert(analysisSuperVT.hasType(nvs::axiom::tsn::super));
+
+    if (!analysisSuperVT.isValid()) {
         writeToLog("analysis file tree invalid");
         return false; // TODO: Give popup opportunity for user to find the file
     }
-    if (auto metadataTree = analysisVT.getChildWithName(nvs::axiom::tsn::Metadata);
+    if (auto metadataTree = analysisSuperVT.getChildWithName(nvs::axiom::tsn::Metadata);
         metadataTree.isValid() &&
         nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     {
+        const auto analysisVT = analysisSuperVT.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
+        if (!analysisVT.isValid()) {
+            writeToLog("analysis file tree invalid");
+            return false;
+        }
      	writeToLog("setting via setStateInformation");
-     	_tsnGranularSynth->getTimbreSpace().setTimbreSpaceTree(analysisVT);
+     	_tsnGranularSynth->getTimbreSpace().setTimbreSpaceSuperTree(analysisSuperVT);
      	return true;
     }
     writeToLog("analysis file tree metadata mismatch");

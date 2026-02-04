@@ -356,7 +356,7 @@ void TimbreSpaceComponent::resized() {
 	const auto b = getLocalBounds();
     {
 	    const auto proportionRect = Rectangle{0.1f, 0.05f,
-													0.8f, 0.05f};
+													0.8f, 0.11f};
 	    const auto progressBounds = b.getProportion(proportionRect);
 	    progressIndicator.setBounds(progressBounds);
     }
@@ -367,23 +367,6 @@ void TimbreSpaceComponent::resized() {
         _infoBox.setBounds(infoBoxBounds);
 	}
 }
-
-void ProgressIndicator::paint(Graphics &g) {
-	const auto b = getLocalBounds();
-	g.setColour(Colours::whitesmoke);
-	g.fillRect(b);
-	g.setColour(Colours::black);
-	g.drawRect(b, 2.f);
-
-	const auto partialW = static_cast<int>(b.getWidth() * progress);
-	const auto progressBar = b.withWidth(partialW);
-	g.fillRect(progressBar);
-
-	g.setColour(Colours::whitesmoke);
-	g.setFont(FontOptions("Courier New", 15.f, Font::FontStyleFlags::plain));
-	g.drawText(message, b, Justification::centred);
-}
-void ProgressIndicator::resized() {}
 
 void TimbreSpaceComponent::changeListenerCallback (ChangeBroadcaster* source) {
 	if (auto *rls = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
@@ -490,11 +473,6 @@ void TimbreSpaceComponent::saveAnalysis(){
 															false, 	// bool treatFilePackagesAsDirectories=false,
 															this 	//  Component *parentComponent=nullptr
 														   );
-
-	const auto &timbreSpace = _proc->getTimbreSpace();
-	const auto vt = timbreSpace.getTimbreSpaceTree();
-	const auto par = vt.getParent();
-	fmt::print("par: {}\n", par.getType().toString().toStdString());
 	// Show async save dialog
 	fileChooser->launchAsync
 	(FileBrowserComponent::saveMode | FileBrowserComponent::canSelectFiles,

@@ -34,8 +34,8 @@ public:
 	std::vector<Timbre5DPoint> const &getTimbreSpacePoints() const;
 	std::shared_ptr<analysis::OnsetAnalysisResult> shareOnsets() const;
 	//=============================================================================================================================
-	void setTimbreSpaceTree(ValueTree const &timbreSpaceTree);
-	ValueTree getTimbreSpaceTree() const { return _treeManager.getTimbreSpaceTree(); }
+	void setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree);
+	ValueTree getTimbreSpaceSuperTree() const { return _treeManager.getTimbreSpaceSuperTree(); }
     std::vector<float> getRawFeatureValues(nvs::analysis::Feature_e feature) const;
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(String const &waveformHash) const;
@@ -100,12 +100,12 @@ private:
 	    ~TreeManager();
 		var getOnsetsVar() const;
 		ValueTree getTimbralFramesTree() const;
-	    const ValueTree &getTimbreSpaceTree() const;
-	    void setTimbreSpaceTree(ValueTree timbreSpaceTree);
+	    const ValueTree &getTimbreSpaceSuperTree() const;
+	    void setTimbreSpaceSuperTree(const ValueTree &timbreSpaceSuperTree);
 	    const AudioProcessorValueTreeState &getAPVTS() const { return _apvts; }
 		int getNumFrames() const;
 	private:
-	    ValueTree _timbreSpaceTree; // the most raw, unaffected version of the timbre space data. it gets populated from outside by an Analyzer class.
+	    ValueTree _timbreSpaceSuperTree; // the most raw, unaffected version of the timbre space data. it gets populated from outside by an Analyzer class.
 	    AudioProcessorValueTreeState &_apvts;
 	    TimbreSpace &_timbreSpace;  // just for adding/removing as listener
 	} _treeManager;

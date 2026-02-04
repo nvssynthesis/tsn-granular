@@ -11,23 +11,14 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "fmt/core.h"
 #include "../TsnGranularPluginProcessor.h"
-#include "../../slicer_granular/Source/misc_util.h"
 #include "../TimbreSpace/TimbreSpace.h"
+#include "ProgressIndicator.h"
+
 /**
  TODO:
  -use legitimate 5D (or N-D) point class without mismatched smaller dimension subtypes. will need this to perform e.g. rotations
 */
-
-struct ProgressIndicator final :	public Component
-{
-	void paint(Graphics &g) override;
-	void resized() override;
-
-	String message {""};
-	double progress {0.0};
-};
 
 class TimbreSpaceComponent final :	public Component
 , 								public ChangeListener
