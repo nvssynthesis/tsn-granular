@@ -31,6 +31,7 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 TSNGranularAudioProcessor::~TSNGranularAudioProcessor() {
 	_analyzer.removeChangeListener(&_tsnGranularSynth->getTimbreSpace());
     _analyzer.removeChangeListener(this);
+    _analyzer.stopAnalysis();
 }
 //==============================================================================
 void TSNGranularAudioProcessor::initSynth() {
@@ -103,7 +104,7 @@ void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(File const f, bool n
 }
 
 void TSNGranularAudioProcessor::askForAnalysis(){
-	if (_analyzer.Thread::isThreadRunning()){
+	if (_analyzer.isThreadRunning()){
 		_analyzer.stopAnalysis();
 	}
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
