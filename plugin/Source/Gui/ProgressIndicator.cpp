@@ -4,12 +4,10 @@
 
 #include "ProgressIndicator.h"
 
-ProgressIndicator::ProgressIndicator() {
+ProgressIndicator::ProgressIndicator(const std::function<void()> &stopAnalysisButtonFunction) {
     addAndMakeVisible(stopAnalysisButton);
     stopAnalysisButton.setButtonText("Stop Analysis");
-    stopAnalysisButton.onClick = [this]() {
-
-    };
+    stopAnalysisButton.onClick = stopAnalysisButtonFunction;
 }
 
 void ProgressIndicator::updateFromStatus(const nvs::analysis::RunLoopStatus& status) {

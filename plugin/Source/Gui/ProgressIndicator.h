@@ -9,7 +9,7 @@
 class ProgressIndicator final :	public Component
 {
 public:
-    ProgressIndicator();
+    ProgressIndicator(const std::function<void()> &stopAnalysisButtonFunction);
     void paint(Graphics &g) override;
     void resized() override;
 

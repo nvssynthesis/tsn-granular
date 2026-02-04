@@ -90,7 +90,7 @@ void setLfoOffsetParamsFromPoint(const AudioProcessorValueTreeState &apvts, Timb
 }
 
 template<typename T>
-bool containsValue(const std::vector<T>& vec, T value) {
+bool containsValue(const std::vector<T>& vec, const T& value) {
 	return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
 }	// anonymous namespace
@@ -98,21 +98,26 @@ bool containsValue(const std::vector<T>& vec, T value) {
 
 
 //===================================================================================================================
-TimbreSpaceComponent::TimbreSpaceComponent(AudioProcessor &proc)
+TimbreSpaceComponent::TimbreSpaceComponent(TSNGranularAudioProcessor& proc):
+    progressIndicator([&proc]()
+    {
+        proc.stopAnalysis();
+    })
 {
-	_proc = dynamic_cast<TSNGranularAudioProcessor *>(&proc);
-	if (_proc == nullptr) {
-		fmt::print("TSComp: dynamic cast failure\n");
-	    jassertfalse;
-	    return;
-	}
+    _proc = &proc;
+    if (_proc == nullptr) {
+        fmt::print("TSComp: dynamic cast failure\n");
+        jassertfalse;
+        return;
+    }
     auto &ts = _proc->getTimbreSpace();
     ts.addActionListener(this);
-    if (ts.isSavePending()){
+    if (ts.isSavePending()) {
         showAnalysisSaveDialog();
     }
     addChildComponent(progressIndicator);
 }
+
 TimbreSpaceComponent::~TimbreSpaceComponent() {
     auto &ts = _proc->getTimbreSpace();
     ts.removeActionListener(this);

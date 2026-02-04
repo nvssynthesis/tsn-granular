@@ -30,7 +30,7 @@ public:
 	using Timbre3DPoint = nvs::timbrespace::Timbre3DPoint;
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
 
-    explicit TimbreSpaceComponent(AudioProcessor &proc);
+    explicit TimbreSpaceComponent(TSNGranularAudioProcessor& proc);
     ~TimbreSpaceComponent() override;
 	//==========================================================================================
 	void changeListenerCallback (ChangeBroadcaster* source) override;
