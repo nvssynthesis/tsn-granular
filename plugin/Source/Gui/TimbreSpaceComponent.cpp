@@ -111,6 +111,7 @@ TimbreSpaceComponent::TimbreSpaceComponent(AudioProcessor &proc)
     if (ts.isSavePending()){
         showAnalysisSaveDialog();
     }
+    addChildComponent(progressIndicator);
 }
 TimbreSpaceComponent::~TimbreSpaceComponent() {
     auto &ts = _proc->getTimbreSpace();
@@ -369,16 +370,14 @@ void TimbreSpaceComponent::resized() {
 }
 
 void TimbreSpaceComponent::changeListenerCallback (ChangeBroadcaster* source) {
-	if (auto *rls = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
-		std::cout << "timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator\n";
+	if (const auto *rls = dynamic_cast<nvs::analysis::RunLoopStatus*>(source)) {
+		DBG("timbre space comp: RunLoopStatus: CHANGE listener: SHOWING progress indicator");
 		addAndMakeVisible(progressIndicator);
-		progressIndicator.progress = rls->getProgress();
-		progressIndicator.message = rls->getMessage();
-		std::cout << "PROGRESS: " << progressIndicator.progress << '\n';
-		progressIndicator.repaint();
+		progressIndicator.updateFromStatus(*rls);
+	    progressIndicator.setVisible(true);
 	}
 	else if (dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
-		std::cout << "timbre space comp: ThreadedAnalyzer: CHANGE listener: hiding progress indicator\n";
+		DBG("timbre space comp: ThreadedAnalyzer: CHANGE listener: hiding progress indicator");
 		progressIndicator.setVisible(false);
 	}
 }
@@ -388,7 +387,7 @@ void TimbreSpaceComponent::actionListenerCallback (const String &message) {
 	}
 }
 void TimbreSpaceComponent::exitSignalSent() {
-	std::cout << "timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator\n";
+	DBG("timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator");
 	progressIndicator.setVisible(false);
 }
 

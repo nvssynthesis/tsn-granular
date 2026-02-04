@@ -7,13 +7,22 @@
 ProgressIndicator::ProgressIndicator() {
     addAndMakeVisible(stopAnalysisButton);
     stopAnalysisButton.setButtonText("Stop Analysis");
+    stopAnalysisButton.onClick = [this]() {
+
+    };
 }
+
+void ProgressIndicator::updateFromStatus(const nvs::analysis::RunLoopStatus& status) {
+    progress = status.getProgress();
+    message = status.getMessage();
+    repaint();
+}
+
 void ProgressIndicator::paint(Graphics &g) {
-    // const auto b = getLocalBounds();
     {
         // draw progress bar
         g.setColour(Colours::whitesmoke);
-        constexpr auto cornerSize = 12.0f;
+        constexpr auto cornerSize = 8.0f;
         const auto progressBarBoundsF = progressBarBounds.toFloat();
         g.fillRoundedRectangle(progressBarBoundsF, cornerSize);
 

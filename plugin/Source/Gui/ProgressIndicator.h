@@ -4,7 +4,7 @@
 
 #pragma once
 #include <JuceHeader.h>
-
+#include "RunLoopStatus.h"
 
 class ProgressIndicator final :	public Component
 {
@@ -13,10 +13,12 @@ public:
     void paint(Graphics &g) override;
     void resized() override;
 
-    String message {""};
-    double progress {0.0};
+    void updateFromStatus(const nvs::analysis::RunLoopStatus& status);
 
 private:
     Rectangle<int> progressBarBounds;
     TextButton stopAnalysisButton {"Stop Analysis"};
+
+    String message {""};
+    double progress {0.0};
 };
