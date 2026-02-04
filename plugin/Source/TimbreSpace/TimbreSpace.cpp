@@ -24,7 +24,7 @@ namespace nvs::timbrespace {
 
 //===============================================TimbreSpace=================================================
 
-TimbreSpace::TimbreSpace(juce::AudioProcessorValueTreeState &apvts)
+TimbreSpace::TimbreSpace(AudioProcessorValueTreeState &apvts)
     :   _treeManager(apvts, *this)
 {}
 TimbreSpace::~TimbreSpace() {}
@@ -69,14 +69,14 @@ String TimbreSpace::getAudioAbsolutePath() const {
 auto TimbreSpace::shareOnsets() const -> std::shared_ptr<analysis::OnsetAnalysisResult>  {
     return _onsetAnalysis;
 }
-bool TimbreSpace::hasValidAnalysisFor(juce::String const &waveformHash) const {
+bool TimbreSpace::hasValidAnalysisFor(String const &waveformHash) const {
     if (_onsetAnalysis == nullptr) {
         return false;
     }
 	return _onsetAnalysis->waveformHash == waveformHash;
 }
 
-static const std::map<juce::String, size_t> pidToDimensionMap {
+static const std::map<String, size_t> pidToDimensionMap {
     {nvs::axiom::tsn::x_axis, 0},
     {nvs::axiom::tsn::y_axis, 1},
     {nvs::axiom::tsn::z_axis, 2},
@@ -84,7 +84,7 @@ static const std::map<juce::String, size_t> pidToDimensionMap {
     {nvs::axiom::tsn::v_axis, 4},
 };
 
-void TimbreSpace::updateDimensionwiseFeatureFromParam(const juce::String& paramID) {
+void TimbreSpace::updateDimensionwiseFeatureFromParam(const String& paramID) {
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
             settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
@@ -101,13 +101,13 @@ void TimbreSpace::updateAllDimensionwiseFeatures(){
     }
 }
 //=============================================================================================================================
-void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier & property) {
-    if (alteredTree.hasType(nvs::axiom::PARAM) && property == juce::Identifier("value")) {
+void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identifier & property) {
+    if (alteredTree.hasType(nvs::axiom::PARAM) && property == Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
         if (paramID == nvs::axiom::tsn::histogram_equalization) {
-            DBG("Histogram equalization changed to: " + juce::String(newValue));
+            DBG("Histogram equalization changed to: " + String(newValue));
             updateHistogramEqualization();
             DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(false);
@@ -137,7 +137,7 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
     }
 }
 
-void TimbreSpace::changeListenerCallback(juce::ChangeBroadcaster* source) {
+void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
     // could there be any reason to clear the tree? re-assigning it wouldn't need that, but
     // what if the rest of this func fails? do we want a cleared tree at that point?
     if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
@@ -231,13 +231,13 @@ TimbreSpace::TreeManager::~TreeManager() {
     _apvts.state.removeListener(&_timbreSpace);
 }
 
-juce::var TimbreSpace::TreeManager::getOnsetsVar() const {
+var TimbreSpace::TreeManager::getOnsetsVar() const {
 	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 }
-juce::ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
+ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
 	return _timbreSpaceSuperTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).getChildWithName("TimbreMeasurements");
 }
-const juce::ValueTree &TimbreSpace::TreeManager::getTimbreSpaceSuperTree() const {
+const ValueTree &TimbreSpace::TreeManager::getTimbreSpaceSuperTree() const {
     if(_timbreSpaceSuperTree.isValid()) {
         jassert(_timbreSpaceSuperTree.hasType(axiom::tsn::super));
     }
@@ -460,7 +460,7 @@ void TimbreSpace::reshape(const bool verbose)
         if (r != 0){
             y01 /= r;
         }
-        return juce::jmap(y01, -1.f, 1.f);
+        return jmap(y01, -1.f, 1.f);
     };
 
     auto squash = [](const float xNorm) -> float { return std::asinh(10.0f*xNorm) / static_cast<float>(M_PI); };
@@ -486,8 +486,8 @@ void TimbreSpace::reshape(const bool verbose)
         float const &equalizedX = _histoEqualizedD0[i];
         float const &equalizedY = _histoEqualizedD1[i];
         
-        Timbre2DPoint pHE(juce::jmap(equalizedX, -1.f, 1.f),
-                          juce::jmap(equalizedY, -1.f, 1.f));
+        Timbre2DPoint pHE(jmap(equalizedX, -1.f, 1.f),
+                          jmap(equalizedY, -1.f, 1.f));
     
         float c = settings.histogramEqualization;
         jassert (0.0 <= c && c <= 1.0);

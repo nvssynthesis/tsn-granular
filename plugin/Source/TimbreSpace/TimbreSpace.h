@@ -18,12 +18,12 @@
 
 namespace nvs::timbrespace {
 
-class TimbreSpace final :	public juce::ChangeListener
-,						    public juce::ValueTree::Listener
-,						    public juce::ActionBroadcaster
+class TimbreSpace final :	public ChangeListener
+,						    public ValueTree::Listener
+,						    public ActionBroadcaster
 {
 public:
-    explicit TimbreSpace(juce::AudioProcessorValueTreeState &apvts);
+    explicit TimbreSpace(AudioProcessorValueTreeState &apvts);
 	~TimbreSpace() override;
 	// Delaunator's copy/move ctors/assignment operators are implicitly deleted
 	TimbreSpace(const TimbreSpace&) = delete;
@@ -45,9 +45,9 @@ public:
     bool isSavePending() const { return _analysisSavePending; }
     //=============================================================================================================================
 private:
-	void valueTreePropertyChanged (ValueTree &alteredTree, const juce::Identifier &property) override;
+	void valueTreePropertyChanged (ValueTree &alteredTree, const Identifier &property) override;
 	void valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) override;
-	void changeListenerCallback(juce::ChangeBroadcaster *source) override; // conditionally updates other state if analyzer has been updated
+	void changeListenerCallback(ChangeBroadcaster *source) override; // conditionally updates other state if analyzer has been updated
 
     void updateDimensionwiseFeatureFromParam(const String& paramID); // updates settings.dimensionwiseFeatures from tree for selected feature and calls fullSelfUpdate
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
