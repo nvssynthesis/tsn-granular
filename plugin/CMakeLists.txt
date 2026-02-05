@@ -170,7 +170,7 @@ target_include_directories(tsn-granular
 target_link_libraries(tsn-granular
         PRIVATE
         fmt::fmt
-        tsn_analyzer  # brings in Essentia, Eigen, and JUCE modules automatically
+        tsn::analyzer  # brings in Essentia, Eigen, and JUCE modules automatically
         Eigen3::Eigen
         juce::juce_audio_basics
         juce::juce_audio_devices
@@ -192,7 +192,7 @@ target_link_libraries(tsn-granular
         juce::juce_recommended_warning_flags
 )
 
-get_target_property(TSN_ANALYZER_INCLUDES tsn_analyzer INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(TSN_ANALYZER_INCLUDES tsn::analyzer INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(tsn-granular SYSTEM PRIVATE ${TSN_ANALYZER_INCLUDES})
 
 # Compiler definitions
