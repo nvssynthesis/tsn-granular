@@ -99,10 +99,7 @@ bool containsValue(const std::vector<T>& vec, const T& value) {
 
 //===================================================================================================================
 TimbreSpaceComponent::TimbreSpaceComponent(TSNGranularAudioProcessor& proc):
-    progressIndicator([&proc]()
-    {
-        proc.stopAnalysis();
-    })
+    progressIndicator()
 {
     _proc = &proc;
     if (_proc == nullptr) {
@@ -392,6 +389,7 @@ void TimbreSpaceComponent::actionListenerCallback (const String &message) {
 	}
 }
 void TimbreSpaceComponent::exitSignalSent() {
+    // as thread listener
 	DBG("timbre space comp: ThreadedAnalyzer: THREAD listener: hiding progress indicator");
 	progressIndicator.setVisible(false);
 }

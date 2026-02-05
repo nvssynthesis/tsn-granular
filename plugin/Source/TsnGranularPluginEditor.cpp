@@ -20,7 +20,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 ,	GranularEditorCommon (p)
 ,	timbreSpaceComponent(p)
 ,	backgroundNeedsUpdate(true)
-,	askForAnalysisButton("Calculate Analysis")
+,	analysisButton()
 ,	writeWavsButton("Write Wavs")
 ,	settingsButton("Settings...")
 ,	TSNaudioProcessor(p)
@@ -32,13 +32,9 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 
 	addAndMakeVisible(grainBusyDisplay);
 	addAndMakeVisible(presetPanel);
-	addAndMakeVisible(askForAnalysisButton);
-	askForAnalysisButton.onClick = [this]{
-		if (auto* a = dynamic_cast<TSNGranularAudioProcessor*>(&processor)){
-			audioProcessor.writeToLog("success dynamic casting");
-			a->askForAnalysis();
-		}
-	};
+
+    setAnalysisButtonFunctionality();
+	addAndMakeVisible(analysisButton);
 	
 	addAndMakeVisible(writeWavsButton);
 	writeWavsButton.onClick = [&p]{p.writeEvents();};
@@ -67,6 +63,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	a.addListener(&timbreSpaceComponent);		// tell timbre space comp to hide progress bar if thread exits early
 	a.addChangeListener(&timbreSpaceComponent); // tell timbre space comp to hide progress bar when analysis successfully completes
     a.addChangeListener(waveformComponent.get());
+    a.addChangeListener(this);  // to change the functionality of analysisButton
 
     if (const auto x = dynamic_cast<juce::ActionListener*>(waveformComponent.get())) {
         auto &ts = TSNaudioProcessor.getTimbreSpace();
@@ -136,6 +133,50 @@ void TsnGranularAudioProcessorEditor::timerCallback() {
     timbreSpaceComponent.repaint(); // EXPENSIVE
     jassert (waveformComponent != nullptr);
     waveformComponent->highlightOnsets(TSNaudioProcessor.getTsnGranularSynthesizer()->getTimbreSpacePointSelector().getCurrentPointIndices());
+}
+
+void TsnGranularAudioProcessorEditor::setAnalysisButtonFunctionality() {
+    const auto state = TSNaudioProcessor.getAnalyzer().getState();
+    using State = nvs::analysis::ThreadedAnalyzer::State;
+    switch (state) {
+        case State::Idle: {
+            analysisButton.setButtonText("Calculate Analysis");
+            analysisButton.onClick = [this]{
+                TSNaudioProcessor.askForAnalysis();
+            };
+            break;
+        }
+        case State::Failed: {
+            analysisButton.setButtonText("Calculate Analysis");
+            analysisButton.onClick = [this]{
+                TSNaudioProcessor.askForAnalysis();
+            };
+            break;
+        }
+        case State::Complete: {
+            analysisButton.setButtonText("Calculate Analysis");
+            analysisButton.onClick = [this]{
+                TSNaudioProcessor.askForAnalysis();
+            };
+            break;
+        }
+        case State::Analyzing: {
+            analysisButton.setButtonText("Stop Analysis");
+            analysisButton.onClick = [this] {
+                TSNaudioProcessor.stopAnalysis();
+            };
+            break;
+        }
+    }
+}
+void TsnGranularAudioProcessorEditor::changeListenerCallback(ChangeBroadcaster *source) {
+    if (const auto *a = &TSNaudioProcessor.getAnalyzer();
+        source == a)
+    {
+        setAnalysisButtonFunctionality();
+    }
+
+    GranularEditorCommon::changeListenerCallback(source);
 }
 
 //==============================================================================
@@ -225,7 +266,7 @@ void TsnGranularAudioProcessorEditor::resized()
 	{
 		int buttonWidth = 90;
 		const int buttonHeight = 25;
-		askForAnalysisButton.setBounds(x, y, buttonWidth, buttonHeight);
+		analysisButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;
 		writeWavsButton.setBounds(x, y, buttonWidth, buttonHeight);
 		x += buttonWidth;

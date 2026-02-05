@@ -9,15 +9,12 @@
 class ProgressIndicator final :	public Component
 {
 public:
-    ProgressIndicator(const std::function<void()> &stopAnalysisButtonFunction);
     void paint(Graphics &g) override;
     void resized() override;
 
     void updateFromStatus(const nvs::analysis::RunLoopStatus& status);
-
 private:
     Rectangle<int> progressBarBounds;
-    TextButton stopAnalysisButton {"Stop Analysis"};
 
     String message {""};
     double progress {0.0};

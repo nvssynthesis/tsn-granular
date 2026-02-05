@@ -32,7 +32,8 @@ public:
     // SlicerGranularAudioProcessor
 	void loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor) override;	// also affects analyzer
 	void askForAnalysis();
-    void stopAnalysis() {_analyzer.stopAnalysis();}
+    void stopAnalysis() { _analyzer.stopAnalysis(); }
+    bool isAnalyzing() const { return _analyzer.isThreadRunning(); }
 	//==============================================================================
 	using TimbreSpace = nvs::timbrespace::TimbreSpace;
     using TimbreSpacePointSelector = nvs::timbrespace::TimbreSpacePointSelector;
