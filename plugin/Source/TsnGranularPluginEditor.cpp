@@ -250,39 +250,44 @@ void TsnGranularAudioProcessorEditor::paint (juce::Graphics& g)
 	// draw cached image
 	g.drawImage (backgroundImage, getLocalBounds().toFloat());
 	displayName (g, getLocalBounds());
+
+    constexpr int tabRight = 328;
+    settingsButton.setVisible(tabRight < settingsButton.getX());
+    analysisButton.setVisible(tabRight < analysisButton.getX());
+    writeWavsButton.setVisible(tabRight < writeWavsButton.getX());
 }
 
 void TsnGranularAudioProcessorEditor::resized()
 {
 	backgroundNeedsUpdate = true;
 	getConstrainer()->checkComponentBounds(this);
-	juce::Rectangle<int> localBounds = getLocalBounds();
+	Rectangle<int> localBounds = getLocalBounds();
 	int const smallPad = 12;
 	localBounds.reduce(smallPad, smallPad);
 	
-	int x(localBounds.getX()), y(0);
-	y = placeFileCompAndGrainBusyDisplay(localBounds, 2, grainBusyDisplay, presetPanel, y);
+	int y(0);
+    y = placeFileCompAndGrainBusyDisplay(localBounds, 2, grainBusyDisplay, presetPanel, y);
 
 	{
+    	int r(localBounds.getRight());
 		int buttonWidth = 90;
 		const int buttonHeight = 25;
-		analysisButton.setBounds(x, y, buttonWidth, buttonHeight);
-		x += buttonWidth;
-		writeWavsButton.setBounds(x, y, buttonWidth, buttonHeight);
-		x += buttonWidth;
-		settingsButton.setBounds(x, y, buttonWidth, buttonHeight);
-		x += buttonWidth;
-		buttonWidth = buttonHeight;
-		x += buttonWidth;
-		y += buttonHeight;
-//		y += smallPad;
+	    auto _x = [buttonWidth, &r] () {
+	        auto const retval = r - buttonWidth;
+	        r -= buttonWidth;
+	        return retval;
+	    };
+		analysisButton.setBounds(_x(), y, buttonWidth, buttonHeight);
+		settingsButton.setBounds(_x(), y, buttonWidth, buttonHeight);
+		writeWavsButton.setBounds(_x(), y, buttonWidth, buttonHeight);
 	}
     constexpr auto mainParamsRemainingHeightRatio  = 0.37f;
     constexpr auto waveformCompRemainingHeightRatio = 0.12f;
     constexpr auto timbreSpaceRemainingHeightRatio = 0.51f;
-    constexpr auto totalRemainingHeightRatiosSummed = mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio;
-	jassert(0.999f <= totalRemainingHeightRatiosSummed && (totalRemainingHeightRatiosSummed <= 1.001f));
-	
+    {
+        constexpr auto totalRemainingHeightRatiosSummed = mainParamsRemainingHeightRatio + waveformCompRemainingHeightRatio + timbreSpaceRemainingHeightRatio;
+	    jassert(0.999f <= totalRemainingHeightRatiosSummed && (totalRemainingHeightRatiosSummed <= 1.001f));
+    }
 	{
 		auto const mainParamsRemainingHeight = mainParamsRemainingHeightRatio * localBounds.toFloat().getHeight();
 

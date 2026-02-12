@@ -129,7 +129,7 @@ private:
             auto text = numPointsBaseTxt + String(_numPoints);
             auto textWidth = GlyphArrangement::getStringWidth(newFont, text);
 
-            const auto textRect = positionRect.withTrimmedRight(2);
+            const auto textRect = positionRect.withTrimmedRight(2).toFloat();
 
             if (textWidth > textRect.getWidth()) {
                 text = "num: " + std::to_string(_numPoints);
