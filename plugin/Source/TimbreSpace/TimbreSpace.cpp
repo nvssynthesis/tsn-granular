@@ -8,16 +8,15 @@
   ==============================================================================
 */
 
-#include "TimbreSpace.h"
 #include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../plugin/slicer_granular/Source/misc_util_juce.h"
 #include "../plugin/slicer_granular/Source/StringAxiom.h"
+#include "TimbreSpace.h"
 #include "ThreadedAnalyzer.h"
 #include "FeatureOperations.h"
-#include <ranges>
-#include "juce_utils.h"
 #include "TSNValueTreeUtilities.h"
+#include "juce_utils.h"
 #include "essentia/essentiamath.h"
+#include <ranges>
 
 namespace nvs::timbrespace {
 
@@ -77,17 +76,17 @@ bool TimbreSpace::hasValidAnalysisFor(String const &waveformHash) const {
 }
 
 static const std::map<String, size_t> pidToDimensionMap {
-    {nvs::axiom::tsn::x_axis, 0},
-    {nvs::axiom::tsn::y_axis, 1},
-    {nvs::axiom::tsn::z_axis, 2},
-    {nvs::axiom::tsn::u_axis, 3},
-    {nvs::axiom::tsn::v_axis, 4},
+    {axiom::tsn::x_axis, 0},
+    {axiom::tsn::y_axis, 1},
+    {axiom::tsn::z_axis, 2},
+    {axiom::tsn::u_axis, 3},
+    {axiom::tsn::v_axis, 4},
 };
 
 void TimbreSpace::updateDimensionwiseFeatureFromParam(const String& paramID) {
     for (auto const &[s, i] : pidToDimensionMap) {
         if (paramID == s) {
-            settings.dimensionwiseFeatures[i] = static_cast<nvs::analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
+            settings.dimensionwiseFeatures[i] = static_cast<analysis::Feature_e>(_treeManager.getAPVTS().getRawParameterValue(s)->load());
             fullSelfUpdate(false);
             return;
         }
@@ -96,24 +95,24 @@ void TimbreSpace::updateDimensionwiseFeatureFromParam(const String& paramID) {
 void TimbreSpace::updateAllDimensionwiseFeatures(){
     for (auto const &[s, i] : pidToDimensionMap) {
         const auto val = _treeManager.getAPVTS().getRawParameterValue(s)->load();
-        const auto feat = static_cast<nvs::analysis::Feature_e>(val);
+        const auto feat = static_cast<analysis::Feature_e>(val);
         settings.dimensionwiseFeatures[i] = feat;
     }
 }
 //=============================================================================================================================
 void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identifier & property) {
-    if (alteredTree.hasType(nvs::axiom::PARAM) && property == Identifier("value")) {
+    if (alteredTree.hasType(axiom::PARAM) && property == Identifier("value")) {
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
-        if (paramID == nvs::axiom::tsn::histogram_equalization) {
+        if (paramID == axiom::tsn::histogram_equalization) {
             DBG("Histogram equalization changed to: " + String(newValue));
             updateHistogramEqualization();
             DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(false);
             return;
         }
-        if (paramID == nvs::axiom::tsn::statistic) {
+        if (paramID == axiom::tsn::statistic) {
             updateStatistic();
             DBG("tree changed! redrawing points...\n");
             fullSelfUpdate(false);
@@ -125,7 +124,7 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identi
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
     if (&treeWhichHasBeenChanged == &_treeManager.getTimbreSpaceSuperTree()){
         jassert (treeWhichHasBeenChanged.isValid());
-        jassert(treeWhichHasBeenChanged.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).hasProperty(nvs::axiom::tsn::NormalizedOnsets));
+        jassert(treeWhichHasBeenChanged.getChildWithName(axiom::tsn::TimbreAnalysis).hasProperty(axiom::tsn::NormalizedOnsets));
         signalOnsetsAvailable();
     } else if (&treeWhichHasBeenChanged == &_treeManager.getAPVTS().state) {
         // if we get here, the plugin state has been loaded. we need to deal with setting internal params from those of the state.
@@ -140,7 +139,7 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
 void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
     // could there be any reason to clear the tree? re-assigning it wouldn't need that, but
     // what if the rest of this func fails? do we want a cleared tree at that point?
-    if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)){
+    if (auto *a = dynamic_cast<analysis::ThreadedAnalyzer*>(source)){
         // TimbreSpace really only cares about getting both Onsets and TimbreSpaceAnalysis; it cannot complete its tasks without both.
         // ========================================ONSETS========================================
         const auto onsetsResult = a->shareOnsetAnalysis();
@@ -163,7 +162,7 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
         auto const &tspace = analysisResult.value().timbreMeasurements;
 
         const String waveformHash = onsetsResult->waveformHash;
-        const String absFilePath = onsetsResult->audioFileAbsPath;
+        const String absFilePath = onsetsResult->audioFileAbsPath;  // NOLINT
 
         if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
             DBG("Discrepancy between onsets and timbre analysis\n");
@@ -235,7 +234,7 @@ var TimbreSpace::TreeManager::getOnsetsVar() const {
 	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 }
 ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
-	return _timbreSpaceSuperTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).getChildWithName("TimbreMeasurements");
+	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getChildWithName("TimbreMeasurements");
 }
 const ValueTree &TimbreSpace::TreeManager::getTimbreSpaceSuperTree() const {
     if(_timbreSpaceSuperTree.isValid()) {
@@ -249,7 +248,7 @@ void TimbreSpace::TreeManager::setTimbreSpaceSuperTree(const ValueTree &timbreSp
     jassert(_timbreSpaceSuperTree.hasType(axiom::tsn::super));
 }
 int TimbreSpace::TreeManager::getNumFrames() const {
-	const auto& onsets = _timbreSpaceSuperTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
+	const auto& onsets = _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 	jassert(onsets.isArray());
 	int const numFrames = onsets.size();
 #ifdef DBG
@@ -294,10 +293,10 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
     signalShapedPointsAvailable();
 }
 
-std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature_e feature) const {
-    auto const s = nvs::analysis::toString(feature);
+std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e feature) const {
+    auto const s = analysis::toString(feature);
 
-    if (nvs::util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){ return {}; }
+    if (util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){ return {}; }
     jassert(_treeManager.getTimbreSpaceSuperTree().isValid());
 
     auto const &timbreTree = _treeManager.getTimbralFramesTree();
@@ -306,11 +305,45 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const nvs::analysis::Feature
 
     for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
         ValueTree const &frame = timbreTree.getChild(feat_idx);
-        std::vector<float> v = nvs::analysis::extractFeaturesFromTree(frame, feature, settings.statistic);
+        std::vector<float> v = analysis::extractFeaturesFromTree(frame, feature, settings.statistic);
         jassert (v.size() == 1);
         extractedFramewiseFeatureValues.push_back(v[0]);
     }
     return extractedFramewiseFeatureValues;
+}
+
+void decorrelateFromPitchAndLoudness(std::array<std::vector<float>, 5>& features,
+                                      const std::vector<float>& pitch,
+                                      const std::vector<float>& loudness)
+{
+    const int N = pitch.size();
+
+    Eigen::VectorXf p = Eigen::Map<const Eigen::VectorXf>(pitch.data(), N);
+    Eigen::VectorXf l = Eigen::Map<const Eigen::VectorXf>(loudness.data(), N);
+
+    // center pitch and loudness
+    p.array() -= p.mean();
+    l.array() -= l.mean();
+
+    // regressor matrix
+    Eigen::MatrixXf X(N, 2);
+    X.col(0) = p;
+    X.col(1) = l;
+
+    // solver needs only one-time computation
+    const auto solver = (X.transpose() * X).colPivHouseholderQr();
+
+    for (auto& feature : features)
+    {
+        Eigen::Map<Eigen::VectorXf> f(feature.data(), N);
+
+        // center the feature as well
+        f.array() -= f.mean();
+
+        // compute beta, remove projection
+        Eigen::VectorXf beta = solver.solve(X.transpose() * f);
+        f -= X * beta;
+    }
 }
 
 void TimbreSpace::extractTimbralFeatures(const bool verbose) {
@@ -318,7 +351,7 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
         DBG("Extracting timbre points\n");
 
 	auto const &featuresToExtract = settings.dimensionwiseFeatures;
-	if (nvs::util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){
+	if (util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){
 		if (verbose)
 		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
 		return;
@@ -340,29 +373,38 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
         using namespace essentia;
         auto &features = _extractedFeatures.features;
 
-        // compute means
-        const auto x0_mean = mean(features[0]);
-        const auto x1_mean = mean(features[1]);
+        const analysis::vecReal pitchVec = getRawFeatureValues(analysis::Feature_e::f0);
+        const analysis::vecReal loudnessVec = getRawFeatureValues(analysis::Feature_e::Loudness);
 
-        // center in place
-        std::ranges::transform(features[0], features[0].begin(),
-                               [x0_mean](float x) { return x - x0_mean; });
-        std::ranges::transform(features[1], features[1].begin(),
-                               [x1_mean](float x) { return x - x1_mean; });
+        decorrelateFromPitchAndLoudness(features, pitchVec, loudnessVec);
 
-        // compute covariance and variance on centered data (pass 0.0 as mean)
-        const auto x0_x1_covar = covariance(features[0], 0.0f,
-                                            features[1], 0.0f);
-        const auto x0_var = variance(features[0], 0.0f);
+        const bool decorrelate1from0 = false;
+        if (decorrelate1from0)
+        {
+            // compute means
+            const auto x0_mean = mean(features[0]);
+            const auto x1_mean = mean(features[1]);
 
-        // decorrelate x1 from x0
-        const float beta = x0_x1_covar / x0_var;
-        std::transform(features[1].begin(), features[1].end(),
-                       features[0].begin(),
-                       features[1].begin(),
-                       [beta](float x1, float x0) {
-                           return x1 - beta * x0;
-                       });
+            // center in place
+            std::ranges::transform(features[0], features[0].begin(),
+                                   [x0_mean](const float x) { return x - x0_mean; });
+            std::ranges::transform(features[1], features[1].begin(),
+                                   [x1_mean](const float x) { return x - x1_mean; });
+
+            // compute covariance and variance on centered data (pass 0.0 as mean)
+            const auto x0_x1_covar = covariance(features[0], 0.0f,
+                                                features[1], 0.0f);
+            const auto x0_var = variance(features[0], 0.0f);
+
+            // decorrelate x1 from x0
+            const float beta = x0_x1_covar / x0_var;
+            std::transform(features[1].begin(), features[1].end(),
+                           features[0].begin(),
+                           features[1].begin(),
+                           [beta](const float x1, const float x0) {
+                               return x1 - beta * x0;
+                           });
+        }
     }
 }
 
@@ -408,12 +450,12 @@ void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
 	    return;
 	}
 	{
-		auto const n_dim = _extractedFeatures.features.size();
+        const auto n_dim = _extractedFeatures.features.size();
 		_ranges.clear();
 		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			_ranges.push_back(nvs::analysis::calculateRangeOfDimension(_extractedFeatures.features[i]));
+			_ranges.push_back(analysis::calculateRangeOfDimension(_extractedFeatures.features[i]));
 		}
 	}
 	{
@@ -446,7 +488,7 @@ void TimbreSpace::reshape(const bool verbose)
         return;
     }
     static constexpr size_t nDim {5};
-    if ((_extractedFeatures.features.size() != _ranges.size()) || (nDim != _ranges.size())){
+    if (_extractedFeatures.features.size() != _ranges.size() || nDim != _ranges.size()){
         if (verbose)
             DBG("drawTimbreSpacePoints: point size mismatch, exiting early");
         jassertfalse;
@@ -455,8 +497,8 @@ void TimbreSpace::reshape(const bool verbose)
     
     auto normalizer = [](const float x, const std::pair<float, float> &range) -> float
     {
-        const auto r = (range.second - range.first);
-        auto y01 = (x - range.first);
+        const auto r = range.second - range.first;
+        auto y01 = x - range.first;
         if (r != 0){
             y01 /= r;
         }
