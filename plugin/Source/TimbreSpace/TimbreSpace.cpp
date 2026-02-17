@@ -118,7 +118,14 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identi
             fullSelfUpdate(false);
             return;
         }
-        updateDimensionwiseFeatureFromParam(paramID);
+        if (paramID == axiom::tsn::decorrelateFromPitchAndLoudness) {
+            const auto res = _treeManager.getAPVTS().getRawParameterValue(axiom::tsn::decorrelateFromPitchAndLoudness)->load();
+            const bool shouldDecorrelate = res == 1.f;
+            settings.decorrelateFromPitchAndLoudness = shouldDecorrelate;
+            fullSelfUpdate(false);
+            return;
+        }
+        updateDimensionwiseFeatureFromParam(paramID);   // this last one catches all axis specifications (e.g. x_axis, y_axis...)
     }
 }
 void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
@@ -285,9 +292,12 @@ void TimbreSpace::TimbreDataManager::swapIfPending() {
 
 void TimbreSpace::fullSelfUpdate(const bool verbose){
 	extractTimbralFeatures(verbose);
+    if (settings.decorrelateFromPitchAndLoudness) {
+        decorrelateFromPitchAndLoudness();
+    }
 	computeHistogramEqualizedPoints(verbose);
 	reshape(verbose);
-	_timbreDataManager.setPendingReady();// _pendingUpdate.store(true, std::memory_order_release);
+	_timbreDataManager.setPendingReady();
     _timbreDataManager.swapIfPending();
 
     signalShapedPointsAvailable();
@@ -312,10 +322,13 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e fe
     return extractedFramewiseFeatureValues;
 }
 
-void decorrelateFromPitchAndLoudness(std::array<std::vector<float>, 5>& features,
-                                      const std::vector<float>& pitch,
-                                      const std::vector<float>& loudness)
+void TimbreSpace::decorrelateFromPitchAndLoudness()
 {
+    auto &features = _extractedFeatures.features;
+
+    const analysis::vecReal pitch = getRawFeatureValues(analysis::Feature_e::f0);
+    const analysis::vecReal loudness = getRawFeatureValues(analysis::Feature_e::Loudness);
+
     const int N = pitch.size();
 
     Eigen::VectorXf p = Eigen::Map<const Eigen::VectorXf>(pitch.data(), N);
@@ -368,44 +381,6 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 	        _extractedFeatures.features[featIdx].push_back(v[featIdx]);
 	    }
 	}
-    {
-        // decorrelate!
-        using namespace essentia;
-        auto &features = _extractedFeatures.features;
-
-        const analysis::vecReal pitchVec = getRawFeatureValues(analysis::Feature_e::f0);
-        const analysis::vecReal loudnessVec = getRawFeatureValues(analysis::Feature_e::Loudness);
-
-        decorrelateFromPitchAndLoudness(features, pitchVec, loudnessVec);
-
-        const bool decorrelate1from0 = false;
-        if (decorrelate1from0)
-        {
-            // compute means
-            const auto x0_mean = mean(features[0]);
-            const auto x1_mean = mean(features[1]);
-
-            // center in place
-            std::ranges::transform(features[0], features[0].begin(),
-                                   [x0_mean](const float x) { return x - x0_mean; });
-            std::ranges::transform(features[1], features[1].begin(),
-                                   [x1_mean](const float x) { return x - x1_mean; });
-
-            // compute covariance and variance on centered data (pass 0.0 as mean)
-            const auto x0_x1_covar = covariance(features[0], 0.0f,
-                                                features[1], 0.0f);
-            const auto x0_var = variance(features[0], 0.0f);
-
-            // decorrelate x1 from x0
-            const float beta = x0_x1_covar / x0_var;
-            std::transform(features[1].begin(), features[1].end(),
-                           features[0].begin(),
-                           features[1].begin(),
-                           [beta](const float x1, const float x0) {
-                               return x1 - beta * x0;
-                           });
-        }
-    }
 }
 
 std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){

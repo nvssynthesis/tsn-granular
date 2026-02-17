@@ -64,6 +64,7 @@ private:
 			nvs::analysis::Feature_e::bfcc5
 		};
 	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
+	    bool decorrelateFromPitchAndLoudness {true};
 	} settings;
 	//=============================================================================================================================
     std::shared_ptr<analysis::OnsetAnalysisResult> _onsetAnalysis;
@@ -121,7 +122,8 @@ private:
 
 	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
 	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
-	void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
+    void decorrelateFromPitchAndLoudness();
+    void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
