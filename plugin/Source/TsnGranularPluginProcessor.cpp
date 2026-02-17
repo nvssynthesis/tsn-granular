@@ -234,8 +234,9 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
         metadataTree.isValid() &&
         nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     {
-        const auto analysisVT = analysisSuperVT.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
-        if (!analysisVT.isValid()) {
+        if (const auto analysisVT = analysisSuperVT.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
+            !analysisVT.isValid())
+        {
             writeToLog("analysis file tree invalid");
             return false;
         }

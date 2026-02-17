@@ -202,6 +202,7 @@ void TimbreSpace::updateStatistic() {
 }
 
 void TimbreSpace::setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree) {
+    DBG("TimbreSpace: setting timbre space super tree\n");
     // FIRST check metadata, THEN update
     jassert(timbreSpaceSuperTree.hasType(axiom::tsn::super));
     const ValueTree mdTree = timbreSpaceSuperTree.getChildWithName(axiom::tsn::Metadata);
