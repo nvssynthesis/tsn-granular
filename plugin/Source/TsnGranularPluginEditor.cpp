@@ -50,6 +50,8 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	
 	addAndMakeVisible(tabbedPages);
 
+    tabbedPages.toBack();
+
     jassert (waveformComponent != nullptr);
 	addAndMakeVisible(*waveformComponent);
 
