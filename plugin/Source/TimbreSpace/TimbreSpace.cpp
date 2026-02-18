@@ -184,7 +184,16 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
             waveformHash,
             a->getSettingsParentTree());
 
-        jassert(timbreSpaceVT.getParent() == superTree);
+        {
+            const auto par = timbreSpaceVT.getParent();
+            jassert(par == superTree);
+
+            const auto md = par.getChildWithName(nvs::axiom::tsn::Metadata);
+            jassert(md.hasProperty(nvs::axiom::sampleFilePath));
+            jassert(!md.getProperty(nvs::axiom::sampleFilePath, "").toString().isEmpty());
+            jassert(md.hasProperty(nvs::axiom::sampleRate));
+            jassert(static_cast<double>(md.getProperty(nvs::axiom::sampleRate, 0.0)) > 0.0);
+        }
         setTimbreSpaceSuperTree(superTree);
 
         setSavePending(true);
