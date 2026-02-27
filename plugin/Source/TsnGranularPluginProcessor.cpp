@@ -68,15 +68,16 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const String& filePath, std::
     const auto tsSuperTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceSuperTree();
 
     DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(tsSuperTree).toStdString()));
-	bool success = [vt=tsSuperTree, filePath](bool useBinary){
-		File const file(filePath);
+	bool success = [vt=tsSuperTree, filePath](){
+        const bool useBinary = File(filePath).getFileExtension() == ".tsb";
+	    File const file(filePath);
 		if (useBinary){
 			return nvs::util::saveValueTreeToBinary(vt, file);
 		}
 		else {
 			return nvs::util::saveValueTreeToJSON(vt, file);
 		}
-	}(true);
+	}();
 	MessageManager::callAsync([resultCallback, success](){
 		resultCallback(success);
 	});
