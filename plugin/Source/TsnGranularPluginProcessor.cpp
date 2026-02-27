@@ -224,6 +224,11 @@ bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
     }
     const ValueTree analysisSuperVT = nvs::util::loadValueTreeFromBinary(File(analysisFilePath));
 
+    if (!analysisSuperVT.isValid()) {
+        writeToLog("analysisSuperVT: invalid; returning...");
+        return false;
+    }
+
     jassert(analysisSuperVT.hasType(nvs::axiom::tsn::super));
 
     if (!analysisSuperVT.isValid()) {
