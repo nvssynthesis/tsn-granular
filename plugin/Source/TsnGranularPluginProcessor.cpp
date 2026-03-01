@@ -133,11 +133,12 @@ void TSNGranularAudioProcessor::changeListenerCallback (ChangeBroadcaster *sourc
         if (const auto onsetsResult = _analyzer.shareOnsetAnalysis();
             onsetsResult->waveformHash == sampleManagementGuts.getWaveformHash())
         {
-            _tsnGranularSynth->loadOnsets(onsetsResult);
-        } else {
-            DBG("TSNGranularAudioProcessor: Hash mismatch between onsets and current sample, returning\n");
+            DBG("claim: this loadOnsets is no longer necessary\n");
             return;
+            // _tsnGranularSynth->loadOnsets(onsetsResult);
         }
+        DBG("TSNGranularAudioProcessor: Hash mismatch between onsets and current sample, returning\n");
+        return;
     }
     SlicerGranularAudioProcessor::changeListenerCallback(source);
 }

@@ -36,7 +36,7 @@ public:
 	//=============================================================================================================================
 	void setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree);
 	ValueTree getTimbreSpaceSuperTree() const { return _treeManager.getTimbreSpaceSuperTree(); }
-    std::vector<float> getRawFeatureValues(nvs::analysis::Feature_e feature) const;
+    std::vector<float> getRawFeatureValues(analysis::Feature_e feature, std::optional<analysis::Statistic> statToUse=std::nullopt) const;   // if optional arg unspecified, defaults to the stat in settings.statistic
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(String const &waveformHash) const;
     String getAudioAbsolutePath() const;
@@ -56,14 +56,14 @@ private:
 
 	struct Settings {
 		float histogramEqualization {0.0f};
-		std::vector<nvs::analysis::Feature_e> dimensionwiseFeatures {
-			nvs::analysis::Feature_e::bfcc1,
-			nvs::analysis::Feature_e::bfcc2,
-			nvs::analysis::Feature_e::bfcc3,
-			nvs::analysis::Feature_e::bfcc4,
-			nvs::analysis::Feature_e::bfcc5
+		std::vector<analysis::Feature_e> dimensionwiseFeatures {
+			analysis::Feature_e::bfcc1,
+			analysis::Feature_e::bfcc2,
+			analysis::Feature_e::bfcc3,
+			analysis::Feature_e::bfcc4,
+			analysis::Feature_e::bfcc5
 		};
-	    nvs::analysis::Statistic statistic {nvs::analysis::Statistic::Median};
+	    analysis::Statistic statistic {analysis::Statistic::Median};
 	    bool decorrelateFromPitchAndLoudness {true};
 	} settings;
 	//=============================================================================================================================

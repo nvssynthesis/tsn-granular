@@ -313,7 +313,7 @@ void TimbreSpace::fullSelfUpdate(const bool verbose){
     signalShapedPointsAvailable();
 }
 
-std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e feature) const {
+std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e feature, std::optional<analysis::Statistic> statToUse) const {
     auto const s = analysis::toString(feature);
 
     if (util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){ return {}; }
@@ -321,11 +321,14 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e fe
 
     auto const &timbreTree = _treeManager.getTimbralFramesTree();
 
+    if (statToUse == std::nullopt) {
+        statToUse = settings.statistic;
+    }
     std::vector<float> extractedFramewiseFeatureValues;
 
     for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
         ValueTree const &frame = timbreTree.getChild(feat_idx);
-        std::vector<float> v = analysis::extractFeaturesFromTree(frame, feature, settings.statistic);
+        std::vector<float> v = analysis::extractFeaturesFromTree(frame, feature, statToUse.value());
         jassert (v.size() == 1);
         extractedFramewiseFeatureValues.push_back(v[0]);
     }

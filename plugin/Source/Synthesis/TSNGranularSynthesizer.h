@@ -9,6 +9,7 @@
 */
 
 #pragma once
+#include "TSNPolyGrain.h"
 #include "../../slicer_granular/Source/Synthesis/GranularSynthesizer.h"
 #include "Navigation/NavigationManager.h"
 #include "TimbreSpace/TimbreSpacePointSelector.h"
@@ -28,8 +29,6 @@ public:
     explicit TSNGranularSynthesizer(juce::AudioProcessorValueTreeState &apvts);
     ~TSNGranularSynthesizer() override;
 
-    void loadOnsets(SharedOnsets onsets);
-
     [[deprecated("theory: the only valid reasons to get timbreSpace from here would be saving, writing, and validation. create helper methods instead.")]]
     TimbreSpace &getTimbreSpace() {
         return _timbreSpace;
@@ -45,6 +44,7 @@ private:
     NavigationManager _navigator;
     TimbreSpace _timbreSpace;
     TimbreSpacePointSelector _timbreSpacePointSelector;
+    std::array<TSNPolyGrain *, N_VOICES> _tsn_polygrains {};
 
     //==============================================================================
     void actionListenerCallback(const String &message) override;

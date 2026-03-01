@@ -28,14 +28,16 @@ public:
     TSNPolyGrain(GranularSynthSharedState *synth_shared_state, GranularVoiceSharedState *voice_shared_state);
     ~TSNPolyGrain() override = default;
     //================================================================================================================================================
-    void loadOnsets(SharedOnsets onsets);
+    void setNeededData(SharedOnsets onsets, const std::vector<float> &fundamentals);
     void setWaveEvent(size_t index);
     void setWaveEvents(const std::vector<WeightedIdx> &weightedIndices);
     //================================================================================================================================================
 private:
     SharedOnsets _onsets;
-
-    std::vector<WeightedReadBounds> _weightedReadBounds;    // member to avoid reallocations
+    std::vector<float> _fundamentals;
+    std::array<float, 3> _fundamentalsTrio;
+    // members to avoid reallocations
+    std::vector<WeightedReadBounds> _weightedReadBoundsTrio;
 };
 
 }   // namespace nvs::gran
