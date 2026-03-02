@@ -43,6 +43,7 @@ public:
 	ThreadedAnalyzer &getAnalyzer() {
 		return _analyzer;
 	}
+    bool loadAnalysisFile(const File &analysisFile);
 	[[deprecated("theory: the only valid reasons to get timbreSpace from here would be saving, writing, and validation. create helper methods instead.")]]
     TimbreSpace &getTimbreSpace() const { return _tsnGranularSynth->getTimbreSpace(); }
     TimbreSpacePointSelector &getTimbreSpacePointSelector() const { return _tsnGranularSynth->getTimbreSpacePointSelector(); }
@@ -65,7 +66,7 @@ private:
     TSNGranularSynth * _tsnGranularSynth {nullptr};    // gets initialized from subclass's _granularSynth unique_ptr
 	//==============================================================================
 	void ensureSettingsStructure();
-	bool loadAnalysisFileFromState();
+    File getAnalysisFileFromState();
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TSNGranularAudioProcessor)
 };

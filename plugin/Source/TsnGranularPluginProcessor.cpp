@@ -88,14 +88,21 @@ void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(File const f, bool n
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFileAndUpdateState(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
 
-	if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
-		/* do nothing */
-		writeToLog(fmt::format("TSNGranularAudioProcessor already had valid analysis for {}\n", f.getFullPathName().toStdString()));
-	}
-	else if (!loadAnalysisFileFromState())	// try to load analysis from state; if it fails then do fresh analysis
-	{
-		askForAnalysis();
-	}
+    if (const auto analysisFile = getAnalysisFileFromState();
+        loadAnalysisFile(analysisFile))
+    {
+        writeToLog("Loaded analysis file\n");
+        return;
+    }
+
+    if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
+        /* do nothing */
+        writeToLog(fmt::format("TSNGranularAudioProcessor already has valid analysis (not from preset) for {}\n", f.getFullPathName().toStdString()));
+        return;
+    }
+
+    askForAnalysis();
+
 	writeToLog("TSN: loadAudioFileAndUpdateState exiting");
 }
 
@@ -208,23 +215,30 @@ void TSNGranularAudioProcessor::ensureSettingsStructure() {
         nvs::analysis::initializeSettingsBranches(settingsVT);
     }
 }
-bool TSNGranularAudioProcessor::loadAnalysisFileFromState() {
-    // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
-    /// designated directory, manual find, and give up (just perform fresh analysis)
+File TSNGranularAudioProcessor::getAnalysisFileFromState() {
     const auto fileInfo = apvts.state.getChildWithName(nvs::axiom::tsn::FileInfo);
-	writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
+    writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
     if (!fileInfo.isValid()) {
-		writeToLog("file info value tree invalid\n");
-    	return false;
+        writeToLog("file info value tree invalid\n");
+        return {};
     }
     const String analysisFilePath = fileInfo.getProperty(nvs::axiom::tsn::analysisFile, {});
-	writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
+    writeToLog(fmt::format("analysisFilePath: {}", analysisFilePath.toStdString()));
 
     if (analysisFilePath.isEmpty()) {
-    	writeToLog("analysisFilePath is empty");
-	    return false;
+        writeToLog("analysisFilePath is empty");
+        return {};
     }
-    const ValueTree analysisSuperVT = nvs::util::loadValueTreeFromBinary(File(analysisFilePath));
+    return File(analysisFilePath);
+}
+bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
+    // TODO: Return more particular failure/success and handle each case. E.g. there could be auto-search in
+    /// designated directory, manual find, and give up (just perform fresh analysis)
+    if (!analysisFile.existsAsFile()) {
+        writeToLog("File does not exist");
+        return false;
+    }
+    const ValueTree analysisSuperVT = nvs::util::loadValueTreeFromBinary(analysisFile);
 
     if (!analysisSuperVT.isValid()) {
         writeToLog("analysisSuperVT: invalid; returning...");
