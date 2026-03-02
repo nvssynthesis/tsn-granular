@@ -23,6 +23,7 @@
 class TimbreSpaceComponent final :	public Component
 , 								public ChangeListener
 , 								public Thread::Listener
+,                               public FileDragAndDropTarget
 ,								private ActionListener
 {
 public:
@@ -102,6 +103,9 @@ private:
 	};
 
 	void saveAnalysis();
+    bool isInterestedInFileDrag (const StringArray &files) override;
+    void fileDragEnter (const StringArray &files, int, int) override;
+    void filesDropped (const StringArray &files, int, int) override;
 
 	std::unique_ptr<FileChooser> fileChooser;
 	Point<float> normalizePosition_neg1_pos1(Point<int> pos) const;

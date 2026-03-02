@@ -56,6 +56,7 @@ TsnGranularAudioProcessorEditor::TsnGranularAudioProcessorEditor (TSNGranularAud
 	addAndMakeVisible(*waveformComponent);
 
 	addAndMakeVisible(timbreSpaceComponent);
+    timbreSpaceComponent.setAlwaysOnTop(true);
 	timbreSpaceComponent.addMouseListener(this, false);
 	
 #pragma message("need to fix this part based on the new changes. We don't want to do unecessary point calculations on construction, but do want to draw already-stored point data.")

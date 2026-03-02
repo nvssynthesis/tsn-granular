@@ -242,15 +242,13 @@ bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
 
     if (!analysisSuperVT.isValid()) {
         writeToLog("analysisSuperVT: invalid; returning...");
+        return false; // TODO: Give popup opportunity for user to find the file
+    }
+    if (!analysisSuperVT.hasType(nvs::axiom::tsn::super)) {
+        writeToLog("not super tree; returning...");
         return false;
     }
 
-    jassert(analysisSuperVT.hasType(nvs::axiom::tsn::super));
-
-    if (!analysisSuperVT.isValid()) {
-        writeToLog("analysis file tree invalid");
-        return false; // TODO: Give popup opportunity for user to find the file
-    }
     if (auto metadataTree = analysisSuperVT.getChildWithName(nvs::axiom::tsn::Metadata);
         metadataTree.isValid() &&
         nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())

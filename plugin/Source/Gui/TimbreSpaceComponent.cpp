@@ -27,16 +27,6 @@ Timbre2DPoint jucePointToTimbre2DPoint(const Point<float> p2D) {
     return Timbre2DPoint {p2D.x, p2D.y};
 }
 
-Rectangle<float> pointToRect(const Timbre2DPoint &p, const float pt_sz) {
-	Timbre2DPoint upperLeft{p}, bottomRight{p};
-    const float halfDotSize {2.f * pt_sz};
-	upperLeft += Timbre2DPoint(-halfDotSize, -halfDotSize);
-	bottomRight += Timbre2DPoint(halfDotSize, halfDotSize);
-	return {
-	    p2DtoJucePoint(upperLeft),
-	    p2DtoJucePoint(bottomRight)
-	};
-}
 Rectangle<float> pointToRect(const Point<float> p, const float pt_sz) {
     Point<float> upperLeft{p}, bottomRight{p};
     const float halfDotSize {2.f * pt_sz};
@@ -72,9 +62,11 @@ Timbre3DPoint biuni(const Timbre3DPoint &bipolar_p3){
 	Timbre3DPoint const uni_pts3 {biuni(bipolar_p3[0]), biuni(bipolar_p3[1]), biuni(bipolar_p3[2])};
 	return uni_pts3;
 }
+
 auto scale(auto x, auto in_low, auto in_high, auto out_low, auto out_high){ // NOLINT
 	return out_low + (x - in_low) * (out_high - out_low) / (in_high - in_low);
 }
+
 Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
 	const float  h = p3[0];
 	const float  s = p3[1];
@@ -84,6 +76,7 @@ Colour p3ToColour(Timbre3DPoint const &p3, const float alpha=1.f){
 	v = scale(v, 0.f, 1.f, 0.45f, 1.f);
 	return {h, s, v, alpha};
 }
+
 void setLfoOffsetParamsFromPoint(const AudioProcessorValueTreeState &apvts, Timbre2DPoint p2D){
 	apvts.getParameterAsValue(nvs::axiom::tsn::nav_tendency_x) = p2D(0);
 	apvts.getParameterAsValue(nvs::axiom::tsn::nav_tendency_y) = p2D(1);
@@ -93,13 +86,13 @@ template<typename T>
 bool containsValue(const std::vector<T>& vec, const T& value) {
 	return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
+
 }	// anonymous namespace
 
 
 
 //===================================================================================================================
-TimbreSpaceComponent::TimbreSpaceComponent(TSNGranularAudioProcessor& proc):
-    progressIndicator()
+TimbreSpaceComponent::TimbreSpaceComponent(TSNGranularAudioProcessor& proc)
 {
     _proc = &proc;
     if (_proc == nullptr) {
@@ -235,9 +228,9 @@ void TimbreSpaceComponent::paint(Graphics &g) {
 			const auto dest = p2DtoJucePoint(bipolar2dPointToComponentSpace(get2D(p), w, h));
 			const auto l = Line(center, dest);
 			const auto norm = [l, w, h](){
-				const auto a = l.getLength() / std::sqrt( (w * w) + (h * h) );
+				const auto a = l.getLength() / std::sqrt( w*w + h*h );
 				const auto b = 2.f * (0.5f - a);
-				return jlimit(0.1f, 1.f, b * b * b + 0.1f);
+				return jlimit(0.1f, 1.f, b*b*b + 0.1f);
 			}();
 			g.setColour(Colours::whitesmoke.withAlpha(norm));
 			g.drawLine(l, 1.f);
@@ -317,7 +310,7 @@ void TimbreSpaceComponent::mouseDragOrDown (Point<int> mousePos) {
 	tsn_mouse._dragging = true;
     mousePos = mousePos.transformedBy(AffineTransform::verticalFlip(static_cast<float>(getHeight())));
 	const auto p2D_norm =  jucePointToTimbre2DPoint(normalizePosition_neg1_pos1(mousePos));
-	auto &apvts = _proc->getAPVTS();
+	const auto &apvts = _proc->getAPVTS();
 	setLfoOffsetParamsFromPoint(apvts, p2D_norm);
 }
 
@@ -353,6 +346,40 @@ void TimbreSpaceComponent::updateCursor() {
 	const auto mouseImage = tsn_mouse._image;
 	const MouseCursor customCursor(mouseImage, mouseImage.getWidth() / 2, mouseImage.getHeight() / 2);
 	setMouseCursor(customCursor);
+}
+
+bool TimbreSpaceComponent::isInterestedInFileDrag (const StringArray &files) {
+    for (const auto &f : files) {
+        const auto ext = File(f).getFileExtension();
+        if (ext == ".tsb" || ext == ".json") {
+            return true;
+        }
+    }
+    return false;
+}
+void TimbreSpaceComponent::fileDragEnter (const StringArray &files, int, int) {
+    if (isInterestedInFileDrag(files)) {
+        // light up?
+    }
+}
+void TimbreSpaceComponent::filesDropped (const StringArray &files, int, int) {
+    const auto fileToUse = [](const StringArray &fileList) -> File {
+        for (const auto &fn : fileList) {
+            const auto f = File(fn);
+            if (const auto ext = f.getFileExtension();
+                ext == ".tsb" || ext == ".json")
+            {
+                return f;
+            }
+        }
+        return {};
+    }(files);
+    if (!fileToUse.existsAsFile()) {
+        DBG("TimbreSpaceComponent::filesDropped: File not found");
+        return;
+    }
+    // load file
+    _proc->loadAnalysisFile(fileToUse);
 }
 
 void TimbreSpaceComponent::resized() {
@@ -402,11 +429,11 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	const auto b = image.getBounds();
 
 	const auto x0 = b.getX();
-	const auto x1 = x0 + (0.05 * b.getWidth());
-	const auto x2 = x0 + (0.45 * b.getWidth());
+	const auto x1 = x0 + 0.05 * b.getWidth();
+	const auto x2 = x0 + 0.45 * b.getWidth();
 
 	const auto y0 = b.getY();
-	const auto y1 = y0 + (0.86 * b.getHeight());
+	const auto y1 = y0 + 0.86 * b.getHeight();
 	const auto y2 = b.getBottom();
 	
 	using Point = Point<float>;
@@ -485,7 +512,7 @@ void TimbreSpaceComponent::saveAnalysis(){
 			if (!file.hasFileExtension(".tsb")) {
 				file = file.withFileExtension(".tsb");
 			}
-			_proc->saveAnalysisToFile(file.getFullPathName(), [this](bool success)
+			_proc->saveAnalysisToFile(file.getFullPathName(), [this](const bool success)
 			{
 				if (!success){
 					AlertWindow::showMessageBoxAsync(
