@@ -10,8 +10,7 @@
 
 #include "TSNPolyGrain.h"
 #include "fmt/core.h"
-#include "../slicer_granular/Source/algo_util.h"
-#include "../slicer_granular/Source/misc_util.h"
+#include "../../slicer_granular/Source/utils/algo_util.h"
 
 namespace nvs::gran {
 

@@ -8,15 +8,19 @@
   ==============================================================================
 */
 
-#include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
-#include "../plugin/slicer_granular/Source/StringAxiom.h"
+#include <ranges>
+
+#include "juce_utils.h"
+#include "essentia/essentiamath.h"
+
 #include "TimbreSpace.h"
 #include "ThreadedAnalyzer.h"
 #include "FeatureOperations.h"
 #include "TSNValueTreeUtilities.h"
-#include "juce_utils.h"
-#include "essentia/essentiamath.h"
-#include <ranges>
+
+#include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
+#include "../plugin/slicer_granular/Source/StringAxiom.h"
+
 
 namespace nvs::timbrespace {
 
@@ -421,6 +425,44 @@ std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
 	return vecOut;
 }
 
+
+std::pair<float, float> calculateRangeOfDimension(std::vector<float> const &V){
+    float min {std::numeric_limits<float>::max()};
+    float max {std::numeric_limits<float>::lowest()};
+
+    for (const float val : V){
+        if (val < min){
+            min = val;
+        }
+        if (val > max){
+            max = val;
+        }
+    }
+
+    return std::make_pair(min, max);
+}
+
+std::pair<float, float> calculateRangeOfDimension(std::vector<std::vector<float>> const &V, const size_t dim){
+    float min {std::numeric_limits<float>::max()};
+    float max {std::numeric_limits<float>::lowest()};
+
+    for (auto const &v : V){
+        auto const val = v[dim];
+        if (val < min){
+            min = val;
+        }
+        if (val > max){
+            max = val;
+        }
+    }
+
+    return std::make_pair(min, max);
+}
+
+float calculateNormalizationMultiplier(const std::pair<float, float> &range){
+    return 1.f / std::max(std::abs(range.first), std::abs(range.second));
+}
+
 void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
 {	/** to be called when the actual analyzed timbre space changes  */
 
@@ -443,7 +485,7 @@ void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
 		_ranges.reserve(n_dim);
 		
 		for (size_t i = 0; i < n_dim; ++i){
-			_ranges.push_back(analysis::calculateRangeOfDimension(_extractedFeatures.features[i]));
+			_ranges.push_back(calculateRangeOfDimension(_extractedFeatures.features[i]));
 		}
 	}
 	{

@@ -10,7 +10,7 @@
 #include "./TimbreSpace/TimbreSpace.h"
 
 #include "../slicer_granular/Source/SlicerGranularPluginProcessor.h"
-#include "../slicer_granular/Source/misc_util.h"
+#include "../slicer_granular/Source/utils/misc_util.h"
 #include "./Navigation/Navigator.h"
 
 //==============================================================================

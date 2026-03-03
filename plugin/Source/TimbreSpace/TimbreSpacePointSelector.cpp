@@ -5,7 +5,7 @@
 #include <ranges>
 #include "TimbreSpacePointSelector.h"
 #include "TimbreSpaceTriangulation.h"
-#include "dsp_util.h"
+#include "../../slicer_granular/Source/utils/dsp_util.h"
 #include "../slicer_granular/Source/StringAxiom.h"
 #include "../tsn-analyzer/Source/lib/StringAxiom.h"
 
