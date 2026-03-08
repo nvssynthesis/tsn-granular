@@ -36,7 +36,8 @@ public:
 	//=============================================================================================================================
 	void setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree);
 	ValueTree getTimbreSpaceSuperTree() const { return _treeManager.getTimbreSpaceSuperTree(); }
-    std::vector<float> getRawFeatureValues(analysis::Feature_e feature, std::optional<analysis::Statistic> statToUse=std::nullopt) const;   // if optional arg unspecified, defaults to the stat in settings.statistic
+    std::vector<float> getRawFeatureValues(analysis::Feature_e feature,
+        std::optional<analysis::Statistic> statToUse=std::nullopt) const;   // if optional arg unspecified, defaults to the stat in settings.statistic
 	//=============================================================================================================================
 	bool hasValidAnalysisFor(String const &waveformHash) const;
     String getAudioAbsolutePath() const;
@@ -101,6 +102,7 @@ private:
 	    ~TreeManager();
 		var getOnsetsVar() const;
 		ValueTree getTimbralFramesTree() const;
+		ValueTree getPacmapTree() const;
 	    const ValueTree &getTimbreSpaceSuperTree() const;
 	    void setTimbreSpaceSuperTree(const ValueTree &timbreSpaceSuperTree);
 	    const AudioProcessorValueTreeState &getAPVTS() const { return _apvts; }
@@ -119,12 +121,21 @@ private:
     void signalShapedPointsAvailable() const;
     void signalTimbreSpaceTreeChanged() const;
     //=============================================================================================================================
-
-	void fullSelfUpdate(bool verbose); // simply calls the following 3 functions:
-	void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
+    enum class DimensionalityMode_e {
+        Raw,
+        Pacmap
+    } _dimensionalityMode {DimensionalityMode_e::Pacmap};
+    //=============================================================================================================================
+	void fullSelfUpdate(bool verbose); // simply calls the following functions:
+    void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
     void decorrelateFromPitchAndLoudness();
     void computeHistogramEqualizedPoints(bool verbose=false); // based on _eventwiseExtractedTimbrePoints, computes _ranges and _histoEqualized dimensions
 	void reshape(bool verbose=false); // performs some math such as normalization, squashing, and interpolation (between linear normalized and histogram normalized) on _eventwiseExtractedTimbrePoints (NOT in place) to update _timbreDataManager._timbres5D_pending
+    //=============================================================================================================================
+    // the following are used in reshape():
+    typedef std::pair<float, float> Range;
+    std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
+    std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================
     // used only in extractTimbralFeatures(), computeHistogramEqualizedPoints, and reshape()
     struct ExtractedFeatures {
@@ -158,12 +169,6 @@ private:
         }
         ExtractedFeatures() {clearAll();}
     } _extractedFeatures;
-    // std::vector<std::vector<float>> _eventwiseExtractedTimbrePoints;	// gets extracted from _treeManager._timbreSpaceTree any time new view (e.g. different feature set) is requested
-    //=============================================================================================================================
-    // the following are used in reshape():
-    typedef std::pair<float, float> Range;
-    std::vector<Range> _ranges {}; // min, max per dimension computed ASAP to efficiently allow histogram equalization
-    std::vector<float> _histoEqualizedD0, _histoEqualizedD1 {};
     //=============================================================================================================================
 };
 

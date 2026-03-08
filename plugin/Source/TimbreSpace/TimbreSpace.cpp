@@ -20,6 +20,7 @@
 
 #include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "../plugin/slicer_granular/Source/StringAxiom.h"
+#include "DimensionalityReduction/dim_using.h"
 
 
 namespace nvs::timbrespace {
@@ -175,12 +176,21 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
         const String waveformHash = onsetsResult->waveformHash;
         const String absFilePath = onsetsResult->audioFileAbsPath;  // NOLINT
 
+        auto const &pacmapOpt = a->stealPacmap();
+        auto pacmapMat = [&pacmapOpt, waveformHash]() -> dim::vecVecReal {
+            if (pacmapOpt.has_value()) {
+                jassert(pacmapOpt->waveformHash == waveformHash);
+                return pacmapOpt->pacmapMatrix_;
+            }
+            return {};
+        }();
+
         if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
             DBG("Discrepancy between onsets and timbre analysis\n");
             jassertfalse;
             return;
         }
-        const auto timbreSpaceVT = timbreSpaceReprToVT(tspace, onsets);
+        const auto timbreSpaceVT = timbreSpaceReprToVT(tspace, onsets, pacmapMat);
         const auto superTree = analysis::makeSuperTree(timbreSpaceVT,
             analysisResult->audioFileAbsPath,
             analysisResult->sampleRate,
@@ -255,7 +265,11 @@ var TimbreSpace::TreeManager::getOnsetsVar() const {
 	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getProperty(axiom::tsn::NormalizedOnsets);
 }
 ValueTree TimbreSpace::TreeManager::getTimbralFramesTree() const {
-	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getChildWithName("TimbreMeasurements");
+    // the most raw, unaffected version of the timbre space data.
+	return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getChildWithName(axiom::tsn::TimbreMeasurements);
+}
+ValueTree TimbreSpace::TreeManager::getPacmapTree() const {
+    return _timbreSpaceSuperTree.getChildWithName(axiom::tsn::TimbreAnalysis).getChildWithName(axiom::tsn::PaCMAP);
 }
 const ValueTree &TimbreSpace::TreeManager::getTimbreSpaceSuperTree() const {
     if(_timbreSpaceSuperTree.isValid()) {
@@ -330,8 +344,8 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e fe
     }
     std::vector<float> extractedFramewiseFeatureValues;
 
-    for (int feat_idx = 0; feat_idx < timbreTree.getNumChildren(); ++feat_idx) {
-        ValueTree const &frame = timbreTree.getChild(feat_idx);
+    for (int frame_idx = 0; frame_idx < timbreTree.getNumChildren(); ++frame_idx) {
+        ValueTree const &frame = timbreTree.getChild(frame_idx);
         std::vector<float> v = analysis::extractFeaturesFromTree(frame, feature, statToUse.value());
         jassert (v.size() == 1);
         extractedFramewiseFeatureValues.push_back(v[0]);
@@ -380,7 +394,6 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
     if (verbose)
         DBG("Extracting timbre points\n");
 
-	auto const &featuresToExtract = settings.dimensionwiseFeatures;
 	if (util::isEmpty(_treeManager.getTimbreSpaceSuperTree())){
 		if (verbose)
 		    DBG("TimbreSpace::extractTimbralFeatures: timbre space empty, early exit\n");
@@ -388,16 +401,53 @@ void TimbreSpace::extractTimbralFeatures(const bool verbose) {
 	}
     _extractedFeatures.clearAll();
     _extractedFeatures.reserveAll(_treeManager.getNumFrames());
-	
+
 	auto const &timbralFramesTree = _treeManager.getTimbralFramesTree();
-	for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
-		ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
-		std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
-	    jassert(v.size() == 5);
-	    for (size_t featIdx = 0; featIdx < v.size(); ++featIdx) {
-	        _extractedFeatures.features[featIdx].push_back(v[featIdx]);
-	    }
-	}
+
+    if (_dimensionalityMode == DimensionalityMode_e::Pacmap) {
+        const auto featuresToExtract = [this]() {
+            std::vector<analysis::Feature_e> tmp;
+            for (int i = 2; i < settings.dimensionwiseFeatures.size(); ++i) {   // don't take first 2D
+                tmp.push_back(settings.dimensionwiseFeatures[i]);
+            }
+            return tmp;
+        }();
+        const auto pacmapTree = _treeManager.getPacmapTree();
+        const auto tmp0 = pacmapTree.getProperty(axiom::tsn::PaCMAP0).getArray();
+        const auto tmp1 = pacmapTree.getProperty(axiom::tsn::PaCMAP1).getArray();
+
+        if (tmp0 != nullptr && tmp1 != nullptr) {
+            const auto pacmap0 = *tmp0;
+            const auto pacmap1 = *tmp1;
+            for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
+                const auto pm0 = static_cast<float>(pacmap0[frameIdx]);
+                _extractedFeatures.features[0].push_back(pm0);
+                const auto pm1 = static_cast<float>(pacmap1[frameIdx]);
+                _extractedFeatures.features[1].push_back(pm1);
+
+                ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
+                std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
+                for (int i = 0; i < v.size(); i++) {
+                    const auto featIdx = i + 2;
+                    _extractedFeatures.features[featIdx].push_back(v[i]);
+                }
+            }
+            return;
+            }
+        Logger::writeToLog("Pacmap is selected, but could not find pacmap var in tree; using raw features...\n");
+    }
+    {
+        const auto &featuresToExtract = settings.dimensionwiseFeatures;
+        for (int frameIdx = 0; frameIdx < timbralFramesTree.getNumChildren(); ++frameIdx) {
+            ValueTree const &frame = timbralFramesTree.getChild(frameIdx);
+
+            std::vector<float> v = extractFeaturesFromTree(frame, featuresToExtract, settings.statistic);
+            jassert(v.size() == 5);
+            for (size_t featIdx = 0; featIdx < v.size(); ++featIdx) {
+                _extractedFeatures.features[featIdx].push_back(v[featIdx]);
+            }
+        }
+    }
 }
 
 std::vector<float> getHistoEqualizationVec(std::vector<float> const &points){
@@ -490,8 +540,9 @@ void TimbreSpace::computeHistogramEqualizedPoints(const bool verbose)
 	}
 	{
 		std::vector<float> allDim0, allDim1;
-		allDim0.reserve(_extractedFeatures.features[0].size());
-		allDim1.reserve(_extractedFeatures.features[0].size());
+        const auto numFrames = _extractedFeatures.features[0].size();
+		allDim0.reserve(numFrames);
+		allDim1.reserve(numFrames);
 		for (auto const& frame : _extractedFeatures.features[0]){
 			allDim0.push_back(frame);	// e.g. bfcc1
 		}
@@ -548,11 +599,13 @@ void TimbreSpace::reshape(const bool verbose)
     std::vector<Timbre5DPoint> points;
     points.reserve(numFrames);
     const auto &features = _extractedFeatures.features;
+    const auto X0 = features[0];
+    const auto X1 = features[1];
     for (size_t i = 0; i < numFrames; ++i) {
         // ========================================2D========================================
         // squash normalized points within dimension range
-        Timbre2DPoint pNL(foo(features[0][i], _ranges[0]),
-                          foo(features[1][i], _ranges[1]));
+        Timbre2DPoint pNL(foo(X0[i], _ranges[0]),
+                          foo(X1[i], _ranges[1]));
         
         // histogram equalization
         float const &equalizedX = _histoEqualizedD0[i];

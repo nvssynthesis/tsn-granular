@@ -59,7 +59,8 @@ void TSNGranularSynthesizer::actionListenerCallback(const String &message) {
     if (message == axiom::tsn::timbreSpaceTreeChanged) {
         // update f0s
         for (auto *pg : _tsn_polygrains) {
-            pg->setNeededData(_timbreSpace.shareOnsets(),_timbreSpace.getRawFeatureValues(analysis::Feature_e::f0, analysis::Statistic::Median));
+            pg->setNeededData(_timbreSpace.shareOnsets(),
+                _timbreSpace.getRawFeatureValues(analysis::Feature_e::f0, analysis::Statistic::Median));
         }
     }
 }
