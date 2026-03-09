@@ -63,11 +63,10 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const String& filePath, std::
 	// inform plugin state of what the associated analysis file will be
 	auto fileInfo = apvts.state.getChildWithName("FileInfo");
 	if (!fileInfo.isValid()) return;
-	fileInfo.setProperty("analysisFile", filePath, nullptr);
+	fileInfo.setProperty(nvs::axiom::tsn::analysisFile, filePath, nullptr);
 
     const auto tsSuperTree = _tsnGranularSynth->getTimbreSpace().getTimbreSpaceSuperTree();
 
-    DBG(fmt::format("tree being SAVED: {}", nvs::util::valueTreeToXmlStringSafe(tsSuperTree).toStdString()));
 	bool success = [vt=tsSuperTree, filePath](){
         const bool useBinary = File(filePath).getFileExtension() == ".tsb";
 	    File const file(filePath);
@@ -83,7 +82,7 @@ void TSNGranularAudioProcessor::saveAnalysisToFile(const String& filePath, std::
 	});
 }
 //==============================================================================
-void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(File const f, bool notifyEditor){
+void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(const File f, const bool notifyEditor){
 	writeToLog("TSN: loadAudioFileAndUpdateState\n");
 	// this used to have just copied and pasted code from slicer. it seems to work properly simply by manually calling the base function like so:
 	SlicerGranularAudioProcessor::loadAudioFileAndUpdateState(f, notifyEditor);	// has async call to set value tree prop "sampleRate"
@@ -217,7 +216,7 @@ void TSNGranularAudioProcessor::ensureSettingsStructure() {
 }
 File TSNGranularAudioProcessor::getAnalysisFileFromState() {
     const auto fileInfo = apvts.state.getChildWithName(nvs::axiom::tsn::FileInfo);
-    writeToLog(fmt::format("FileInfo: {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
+    writeToLog(fmt::format("in getAnalysisFileFromState: \n FileInfo: \n {}", nvs::util::valueTreeToXmlStringSafe(fileInfo).toStdString()));
     if (!fileInfo.isValid()) {
         writeToLog("file info value tree invalid\n");
         return {};
@@ -238,7 +237,13 @@ bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
         writeToLog("File does not exist");
         return false;
     }
-    const ValueTree analysisSuperVT = nvs::util::loadValueTreeFromBinary(analysisFile);
+    const ValueTree analysisSuperVT = [&analysisFile]() {
+        if (analysisFile.getFileExtension() == ".tsb") {
+
+            return nvs::util::loadValueTreeFromBinary(analysisFile);
+        }
+        return nvs::util::loadValueTreeFromJSON(analysisFile);
+    }();
 
     if (!analysisSuperVT.isValid()) {
         writeToLog("analysisSuperVT: invalid; returning...");
@@ -249,8 +254,9 @@ bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
         return false;
     }
 
-    if (auto metadataTree = analysisSuperVT.getChildWithName(nvs::axiom::tsn::Metadata);
-        metadataTree.isValid() &&
+    auto metadataTree = analysisSuperVT.getChildWithName(nvs::axiom::tsn::Metadata);
+    if (const auto mdTreeIsValid = metadataTree.isValid();
+        mdTreeIsValid &&
         nvs::util::getAndMigrateAudioHash(metadataTree) == getAudioHash())
     {
         if (const auto analysisVT = analysisSuperVT.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);

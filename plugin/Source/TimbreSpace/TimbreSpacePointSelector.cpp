@@ -34,7 +34,7 @@ void TimbreSpacePointSelector::valueTreePropertyChanged (ValueTree &alteredTree,
             updateGlobalFilter();
             return;
         }
-        if ((paramID == nvs::axiom::tsn::filtered_feature_min) || (paramID == nvs::axiom::tsn::filtered_feature_max)) {
+        if (paramID == nvs::axiom::tsn::filtered_feature_min || paramID == nvs::axiom::tsn::filtered_feature_max) {
             // ideally we should only update these when their slider is RELEASED, not as it drags!
             updateGlobalFilter();
             return;
@@ -88,9 +88,9 @@ void TimbreSpacePointSelector::updateGlobalFilter() {
     }
 
     {
-        auto snapshot = std::make_shared<TriangulationSnapshot>();
+        const auto snapshot = std::make_shared<TriangulationSnapshot>();
 
-    // rebuildActivePoints
+        // rebuildActivePoints
         auto &activeIndices = snapshot->_activeIndices;
         for (size_t i = 0; i < _wrappedPoints.size(); ++i) {
             if (_wrappedPoints[i].active) {
@@ -126,7 +126,7 @@ void TimbreSpacePointSelector::computeExistingPointsFromTarget(const Timbre5DPoi
     _target = target;
 
     swapIfPending();
-    auto currentSnapshot = _triangulationSnapshotCurrent;
+    const auto currentSnapshot = _triangulationSnapshotCurrent;
     if (currentSnapshot == nullptr) {
         return;
     }
@@ -184,7 +184,7 @@ void TimbreSpacePointSelector::updateRanksForFilteredFeature() {
     _featurewiseRankIndices[_filteredFeature] = computeRanks(vals);
 }
 void TimbreSpacePointSelector::swapIfPending() {
-    auto pending = std::atomic_exchange_explicit(&_triangulationSnapshotPending,    // get value
+    const auto pending = std::atomic_exchange_explicit(&_triangulationSnapshotPending,    // get value
         std::shared_ptr<TriangulationSnapshot>(),                                 // AND clear pending slot (default ctor is nullptr)
         std::memory_order_acq_rel);                                     // acq_rel: "acquire the new data" + "release the nullptr write"
     if (pending)

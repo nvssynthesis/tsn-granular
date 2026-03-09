@@ -76,7 +76,7 @@ bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const
     const double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
     // Check if point is in triangle
-    return (u >= 0) && (v >= 0) && (u + v <= 1);
+    return u >= 0 && v >= 0 && u + v <= 1;
 }
 
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
@@ -172,14 +172,14 @@ std::array<double, 3> computeDistanceWeights(const Point2D& p,
                                  const Point2D& b,
                                  const Point2D& c)
 {
-    double d0 = (p - a).norm() + 1e-10;
-    double d1 = (p - b).norm() + 1e-10;
-    double d2 = (p - c).norm() + 1e-10;
+    const double d0 = (p - a).norm() + 1e-10;
+    const double d1 = (p - b).norm() + 1e-10;
+    const double d2 = (p - c).norm() + 1e-10;
 
-    double inv_d0 = 1.0 / d0;
-    double inv_d1 = 1.0 / d1;
-    double inv_d2 = 1.0 / d2;
-    double sum = inv_d0 + inv_d1 + inv_d2;
+    const double inv_d0 = 1.0 / d0;
+    const double inv_d1 = 1.0 / d1;
+    const double inv_d2 = 1.0 / d2;
+    const double sum = inv_d0 + inv_d1 + inv_d2;
 
     return {inv_d0 / sum, inv_d1 / sum, inv_d2 / sum};
 }
@@ -191,10 +191,10 @@ Point2D projectPointOntoSegment(const Point2D& p,
     assert(std::isfinite(b[0]) && std::isfinite(b[1]));
     assert(std::isfinite(p[0]) && std::isfinite(p[1]));
 
-    Point2D ab = b - a;
-    Point2D ap = p - a;
+    const Point2D ab = b - a;
+    const Point2D ap = p - a;
 
-    double ab_squared = ab.dot(ab);
+    const double ab_squared = ab.dot(ab);
     if (ab_squared < 1e-10) return a; // degenerate segment
 
     double t = ap.dot(ab) / ab_squared;
