@@ -196,9 +196,9 @@ void TimbreSpaceComponent::paint(Graphics &g) {
 			const auto uni_p3 = biuni(p3);
 			Colour fillColour = p3ToColour(uni_p3, active ? 1.f : 0.1f);
 			
-			const float z_closeness = uni_p3[0] * uni_p3[1] * uni_p3[2] * 10.f;
+			const float z_closeness = uni_p3[0]/* * uni_p3[1] * uni_p3[2]*/ * 1.f;
 			const auto rect = pointToRect(p2, softclip(z_closeness));
-			
+
 			if (containsValue(current_points, p5)){
 				// brighter colour for selected point
 				fillColour = fillColour.withMultipliedBrightness(1.75f).withMultipliedLightness(1.1f);
@@ -302,7 +302,8 @@ void TimbreSpaceComponent::paint(Graphics &g) {
 
         // Draw current position
         g.setColour(Colours::black);
-        g.fillEllipse(pointToRect(p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h)), 3.f));
+	    const auto jCurrentPoint = p2DtoJucePoint(bipolar2dPointToComponentSpace(nav._p2D, w, h));
+        g.fillEllipse(pointToRect(jCurrentPoint, 3.f));
     }
 }
 
@@ -497,7 +498,7 @@ void TimbreSpaceComponent::saveAnalysis(){
 	
 	fileChooser = std::make_unique<FileChooser>("Save Timbral Analysis",	//  const String &dialogBoxTitle,
 															analysesDir,
-															"*.tsb",	//  const String &filePatternsAllowed=String(),
+															"*.json",	//  const String &filePatternsAllowed=String(),
 															true,	// bool useOSNativeDialogBox
 															false, 	// bool treatFilePackagesAsDirectories=false,
 															this 	//  Component *parentComponent=nullptr
@@ -509,8 +510,10 @@ void TimbreSpaceComponent::saveAnalysis(){
 	 {
 		 if (auto file = fc.getResult(); file != File{}) {
 			// Ensure proper extension
-			if (!file.hasFileExtension(".tsb")) {
-				file = file.withFileExtension(".tsb");
+            if (const bool hasValidExtension = file.hasFileExtension(".json") || file.hasFileExtension(".tsb");
+                !hasValidExtension)
+            {
+				file = file.withFileExtension(".json");
 			}
 			_proc->saveAnalysisToFile(file.getFullPathName(), [this](const bool success)
 			{
