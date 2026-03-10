@@ -20,7 +20,7 @@
 
 #include "../plugin/slicer_granular/nvs_libraries/nvs_libraries/include/nvs_memoryless.h"
 #include "../plugin/slicer_granular/Source/StringAxiom.h"
-#include "DimensionalityReduction/dim_using.h"
+#include "DimensionalityReduction/pca.h"
 
 
 namespace nvs::timbrespace {
@@ -357,39 +357,17 @@ std::vector<float> TimbreSpace::getRawFeatureValues(const analysis::Feature_e fe
 
 void TimbreSpace::decorrelateFromPitchAndLoudness()
 {
-    auto &features = _extractedFeatures.features;
+    auto /*std::array<std::vector<float>, 5> */ &features = _extractedFeatures.features;
 
     const analysis::vecReal pitch = getRawFeatureValues(analysis::Feature_e::f0);
     const analysis::vecReal loudness = getRawFeatureValues(analysis::Feature_e::Loudness);
 
     const int N = pitch.size();
+    using namespace nvs::dim;
+    auto featureMat = to_eigen(features);
+    decorrelateFromCovariates(featureMat, to_eigen(pitch), to_eigen(loudness));
 
-    Eigen::VectorXf p = Eigen::Map<const Eigen::VectorXf>(pitch.data(), N);
-    Eigen::VectorXf l = Eigen::Map<const Eigen::VectorXf>(loudness.data(), N);
-
-    // center pitch and loudness
-    p.array() -= p.mean();
-    l.array() -= l.mean();
-
-    // regressor matrix
-    Eigen::MatrixXf X(N, 2);
-    X.col(0) = p;
-    X.col(1) = l;
-
-    // solver needs only one-time computation
-    const auto solver = (X.transpose() * X).colPivHouseholderQr();
-
-    for (auto& feature : features)
-    {
-        Eigen::Map<Eigen::VectorXf> f(feature.data(), N);
-
-        // center the feature as well
-        f.array() -= f.mean();
-
-        // compute beta, remove projection
-        Eigen::VectorXf beta = solver.solve(X.transpose() * f);
-        f -= X * beta;
-    }
+    from_eigen(featureMat, features);
 }
 
 void TimbreSpace::extractTimbralFeatures(const bool verbose) {
