@@ -54,6 +54,7 @@ private:
     void updateAllDimensionwiseFeatures();  //  updates settings.dimensionwiseFeatures from tree ALL features. does NOT call any update function.
     void updateHistogramEqualization();
     void updateStatistic();
+    void updateDecorrelate();
 
 	struct Settings {
 		float histogramEqualization {0.0f};

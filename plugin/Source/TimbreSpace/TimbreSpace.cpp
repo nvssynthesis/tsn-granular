@@ -124,9 +124,7 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identi
             return;
         }
         if (paramID == axiom::tsn::decorrelateFromPitchAndLoudness) {
-            const auto res = _treeManager.getAPVTS().getRawParameterValue(axiom::tsn::decorrelateFromPitchAndLoudness)->load();
-            const bool shouldDecorrelate = res == 1.f;
-            settings.decorrelateFromPitchAndLoudness = shouldDecorrelate;
+            updateDecorrelate();
             fullSelfUpdate(false);
             return;
         }
@@ -142,9 +140,8 @@ void TimbreSpace::valueTreeRedirected (ValueTree &treeWhichHasBeenChanged) {
         // if we get here, the plugin state has been loaded. we need to deal with setting internal params from those of the state.
         updateHistogramEqualization();
         updateStatistic();
-
         updateAllDimensionwiseFeatures();
-        updateStatistic();
+        updateDecorrelate();
     }
 }
 
@@ -222,6 +219,11 @@ void TimbreSpace::updateHistogramEqualization() {
 }
 void TimbreSpace::updateStatistic() {
     settings.statistic = static_cast<analysis::Statistic>(_treeManager.getAPVTS().getRawParameterValue(axiom::tsn::statistic)->load());
+}
+void TimbreSpace::updateDecorrelate() {
+    const auto res = _treeManager.getAPVTS().getRawParameterValue(axiom::tsn::decorrelateFromPitchAndLoudness)->load();
+    const bool shouldDecorrelate = res == 1.f;
+    settings.decorrelateFromPitchAndLoudness = shouldDecorrelate;
 }
 
 void TimbreSpace::setTimbreSpaceSuperTree(ValueTree const &timbreSpaceSuperTree) {
