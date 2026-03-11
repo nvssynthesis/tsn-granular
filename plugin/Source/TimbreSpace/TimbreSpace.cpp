@@ -362,7 +362,6 @@ void TimbreSpace::decorrelateFromPitchAndLoudness()
     const analysis::vecReal pitch = getRawFeatureValues(analysis::Feature_e::f0);
     const analysis::vecReal loudness = getRawFeatureValues(analysis::Feature_e::Loudness);
 
-    const int N = pitch.size();
     using namespace nvs::dim;
     auto featureMat = to_eigen(features);
     decorrelateFromCovariates(featureMat, to_eigen(pitch), to_eigen(loudness));

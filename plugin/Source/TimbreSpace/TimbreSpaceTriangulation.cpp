@@ -10,6 +10,7 @@
 
 #include "TimbreSpaceTriangulation.h"
 #include <set>
+#include <queue>
 #include <fmt/core.h>
 #include <cassert>
 #include "StringHelpers.h"
@@ -82,7 +83,6 @@ bool pointInTriangle(const Point2D& p, const Point2D& a, const Point2D& b, const
 std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::Delaunator& d,
                                               const Point2D& target, const size_t startTriangle)
 {
-#if 1
     const auto containingTriangle = straightWalk(d, target, startTriangle);
     if (!containingTriangle.has_value()) {
         return std::nullopt;
@@ -139,32 +139,6 @@ std::optional<std::array<size_t, 3>> findContainingTriangle(const delaunator::De
         return indices;
     }
     return std::nullopt;
-#else
-    // Iterate through all triangles
-    for (size_t i = 0; i < d.triangles.size(); i += 3) {
-        // Get triangle vertex indices
-        size_t idx0 = d.triangles[i];
-        size_t idx1 = d.triangles[i + 1];
-        size_t idx2 = d.triangles[i + 2];
-        size_t idx0{0}, idx1{1}, idx2{2};
-        if (containingTriangle.has_value()) {
-            const size_t i = containingTriangle.value() / 3;
-            idx0 = d.triangles[i];
-            idx1 = d.triangles[i + 1];
-            idx2 = d.triangles[i + 2];
-        }
-        // Get triangle vertex coordinates
-        Point2D a(d.coords[2 * idx0], d.coords[2 * idx0 + 1]);
-        Point2D b(d.coords[2 * idx1], d.coords[2 * idx1 + 1]);
-        Point2D c(d.coords[2 * idx2], d.coords[2 * idx2 + 1]);
-
-        // Test if target is inside this triangle
-        if (pointInTriangle(target, a, b, c)) {
-            return std::array<size_t, 3>{idx0, idx1, idx2};
-        }
-    return std::nullopt;
-#endif
-
 }
 
 std::array<double, 3> computeDistanceWeights(const Point2D& p,
@@ -375,32 +349,92 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 	// Find the nearest edge or vertex of the convex hull
 	// This is a simplified approach - you might want to be more sophisticated
 
-	Point2D targetPoint = get2D(target);
-	double minDistance = std::numeric_limits<double>::max();
-	std::array<size_t, 3> bestTriangle {0, 1, 2};
+	const Point2D targetPoint = get2D(target);
+	// std::array<double, 3> minDistances = {
+	//     std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::max()
+	// };
 
-	// Check all triangles and find the one with minimum distance to target
+	// std::array<size_t, 3> bestTriangle {0, 1, 2};
+
+	// Check all hull triangles and find the one with minimum distance to target
+    // std::array<Point2D, 3> bestPoints;
+
+    // for (auto const &tri_idx_over3 : d.hull_neighbor_triangles) {
+        // const size_t numTri = d.triangles.size();
+        // const size_t tri_idx = tri_idx_over3 * 3;
+        // const size_t idx0 = d.triangles[(tri_idx + 0) % numTri];
+        // const size_t idx1 = d.triangles[(tri_idx + 1) % numTri];
+        // const size_t idx2 = d.triangles[(tri_idx + 2) % numTri];
+        //
+        // const Point2D p0 = get2D(database[idx0]);
+        // const Point2D p1 = get2D(database[idx1]);
+        // const Point2D p2 = get2D(database[idx2]);
+        //
+
+        // // Calculate centroid of triangle
+        // const Point2D centroid = (p0 + p1 + p2) / 3.0;
+        //
+        // if (const double distance = (targetPoint - centroid).squaredNorm();
+        //     distance < minDistance)
+        // {
+        //     minDistance = distance;
+        //     bestTriangle = {idx0, idx1, idx2};
+        //     bestPoints = {p0, p1, p2};
+        // }
+    // }
+
+    // d.for_each_hull_triangle(
+    //     [&d, &bestPoints, &database, &targetPoint, &minDistance, &bestTriangle]
+    //     (const size_t tri_idx, size_t hull_edge_pt) {
+    //         const size_t numTri = d.triangles.size();
+    //         const size_t idx0 = d.triangles[tri_idx + 0];
+    //         const size_t idx1 = d.triangles[(tri_idx + 1) % numTri];
+    //         const size_t idx2 = d.triangles[(tri_idx + 2) % numTri];
+    //
+    //         const Point2D p0 = get2D(database[idx0]);
+    //         const Point2D p1 = get2D(database[idx1]);
+    //         const Point2D p2 = get2D(database[idx2]);
+    //
+    //         // Calculate centroid of triangle
+    //         const Point2D centroid = (p0 + p1 + p2) / 3.0;
+    //
+    //         if (const double distance = (targetPoint - centroid).squaredNorm();
+    //             distance < minDistance)
+    //         {
+    //             minDistance = distance;
+    //             bestTriangle = {idx0, idx1, idx2};
+    //             bestPoints = {p0, p1, p2};
+    //         }
+    //     }
+    // );
+
+    auto &candidates = d.hull_search_candidates;
+
+    const auto distFrom = [&](const size_t a) {
+        return (get2D(database[a]) - targetPoint).squaredNorm();
+    };
+
+    // max-heap: top is the FARTHEST of our current best 3
+    using Entry = std::pair<double, size_t>; // {dist, idx}
+    std::priority_queue<Entry> top3;
+
+    for (const size_t pt : candidates) {
+        const double dist = distFrom(pt);
+        if (top3.size() < 3) {
+            top3.emplace(dist, pt);
+        } else if (dist < top3.top().first) {
+            top3.pop();
+            top3.emplace(dist, pt);
+        }
+    }
+
+    std::array<size_t, 3> bestTriangle;
     std::array<Point2D, 3> bestPoints;
-	for (size_t i = 0; i < d.triangles.size(); i += 3) {
-		const size_t idx0 = d.triangles[i];
-		const size_t idx1 = d.triangles[i + 1];
-		const size_t idx2 = d.triangles[i + 2];
-
-		Point2D p0 = get2D(database[idx0]);
-		Point2D p1 = get2D(database[idx1]);
-		Point2D p2 = get2D(database[idx2]);
-
-		// Calculate centroid of triangle
-		Point2D centroid = (p0 + p1 + p2) / 3.0;
-
-        if (const double distance = (targetPoint - centroid).squaredNorm();
-            distance < minDistance)
-        {
-			minDistance = distance;
-			bestTriangle = {idx0, idx1, idx2};
-            bestPoints = {p0, p1, p2};
-		}
-	}
+    for (int i = 2; i >= 0; i--) {
+        bestTriangle[i] = top3.top().second;
+        bestPoints[i]   = get2D(database[top3.top().second]);
+        top3.pop();
+    }
 
     const auto weights = computeBarycentricWeights(targetPoint, bestPoints[0], bestPoints[1], bestPoints[2]);
 	// Use the closest triangle and project the point onto it
