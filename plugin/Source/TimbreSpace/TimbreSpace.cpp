@@ -163,26 +163,26 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
         }
 
         // ===================================TIMBRE ANALYSIS====================================
-        const auto analysisResult = a->stealTimbreSpaceRepresentation();
-        if (!analysisResult.has_value()){
+        if (!a->timbreAnalysisReady()){
             DBG("No analysis available\n");
             return;
         }
-        auto const &tspace = analysisResult.value().timbreMeasurements;
+        const auto analysisResult = a->shareTimbreSpaceRepresentation();
+        auto const &tspace = analysisResult->timbreMeasurements;
 
         const String waveformHash = onsetsResult->waveformHash;
         const String absFilePath = onsetsResult->audioFileAbsPath;  // NOLINT
 
-        auto const &pacmapOpt = a->stealPacmap();
-        auto pacmapMat = [&pacmapOpt, waveformHash]() -> dim::vecVecReal {
-            if (pacmapOpt.has_value()) {
-                jassert(pacmapOpt->waveformHash == waveformHash);
-                return pacmapOpt->pacmapMatrix_;
+        const auto pacmapMat = [&a, waveformHash]() -> dim::vecVecReal {
+            if (!a->pacmapReady()) {
+                return {};
             }
-            return {};
+            auto const &pacmapOpt = a->sharePacmapResult();
+            jassert(pacmapOpt->waveformHash == waveformHash);
+            return pacmapOpt->pacmapMatrix_;
         }();
 
-        if (waveformHash != analysisResult.value().waveformHash || absFilePath != analysisResult.value().audioFileAbsPath) {
+        if (waveformHash != analysisResult->waveformHash || absFilePath != analysisResult->audioFileAbsPath) {
             DBG("Discrepancy between onsets and timbre analysis\n");
             jassertfalse;
             return;
