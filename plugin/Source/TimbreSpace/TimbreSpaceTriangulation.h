@@ -97,7 +97,7 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                              const Timbre2DPoint& q,
                                              size_t startTri);
 std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Timbre2DPoint &_p, size_t startTri);
-std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &q, size_t startTri_α);
+std::optional<size_t> hybridWalk(const delaunator::Delaunator &d, const Timbre2DPoint &_q, size_t startTri_α);
 
 // TODO: use the following function to check if the point is even inside a triangle by checking it against the convex hull
 // TODO: and test it!

@@ -188,9 +188,9 @@ Point2D clampToTriangle(const Point2D& p,
     Point2D proj_ca = projectPointOntoSegment(p, c, a);
 
     // closest projection
-    double dist_ab = (p - proj_ab).norm();
-    double dist_bc = (p - proj_bc).norm();
-    double dist_ca = (p - proj_ca).norm();
+    const double dist_ab = (p - proj_ab).norm();
+    const double dist_bc = (p - proj_bc).norm();
+    const double dist_ca = (p - proj_ca).norm();
 
     if (dist_ab <= dist_bc && dist_ab <= dist_ca) return proj_ab;
     if (dist_bc <= dist_ca) return proj_bc;
@@ -326,7 +326,7 @@ std::vector<WeightedIdx> findPointsTriangulationBased(const Timbre5DPoint& targe
 
 	// Compute barycentric weights
 	const auto weights = computeBarycentricWeights(targetPoint, p0, p1, p2);
-    for (auto & w : weights) {
+    for (auto &w : weights) {
         jassert (w >= 0.0);
     }
 
@@ -453,12 +453,12 @@ std::vector<WeightedIdx> findNearestTrianglePoints(const Timbre5DPoint& target,
 
 // Find the halfedge index in triangle that goes from vertex v1 to vertex v2
 // Returns SIZE_MAX if not found
-size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
-    size_t t0 = triangleIdx * 3;
+size_t findHalfedge(const delaunator::Delaunator& d, const size_t triangleIdx, const size_t v1, const size_t v2) {
+    const size_t t0 = triangleIdx * 3;
 
     for (size_t i = 0; i < 3; ++i) {
-        size_t halfedge = t0 + i;
-        size_t nextHalfedge = (i == 2) ? t0 : halfedge + 1;
+        const size_t halfedge = t0 + i;
+        const size_t nextHalfedge = (i == 2) ? t0 : halfedge + 1;
 
         if (d.triangles[halfedge] == v1 && d.triangles[nextHalfedge] == v2) {
             return halfedge;
@@ -468,16 +468,16 @@ size_t findHalfedge(const delaunator::Delaunator& d, size_t triangleIdx, size_t 
 }
 
 // Check if two triangles are neighbors (share an edge)
-bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triangle2) {
-    size_t baseIdx = triangle1 * 3;
+bool isNeighbor(const delaunator::Delaunator& d, const size_t triangle1, const size_t triangle2) {
+    const size_t baseIdx = triangle1 * 3;
 
     // Check all three edges of triangle1
     for (size_t i = 0; i < 3; ++i) {
-        size_t halfedge = baseIdx + i;
-        size_t oppositeHalfedge = d.halfedges[halfedge];
+        const size_t halfedge = baseIdx + i;
+        const size_t oppositeHalfedge = d.halfedges[halfedge];
 
         if (oppositeHalfedge != delaunator::INVALID_INDEX) {
-            size_t neighborTri = oppositeHalfedge / 3;
+            const size_t neighborTri = oppositeHalfedge / 3;
             if (neighborTri == triangle2) {
                 return true;
             }
@@ -489,20 +489,20 @@ bool isNeighbor(const delaunator::Delaunator& d, size_t triangle1, size_t triang
 // Get the neighbor triangle across the edge from v1 to v2
 // Returns SIZE_MAX if no neighbor exists (hull edge) or edge not found
 size_t neighbor(const delaunator::Delaunator& d,
-                size_t triangle, size_t v1, size_t v2)
+                const size_t triangle, const size_t v1, const size_t v2)
 {
-    size_t baseIdx = triangle * 3;
+    const size_t baseIdx = triangle * 3;
 
     for (size_t i = 0; i < 3; ++i) {
-        size_t halfedge = baseIdx + i;
-        size_t currVertex = d.triangles[halfedge];
-        size_t nextVertex = d.triangles[baseIdx + (i + 1) % 3];
+        const size_t halfedge = baseIdx + i;
+        const size_t currVertex = d.triangles[halfedge];
+        const size_t nextVertex = d.triangles[baseIdx + (i + 1) % 3];
 
         // check if this edge connects v1 and v2 in either direction
         if ((currVertex == v1 && nextVertex == v2) ||
             (currVertex == v2 && nextVertex == v1)) {
 
-            size_t oppositeHalfedge = d.halfedges[halfedge];
+            const size_t oppositeHalfedge = d.halfedges[halfedge];
 
             if (oppositeHalfedge == delaunator::INVALID_INDEX) {
                 return SIZE_MAX; // hull edge, no neighbor
@@ -520,8 +520,8 @@ float cross(const Point2D &A, const Point2D &B) {
 }
 
 float orientation(const Point2D& A,
-                          const Point2D& B,
-                          const Point2D& C)
+                  const Point2D& B,
+                  const Point2D& C)
 {
     const auto crossProd = cross(B - A, C - A);
 
@@ -542,8 +542,8 @@ bool inHalfOpen(const Point2D& a, const Point2D& b, const Point2D& p)
     const Point2D& lo = lexLess(a,b) ? a : b;
     const Point2D& hi = lexLess(a,b) ? b : a;
 
-    bool cond1 = !lexLess(p, lo);
-    bool cond2 = lexLess(p, hi);
+    const bool cond1 = !lexLess(p, lo);
+    const bool cond2 = lexLess(p, hi);
     return cond1 && cond2;
 }
 
@@ -560,7 +560,7 @@ bool horizontalRayIntersectsEdge(const Point2D& A,
         return false;
 
     // Compute x-coordinate of intersection
-    double x = A.x() + (P.y() - A.y()) * (B.x() - A.x()) / (B.y() - A.y());
+    const double x = A.x() + (P.y() - A.y()) * (B.x() - A.x()) / (B.y() - A.y());
 
     // True if intersection is strictly to the right
     return x > P.x();
@@ -569,8 +569,8 @@ bool horizontalRayIntersectsEdge(const Point2D& A,
 // Check if point q is on the "other side" of edge e relative to triangle t
 // Edge e is defined by the halfedge index in the triangle
 bool pointOnOtherSide(const delaunator::Delaunator& d,
-                      size_t triangle,
-                      size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
+                      const size_t triangle,
+                      const size_t edgeIdx,  // 0, 1, or 2 for which edge of the triangle
                       const Point2D& q) {
     const auto triPoints = TrianglePoints::create(d, triangle);
     assert(triPoints != std::nullopt);
@@ -599,30 +599,28 @@ bool pointOnOtherSide(const delaunator::Delaunator& d,
 
 // Get the third vertex of a triangle given two known vertices
 // Returns SIZE_MAX if v1 or v2 are not in the triangle
-size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_t v1, size_t v2) {
-    size_t t0 = triangleIdx * 3;
+size_t getThirdVertex(const delaunator::Delaunator& d, const size_t triangleIdx, const size_t v1, const size_t v2) {
+    const size_t t0 = triangleIdx * 3;
 
-    std::array<size_t, 3> vertices = {
+    const std::array vertices = {
         d.triangles[t0],
         d.triangles[t0 + 1],
         d.triangles[t0 + 2]
     };
 
-    // First check that both v1 and v2 are actually in the triangle
+    // first check that both v1 and v2 are actually in the triangle
     bool hasV1 = false;
     bool hasV2 = false;
-
-    for (size_t v : vertices) {
+    for (const size_t v : vertices) {
         if (v == v1) hasV1 = true;
         if (v == v2) hasV2 = true;
     }
-
     if (!hasV1 || !hasV2) {
         return SIZE_MAX;
     }
 
-    // Now find the third vertex
-    for (size_t v : vertices) {
+    // now find the third vertex
+    for (const size_t v : vertices) {
         if (v != v1 && v != v2) {
             return v;
         }
@@ -631,10 +629,10 @@ size_t getThirdVertex(const delaunator::Delaunator& d, size_t triangleIdx, size_
     return SIZE_MAX;
 }
 
-// Get vertex index from point (assumes point exactly matches a vertex in coords)
+// get vertex index from point (assumes point exactly matches a vertex in coords)
 [[deprecated("uses linear search")]]
 size_t getVertexIndex(const delaunator::Delaunator& d, const Point2D& point) {
-    const float EPSILON = 1e-6f;
+    constexpr float EPSILON = 1e-6f;
 
     for (size_t i = 0; i < d.coords.size() / 2; ++i) {
         const float vx = static_cast<float>(d.coords[2 * i]);
@@ -656,22 +654,22 @@ Point2D getPointFromVertex(const delaunator::Delaunator& d, const size_t vertexI
 }
 
 std::pair<size_t, size_t> getEdgeVertices(const delaunator::Delaunator& d,
-                                          size_t triangle,
-                                          size_t edgeIdx) {
-    size_t baseIdx = triangle * 3;
-    size_t halfedge = baseIdx + edgeIdx;
-    size_t nextHalfedge = (edgeIdx == 2) ? baseIdx : halfedge + 1;
+                                          const size_t triangle,
+                                          const size_t edgeIdx) {
+    const size_t baseIdx = triangle * 3;
+    const size_t halfedge = baseIdx + edgeIdx;
+    const size_t nextHalfedge = edgeIdx == 2 ? baseIdx : halfedge + 1;
 
-    size_t v1 = d.triangles[halfedge];
-    size_t v2 = d.triangles[nextHalfedge];
+    const size_t v1 = d.triangles[halfedge];
+    const size_t v2 = d.triangles[nextHalfedge];
 
     return {v1, v2};
 }
 size_t getOppositeVertex(const delaunator::Delaunator& d,
-                         size_t triangle,
-                         size_t edgeIdx)
+                         const size_t triangle,
+                         const size_t edgeIdx)
 {
-    size_t base = triangle * 3;
+    const size_t base = triangle * 3;
     return d.triangles[base + (edgeIdx + 2) % 3];
 }
 
@@ -724,7 +722,7 @@ private:
 // Remembering stochastic walk - refines the triangle location
 std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                                                  const Point2D& p,
-                                                 size_t startTri) {
+                                                 const size_t startTri) {
 #ifndef WALK_STRING_DEBUGGING
     fmt::print("rememberingStochasticWalk called with:\n startTri={}\n target_p=({}, {})\n", startTri, p.x(), p.y());
 #endif
@@ -736,12 +734,12 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
     auto neighborThroughEdge_ifShouldWalkHere = [&d, &p](const size_t currentTriangle, const size_t previousTriangle, const size_t edgeIdx) -> std::optional<size_t> {
         const auto [edge_v0, edge_v1] = getEdgeVertices(d, currentTriangle, edgeIdx);
         const auto neighborThroughE = neighbor(d, currentTriangle, edge_v0, edge_v1);
-
         {
             const auto v0 = getPointFromVertex(d, edge_v0);
             const auto v1 = getPointFromVertex(d, edge_v1);
-            const auto currentTrianglePoints = TrianglePoints::create(d, currentTriangle);
-            if (currentTrianglePoints == std::nullopt) {
+            if (const auto currentTrianglePoints = TrianglePoints::create(d, currentTriangle);
+                currentTrianglePoints == std::nullopt)
+            {
 #ifndef WALK_STRING_DEBUGGING
                 fmt::print("\t\tcurrent triangle not valid... not sure what to do quite yet.\n");
 #endif
@@ -752,8 +750,9 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
                 fmt::print("\t\tcurrent triangle points: {}\n", str(*currentTrianglePoints));
                 fmt::print("\t\tedge considered e: {}, {}\n", str(v0), str(v1));
 #endif
-                const auto neighborPoints = TrianglePoints::create(d, neighborThroughE);
-                if (neighborPoints == std::nullopt) {
+                if (const auto neighborPoints = TrianglePoints::create(d, neighborThroughE);
+                    neighborPoints == std::nullopt)
+                {
 #ifndef WALK_STRING_DEBUGGING
                     fmt::print("\t\tneighbor through e not valid... not sure what to do yet.\n");
 #endif
@@ -811,14 +810,15 @@ std::optional<size_t> rememberingStochasticWalk(const delaunator::Delaunator& d,
             }
         }
     }
-    const auto trianglePoints = TrianglePoints::create(d, t);
-    if (pointInTriangle(p, trianglePoints->p0, trianglePoints->p1, trianglePoints->p2)) {
+    if (const auto trianglePoints = TrianglePoints::create(d, t);
+        pointInTriangle(p, trianglePoints->p0, trianglePoints->p1, trianglePoints->p2))
+    {
         return t;
     }
     return std::nullopt;
 }
 
-size_t getVertexFromHalfedge(const delaunator::Delaunator& d, size_t halfedgeIdx) {
+size_t getVertexFromHalfedge(const delaunator::Delaunator& d, const size_t halfedgeIdx) {
     return d.triangles[halfedgeIdx];
 }
 
@@ -851,13 +851,13 @@ std::optional<size_t> straightWalk(const delaunator::Delaunator &d, const Point2
         return t;
     }
 
-    auto neighborValidityCheck = [&d](size_t t, const _Vertex &l, const _Vertex &r) {
-        auto a = d.triangles[t*3 + 0];
-        auto b = d.triangles[t*3 + 1];
-        auto c = d.triangles[t*3 + 2];
+    auto neighborValidityCheck = [&d](const size_t _t, const _Vertex &_l, const _Vertex &_r) {
+        const auto a = d.triangles[_t*3 + 0];
+        const auto b = d.triangles[_t*3 + 1];
+        const auto c = d.triangles[_t*3 + 2];
 
-        bool l_in = (l.id() == a || l.id() == b || l.id() == c);
-        bool r_in = (r.id() == a || r.id() == b || r.id() == c);
+        const bool l_in = (_l.id() == a || _l.id() == b || _l.id() == c);
+        const bool r_in = (_r.id() == a || _r.id() == b || _r.id() == c);
 
         assert(l_in && r_in);
     };
