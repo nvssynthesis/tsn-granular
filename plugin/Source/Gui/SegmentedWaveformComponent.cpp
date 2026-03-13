@@ -55,16 +55,24 @@ void SegmentedWaveformComponent::paintOnsetMarkers() {
 }
 
 
-void SegmentedWaveformComponent::changeListenerCallback (juce::ChangeBroadcaster* source) {
-    if (auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)) {
-        _onsetAnalysis = a->shareOnsetAnalysis();
-        paintOnsetMarkers();
+void SegmentedWaveformComponent::changeListenerCallback (ChangeBroadcaster* source) {
+    if (const auto *a = dynamic_cast<nvs::analysis::ThreadedAnalyzer*>(source)) {
+        if (const auto current = a->shareOnsetAnalysis();
+            current != _onsetAnalysis)
+        {
+            _onsetAnalysis = current;
+            paintOnsetMarkers();
+        }
     }
     WaveformComponent::changeListenerCallback(source);
 }
 void SegmentedWaveformComponent::actionListenerCallback(const String &message) {
     if (message == nvs::axiom::tsn::onsetsAvailable) { // comes from TimbreSpace
-        _onsetAnalysis = _tsn_proc.getTimbreSpace().shareOnsets();
-        paintOnsetMarkers();
+        if (const auto current = _tsn_proc.getTimbreSpace().shareOnsets();
+            current != _onsetAnalysis)
+        {
+            _onsetAnalysis = current;
+            paintOnsetMarkers();
+        }
     }
 }

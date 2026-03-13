@@ -105,28 +105,51 @@ void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(const File f, const 
 	writeToLog("TSN: loadAudioFileAndUpdateState exiting");
 }
 
+struct SpanResult {
+    std::span<const float> span {};
+    String errorMessage {};
+    bool isOK() const {
+        return !span.empty();
+    }
+};
+
+SpanResult toSpan(const AudioSampleBuffer &buff) {
+    SpanResult result;
+    if (!buff.getNumChannels()){
+        result.errorMessage = "TSN: askForAnalysis: buffer had no channels. Early exit.";
+        return result;
+    }
+    if (!buff.getNumSamples()){
+        result.errorMessage = "TSN: askForAnalysis: buffer had no samples. Early exit.";
+        return result;
+    }
+    result.span = std::span(buff.getReadPointer(0),
+        static_cast<size_t>(buff.getNumSamples()));
+
+    return result;
+}
+
 void TSNGranularAudioProcessor::askForAnalysis(){
 	if (_analyzer.isThreadRunning()){
 		_analyzer.stopAnalysis();
 	}
-	auto const buffer = sampleManagementGuts.getSampleBuffer();
-	if (!buffer.getNumChannels()){
-		writeToLog("TSN: askForAnalysis: buffer had no channels. Early exit.");
-		return;
-	}
-	if (!buffer.getNumSamples()){
-		writeToLog("TSN: askForAnalysis: buffer had no samples. Early exit.");
-		return;
-	}
-	_analyzer.updateStoredAudio(std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples())),
-		getSampleFilePath());
+    const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+    if (!sp.isOK()) {
+        writeToLog(sp.errorMessage);
+        return;
+    }
 	
 	auto settingsVT = apvts.state.getChildWithName("Settings");
-	auto const par = settingsVT.getParent();
-	jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
-	_analyzer.updateSettings(settingsVT, true);
+    {
+        const auto par = settingsVT.getParent();
+	    jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
+    }
+    _analyzer.updateStoredAudioAndSettings(
+        sp.span,
+        getSampleFilePath(),
+        settingsVT, true);
 	
-	if (_analyzer.startThread(Thread::Priority::high)){	// only entry point to analysis
+	if (_analyzer.startThread(Thread::Priority::normal)){	// only entry point to analysis
 		writeToLog("analyzer onset thread started");
 	}
 }
@@ -156,7 +179,15 @@ void TSNGranularAudioProcessor::writeEvents(){
 	}
 
     auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
-    _analyzer.updateSettings(settingsVT, true);
+    const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+    if (!sp.isOK()) {
+        writeToLog(sp.errorMessage);
+        return;
+    }
+    _analyzer.updateStoredAudioAndSettings(
+        sp.span,
+        getSampleFilePath(),
+        settingsVT, true);
 
 	auto const buffer = sampleManagementGuts.getSampleBuffer();
 	auto const waveSpan = std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples()));
