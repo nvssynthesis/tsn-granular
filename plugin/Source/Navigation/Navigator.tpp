@@ -129,16 +129,15 @@ Point_t LFONavigator<Point_t>::navigate(AudioProcessorValueTreeState const &para
     float shapeValue = *paramTree.getRawParameterValue("nav_lfo_shape");
 
     auto calculateShape = [shapeValue](const double phase){
-        double a = shapeValue;
+        const double a = shapeValue;
 
-        auto i = [](double d){return int(d);};
+        auto i = [](const double d){return static_cast<int>(d);};
         auto frac = [i](double d){return d - i(d);};
-        auto tri = [](double d){ return 2.0 * (d < 0.5 ? d : 1 - d); };
 
-        double p = 4.0 * tri(shapeValue);
-        double q = 2.0 * a * a;
+        const double q = 2.0 * a * a;
 
-        return (1.0 - frac(q)) * std::cos((i(q) + 1.0) * phase) + frac(q) * std::cos((i(q) + 2.0) * phase);
+        return (1.0 - frac(q)) * std::cos((i(q) + 1.0) * phase) +
+                       frac(q) * std::cos((i(q) + 2.0) * phase);
     };
     Point_t p {Point_t::Zero()};
     for (int i = 0; i < this->Dimensions; ++i) {
