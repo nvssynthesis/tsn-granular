@@ -30,7 +30,7 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster *source) override;
     //==============================================================================
     // SlicerGranularAudioProcessor
-	void loadAudioFileAndUpdateState(juce::File const f, bool notifyEditor) override;	// also affects analyzer
+	void loadAudioFileAndUpdateState(juce::File f, bool notifyEditor) override;	// also affects analyzer
 	void askForAnalysis();
     void stopAnalysis() { _analyzer.stopAnalysis(); }
     bool isAnalyzing() const { return _analyzer.isThreadRunning(); }

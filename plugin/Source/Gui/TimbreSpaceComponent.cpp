@@ -115,16 +115,17 @@ TimbreSpaceComponent::~TimbreSpaceComponent() {
 void TimbreSpaceComponent::showAnalysisSaveDialog() {
     _proc->getTimbreSpace().setSavePending(false);
 	const auto callback = new Callback(*this);
-	
-	auto const result = AlertWindow::showYesNoCancelBox(
-								  MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
-								  "Save Analysis?", // const String &title
-								  "Would you like to save the current timbral analysis for future use?", // const String &message
-								  "Save", // const String &button1Text
-								  "Don't save", // const String &button2Text
-								  "Always save [not implemented yet, falls back to Save]", // const String &button3Text
-								  this, // Component *associatedComponent
-								callback); // ModalComponentManager::Callback *callback
+
+	[[maybe_unused]] auto const result =
+	    AlertWindow::showYesNoCancelBox(
+			  MessageBoxIconType::QuestionIcon, // MessageBoxIconType iconType
+			  "Save Analysis?", // const String &title
+			  "Would you like to save the current timbral analysis for future use?", // const String &message
+			  "Save", // const String &button1Text
+			  "Don't save", // const String &button2Text
+			  "Always save [not implemented yet, falls back to Save]", // const String &button3Text
+			  this, // Component *associatedComponent
+			callback); // ModalComponentManager::Callback *callback
 }
 
 void TimbreSpaceComponent::paint(Graphics &g) {
@@ -413,7 +414,9 @@ void TimbreSpaceComponent::changeListenerCallback (ChangeBroadcaster* source) {
 }
 void TimbreSpaceComponent::actionListenerCallback (const String &message) {
 	if (message == nvs::axiom::tsn::saveAnalysis) {
-		showAnalysisSaveDialog();
+	    if (_proc->getAnalyzer().getAnalysisFile() == File()) {
+	        showAnalysisSaveDialog();
+	    }
 	}
 }
 void TimbreSpaceComponent::exitSignalSent() {
@@ -430,7 +433,7 @@ void TimbreSpaceComponent::TSNMouse::createMouseImage() {
 	const auto b = image.getBounds();
 
 	const auto x0 = b.getX();
-	const auto x1 = x0 + 0.05 * b.getWidth();
+	const auto x1 = x0;
 	const auto x2 = x0 + 0.45 * b.getWidth();
 
 	const auto y0 = b.getY();

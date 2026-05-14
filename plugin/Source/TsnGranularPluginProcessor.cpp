@@ -19,7 +19,7 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 	writeToLog("TsnGranularAudioProcessor RELEASE MODE\n");
 #endif
 	
-	ValueTree settingsVT = apvts.state.getOrCreateChildWithName("Settings", nullptr);
+	ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
 	nvs::analysis::initializeSettingsBranches(settingsVT, false);
 
     _analyzer.addChangeListener(this);
@@ -139,10 +139,10 @@ void TSNGranularAudioProcessor::askForAnalysis(){
         return;
     }
 	
-	auto settingsVT = apvts.state.getChildWithName("Settings");
+	auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
     {
         const auto par = settingsVT.getParent();
-	    jassert (par.getChildWithName("FileInfo").hasProperty("sampleRate"));
+	    jassert (par.getChildWithName(nvs::axiom::tsn::FileInfo).hasProperty(nvs::axiom::tsn::sampleRate));
     }
     _analyzer.updateStoredAudioAndSettings(
         sp.span,
@@ -150,7 +150,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
         settingsVT, true);
 	
 	if (_analyzer.startThread(Thread::Priority::normal)){	// only entry point to analysis
-		writeToLog("analyzer onset thread started");
+		writeToLog("analyzer thread started");
 	}
 }
 void TSNGranularAudioProcessor::changeListenerCallback (ChangeBroadcaster *source) {
@@ -297,7 +297,35 @@ bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
             return false;
         }
      	writeToLog("setting via setStateInformation");
-     	_tsnGranularSynth->getTimbreSpace().setTimbreSpaceSuperTree(analysisSuperVT);
+     	auto &ts = _tsnGranularSynth->getTimbreSpace();
+        {
+            ts.setTimbreSpaceSuperTree(analysisSuperVT);
+        }
+        {   /* we set these elements before setting analysis, so that it won't be marked as needing new analysis
+             unless we explicitly change the settings/audio file */
+            const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+            if (!sp.isOK()) {
+                writeToLog(sp.errorMessage);
+                return false;
+            }
+            auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
+            _analyzer.updateStoredAudioAndSettings(sp.span,
+                getSampleFilePath(),
+                settingsVT, true);
+        }
+        {
+            const auto superTree = ts.getTimbreSpaceSuperTree();
+            const auto tsTree = superTree.getChildWithName(nvs::axiom::tsn::TimbreAnalysis);
+
+            const auto onsets = nvs::analysis::timbreAnalysisValueTreeToOnsets(tsTree);
+            const auto tsRepr = nvs::analysis::timbreAnalysisValueTreeToTimbreSpaceRepr(tsTree);
+            const auto pacmap = nvs::analysis::timbreAnalysisValueTreeToPacmapMatrix(tsTree);
+            const auto wHash = getAudioHash();
+            _analyzer.setAnalysis(onsets, tsRepr, pacmap, wHash,
+                getSampleFilePath(),
+                analysisFile,
+                getSampleRate());
+        }
      	return true;
     }
     writeToLog("analysis file tree metadata mismatch");

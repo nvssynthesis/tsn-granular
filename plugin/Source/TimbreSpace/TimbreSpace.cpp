@@ -187,7 +187,7 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
             jassertfalse;
             return;
         }
-        const auto timbreSpaceVT = timbreSpaceReprToVT(tspace, onsets, pacmapMat);
+        const auto timbreSpaceVT = timbreSpaceReprToVT(tspace, onsets, &pacmapMat);
         const auto superTree = analysis::makeSuperTree(timbreSpaceVT,
             analysisResult->audioFileAbsPath,
             analysisResult->sampleRate,
@@ -208,6 +208,10 @@ void TimbreSpace::changeListenerCallback(ChangeBroadcaster* source) {
         setTimbreSpaceSuperTree(superTree);
 
         setSavePending(true);
+        /*
+         when we OPEN the plugin and it recalls its last state, we don't want it triggering saveAnalysisOption
+         (UNLESS the current analysis is unsaved?)
+         */
         signalSaveAnalysisOption();
         signalOnsetsAvailable();
     }
