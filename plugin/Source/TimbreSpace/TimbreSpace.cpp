@@ -110,6 +110,13 @@ void TimbreSpace::valueTreePropertyChanged (ValueTree &alteredTree, const Identi
         const auto paramID = alteredTree["id"].toString();
         const float newValue = alteredTree["value"];
 
+        if (paramID == axiom::tsn::DRMode) {
+            DBG("DR mode changed to: " + String(newValue));
+            jassert(newValue < static_cast<int>(DimensionalityMode_e::NumModes));
+            _dimensionalityMode = static_cast<DimensionalityMode_e>(newValue);
+            fullSelfUpdate(false);
+            return;
+        }
         if (paramID == axiom::tsn::histogram_equalization) {
             DBG("Histogram equalization changed to: " + String(newValue));
             updateHistogramEqualization();

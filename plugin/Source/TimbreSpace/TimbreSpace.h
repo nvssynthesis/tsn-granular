@@ -124,8 +124,9 @@ private:
     //=============================================================================================================================
     enum class DimensionalityMode_e {
         Raw,
-        Pacmap
-    } _dimensionalityMode {DimensionalityMode_e::Pacmap};
+        Pacmap,
+        NumModes
+    } _dimensionalityMode {DimensionalityMode_e::Raw};
     //=============================================================================================================================
 	void fullSelfUpdate(bool verbose); // simply calls the following functions:
     void extractTimbralFeatures(bool verbose=false); // based on settings.dimensionwiseFeatures and settings.statistic, (re)populates _eventwiseExtractedTimbrePoints
