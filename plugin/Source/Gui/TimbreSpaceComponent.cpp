@@ -414,8 +414,11 @@ void TimbreSpaceComponent::changeListenerCallback (ChangeBroadcaster* source) {
 }
 void TimbreSpaceComponent::actionListenerCallback (const String &message) {
 	if (message == nvs::axiom::tsn::saveAnalysis) {
-	    if (_proc->getAnalyzer().getAnalysisFile() == File()) {
-	        showAnalysisSaveDialog();
+        if (const auto &a = _proc->getAnalyzer(); a.getAnalysisFile() == File())
+        {
+	        if (a.getState() == nvs::analysis::ThreadedAnalyzer::State::Complete) {
+	            showAnalysisSaveDialog();
+	        }
 	    }
 	}
 }
