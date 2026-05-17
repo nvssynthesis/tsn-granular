@@ -388,7 +388,7 @@ void TimbreSpaceComponent::resized() {
 	const auto b = getLocalBounds();
     {
 	    const auto proportionRect = Rectangle{0.1f, 0.05f,
-													0.8f, 0.11f};
+													0.8f, 0.04f};
 	    const auto progressBounds = b.getProportion(proportionRect);
 	    progressIndicator.setBounds(progressBounds);
     }

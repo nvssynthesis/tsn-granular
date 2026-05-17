@@ -11,7 +11,7 @@ void ProgressIndicator::updateFromStatus(const nvs::analysis::RunLoopStatus& sta
 }
 
 void ProgressIndicator::paint(Graphics &g) {
-    g.setColour(Colours::whitesmoke);
+    g.setColour(Colours::whitesmoke.withAlpha(0.33f));
     constexpr auto cornerSize = 8.0f;
     const auto progressBarBoundsF = progressBarBounds.toFloat();
     g.fillRoundedRectangle(progressBarBoundsF, cornerSize);
@@ -23,16 +23,12 @@ void ProgressIndicator::paint(Graphics &g) {
     const auto progressBarRect = progressBarBounds.withWidth(partialW);
     g.fillRoundedRectangle(progressBarRect.toFloat(), cornerSize);
 
-    g.setColour(Colours::whitesmoke);
+    g.setColour(Colours::whitesmoke.withAlpha(1.0f));
     g.setFont(FontOptions("Courier New", 15.f, Font::FontStyleFlags::plain));
     g.drawText(message, progressBarBounds, Justification::centred);
 }
 void ProgressIndicator::resized() {
     const auto b = getLocalBounds().toFloat();
 
-    progressBarBounds = b.withHeight(b.getHeight() * (5.f/11.f)).toNearestInt();
-
-    auto btnRect = b.withTrimmedTop(b.getHeight() * (6.f/11.f)).toNearestInt();
-    btnRect = btnRect.withSizeKeepingCentre(static_cast<int>(static_cast<float>(btnRect.getWidth()) / 5.f),
-        btnRect.getHeight());
+    progressBarBounds = b.withHeight(b.getHeight()).toNearestInt();
 }
