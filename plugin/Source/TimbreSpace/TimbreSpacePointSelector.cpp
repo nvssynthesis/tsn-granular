@@ -110,7 +110,7 @@ void TimbreSpacePointSelector::updateGlobalFilter() {
         }
         const auto coords2D = make2dCoordinates(activePoints);
         try {
-            snapshot->_delaunator = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _pendingUpdate does not store `true`
+            snapshot->_delaunator = std::make_unique<delaunator::Delaunator>(coords2D);   // IF THIS FAILS, _triangulationSnapshotPending does not store snapshot
         }
         catch (std::exception &e) {
             DBG(e.what());

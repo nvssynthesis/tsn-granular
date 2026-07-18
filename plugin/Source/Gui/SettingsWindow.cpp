@@ -9,12 +9,13 @@
 */
 
 #include "SettingsWindow.h"
+#include "Settings/ModernSettingsTypes.h"
 
 #include <memory>
 #include <utility>
 
 SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
-					const juce::Colour backgroundColour)
+					const Colour backgroundColour)
   : DocumentWindow ("Settings", backgroundColour, allButtons),
 	proc (processor)
 {
@@ -25,20 +26,27 @@ SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
 	setConstrainer (&constrainer);
 
 	// Build the tabs
-	tabs = std::make_unique<juce::TabbedComponent> (juce::TabbedButtonBar::TabsAtTop);
+	tabs = std::make_unique<TabbedComponent> (TabbedButtonBar::TabsAtTop);
 	tabs->setSize (500, 400);
 	
 	auto settingsVT = proc.getAPVTS().state.getChildWithName ("Settings");
-	
-	// For each branch in our specs map, create a tab
-	for (auto& [branchName, specMapPtr] : nvs::analysis::specsByBranch)
-	{
-		const auto page = createPageForBranch (settingsVT, branchName, *specMapPtr);
-		tabs->addTab (branchName,
-					  juce::Colours::darkgrey,
-					  page,
-					  /*takeOwnership*/ true);
-	}
+
+    using Registry_t = nvs::analysis::modern::AnalyzerSettingsRegistry;
+    const Registry_t &reg = processor.getAnalyzer().getAnalyzer().getSettings();
+
+    // For each branch in our specs map, create a tab
+    nvs::analysis::modern::constexpr_for<0UL, Registry_t::numGroups>(
+        [&reg, &settingsVT, this](auto i) {
+            using namespace nvs::analysis::modern;
+            const auto &group = reg.get<i>();
+            const String branchName = String(std::string(group.groupName));
+            const std::map<String, AnySpec>& specMap = group.getSpecs();
+            const auto page = createPageForBranch (settingsVT, branchName, specMap);
+            tabs->addTab (branchName,
+                          Colours::darkgrey,
+                          page,
+                          /*takeOwnership*/ true);
+        });
 
 	setContentOwned (tabs.get(), true);
 }
@@ -48,16 +56,18 @@ void SettingsWindow::closeButtonPressed()
 	delete this;
 }
 
-juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsVT,
-									  const juce::String& branchName,
-									  const std::map<juce::String,nvs::analysis::AnySpec>& specMap) {
-	struct Page  : public juce::Component
+Component* SettingsWindow::createPageForBranch (ValueTree& settingsVT,
+									  const String& branchName,
+									  const std::map<String, nvs::analysis::modern::AnySpec>& specMap)
+{
+	struct Page  : public Component
 	{
-		juce::ValueTree tree;
-		std::map<juce::String, nvs::analysis::AnySpec> specs;
+		ValueTree tree;
+	    using AnySpec = nvs::analysis::modern::AnySpec;
+		std::map<String, AnySpec> specs;
 
-		Page (juce::ValueTree t,
-			  const std::map<juce::String, nvs::analysis::AnySpec>& m)
+		Page (ValueTree t,
+			  const std::map<String, AnySpec>& m)
 		   : tree (std::move(t)), specs (m)
 		{
 
@@ -65,19 +75,21 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 
 			for (const auto&[specStr, specVar] : specs)
 			{
-				const juce::String propName = specStr;
-				const nvs::analysis::AnySpec& anySpec = specVar;
+				const String propName = specStr;
+				const AnySpec& anySpec = specVar;
 
 				// Now you can use propName *everywhere* without capture headaches:
 				addAndMakeVisible (labels[propName]);
-				labels[propName].setText (propName, juce::dontSendNotification);
+				labels[propName].setText (propName, dontSendNotification);
 				labels[propName].setBounds (10, y, 20 * 8, 20); // adjust width
 
 				std::visit ([&]<typename T0>(T0&& spec){
+				    using namespace nvs::analysis::modern;
+
 					using SpecT = std::decay_t<T0>;
-					using RangeWithDefaultInt = nvs::analysis::RangedSettingsSpec<int>;
-					using RangeWithDefaultFloat = nvs::analysis::RangedSettingsSpec<float>;
-					using RangeWithDefaultDouble = nvs::analysis::RangedSettingsSpec<double>;
+					using RangeWithDefaultInt = RangedSettingsSpec<int>;
+					using RangeWithDefaultFloat = RangedSettingsSpec<float>;
+					using RangeWithDefaultDouble = RangedSettingsSpec<double>;
 
 					if constexpr (std::is_same_v<SpecT, RangeWithDefaultInt> ||
 								  std::is_same_v<SpecT, RangeWithDefaultFloat> ||
@@ -100,9 +112,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							if (use_default){
 								return static_cast<double>(spec.defaultValue);
 							}
-							else {
-								return static_cast<double>(tree.getPropertyAsValue(propName, nullptr).getValue());
-							}
+							return static_cast<double>(tree.getPropertyAsValue(propName, nullptr).getValue());
 						}(false);
 						
 						s.setValue (val);
@@ -124,10 +134,10 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							}, propSpec);
 						};
 					}
-					else if constexpr (std::is_same_v<SpecT, nvs::analysis::ChoiceSettingsSpec>)
+					else if constexpr (std::is_same_v<SpecT, ChoiceSettingsSpec>)
 					{
 						addAndMakeVisible (labels[propName]);
-						labels[propName].setText (propName, juce::dontSendNotification);
+						labels[propName].setText (propName, dontSendNotification);
 						labels[propName].setBounds (10, y, 150, 20);
 
 						auto& cb = combos[propName];
@@ -135,7 +145,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 						cb.clear();
 
 						// Build the ComboBox items and a helper map
-						std::map<juce::String, int> textToId;
+						std::map<String, int> textToId;
 						for (int id = 1; auto& opt : spec.options)
 						{
 							cb.addItem (opt, id);
@@ -166,7 +176,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 					        cb.setTooltip(spec.tooltip);
 					    }
 
-						cb.setSelectedId (val, juce::dontSendNotification);
+						cb.setSelectedId (val, dontSendNotification);
 						cb.setBounds (170, y, 200, 20);
 
 						cb.onChange = [this, propName, &cb]()
@@ -174,7 +184,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							tree.setProperty (propName, cb.getText(), nullptr);
 						};
 					}
-					else if constexpr (std::is_same_v<SpecT, nvs::analysis::BoolSettingsSpec>)
+					else if constexpr (std::is_same_v<SpecT, BoolSettingsSpec>)
 					{
 						auto& tb = toggles[propName];
 						addAndMakeVisible (tb);
@@ -183,13 +193,11 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 							if (use_default){
 								return static_cast<bool>(spec.defaultValue);
 							}
-							else {
-								auto const prop = tree.getPropertyAsValue(propName, nullptr).getValue();
-								return static_cast<bool>(prop);
-							}
+							auto const prop = tree.getPropertyAsValue(propName, nullptr).getValue();
+							return static_cast<bool>(prop);
 						}(false);
 						
-						std::unordered_map<bool, juce::String> displayMap {
+						std::unordered_map<bool, String> displayMap {
 							{
 								false, "Off"
 							},
@@ -204,7 +212,7 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 					    }
 
 						tb.setToggleState (val,
-										   juce::dontSendNotification);
+										   dontSendNotification);
 						tb.setBounds (170, y, 200, 24);
 
 						tb.onClick = [this, propName, displayMap]()
@@ -221,10 +229,10 @@ juce::Component* SettingsWindow::createPageForBranch (juce::ValueTree& settingsV
 			}
 			setSize (500, y + 20);
 		}
-		std::map<juce::String, juce::Label>       labels;
-		std::map<juce::String, juce::Slider>      sliders;
-		std::map<juce::String, juce::ComboBox>    combos;
-		std::map<juce::String, juce::ToggleButton> toggles;
+		std::map<String, Label>       labels;
+		std::map<String, Slider>      sliders;
+		std::map<String, ComboBox>    combos;
+		std::map<String, ToggleButton> toggles;
 	};
 
 	// get or create the branch VT

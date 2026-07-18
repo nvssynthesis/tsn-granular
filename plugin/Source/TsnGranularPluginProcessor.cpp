@@ -1,11 +1,12 @@
 #include "TsnGranularPluginProcessor.h"
 
-#include "StringAxiom.h"
 #include "TsnGranularPluginEditor.h"
 #include "fmt/core.h"
-#include "Settings.h"
 #include "OnsetAnalysis/OnsetProcessing.h"
 #include "TSNValueTreeUtilities.h"
+#include "Settings/Settings.h"
+/// TODO: only use modern settings, not settings
+#include "Settings/ModernSettings.h"
 
 //==============================================================================
 
@@ -20,7 +21,7 @@ TSNGranularAudioProcessor::TSNGranularAudioProcessor()
 #endif
 	
 	ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
-	nvs::analysis::initializeSettingsBranches(settingsVT, false);
+	nvs::analysis::deprecated::initializeSettingsBranches(settingsVT, false);
 
     _analyzer.addChangeListener(this);
 
@@ -44,9 +45,9 @@ AudioProcessorEditor* TSNGranularAudioProcessor::createEditor() {
 	return ed;
 }
 
-void TSNGranularAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void TSNGranularAudioProcessor::setStateInformation (const void* data, const int sizeInBytes)
 {
-	const std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+	const std::unique_ptr<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));    // NOLINT
 	if (xmlState == nullptr || !xmlState->hasTagName("PLUGIN_STATE")) {
 		return;
 	}
@@ -94,7 +95,7 @@ void TSNGranularAudioProcessor::loadAudioFileAndUpdateState(const File f, const 
         return;
     }
 
-    if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
+    if (_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManager.getWaveformHash())) {
         /* do nothing */
         writeToLog(fmt::format("TSNGranularAudioProcessor already has valid analysis (not from preset) for {}\n", f.getFullPathName().toStdString()));
         return;
@@ -133,7 +134,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	if (_analyzer.isThreadRunning()){
 		_analyzer.stopAnalysis();
 	}
-    const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+    const auto sp = toSpan(sampleManager.getSampleBuffer());
     if (!sp.isOK()) {
         writeToLog(sp.errorMessage);
         return;
@@ -145,8 +146,7 @@ void TSNGranularAudioProcessor::askForAnalysis(){
 	    jassert (par.getChildWithName(nvs::axiom::tsn::FileInfo).hasProperty(nvs::axiom::tsn::sampleRate));
     }
     _analyzer.updateStoredAudioAndSettings(
-        sp.span,
-        getSampleFilePath(),
+        sampleManager,
         settingsVT, true);
 	
 	if (_analyzer.startThread(Thread::Priority::normal)){	// only entry point to analysis
@@ -160,7 +160,7 @@ void TSNGranularAudioProcessor::changeListenerCallback (ChangeBroadcaster *sourc
             return;
         }
         if (const auto onsetsResult = _analyzer.shareOnsetAnalysis();
-            onsetsResult->waveformHash == sampleManagementGuts.getWaveformHash())
+            onsetsResult->waveformHash == sampleManager.getWaveformHash())
         {
             DBG("claim: this loadOnsets is no longer necessary\n");
             return;
@@ -179,17 +179,16 @@ void TSNGranularAudioProcessor::writeEvents(){
 	}
 
     auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
-    const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+    const auto sp = toSpan(sampleManager.getSampleBuffer());
     if (!sp.isOK()) {
         writeToLog(sp.errorMessage);
         return;
     }
     _analyzer.updateStoredAudioAndSettings(
-        sp.span,
-        getSampleFilePath(),
+        sampleManager,
         settingsVT, true);
 
-	auto const buffer = sampleManagementGuts.getSampleBuffer();
+	auto const buffer = sampleManager.getSampleBuffer();
 	auto const waveSpan = std::span(buffer.getReadPointer(0), static_cast<size_t>(buffer.getNumSamples()));
 	std::vector<float> wave(waveSpan.size());
 	wave.assign(waveSpan.begin(), waveSpan.end());
@@ -221,11 +220,12 @@ void TSNGranularAudioProcessor::writeEvents(){
 	
 	nvs::analysis::RunLoopStatus rls;
     const nvs::analysis::ShouldExitFn shouldExitFn = [](){return false;};
-	nvs::analysis::writeEventsToWav(wave, onsetsTmp, sampleFilePath, _analyzer.getAnalyzer(), rls, shouldExitFn);
+	nvs::analysis::writeEventsToWav(wave, sr, onsetsTmp, sampleFilePath,
+	    _analyzer.getAnalyzer().getSettings(), rls, shouldExitFn);
 }
 
 void TSNGranularAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages) {
-	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManagementGuts.getWaveformHash())) {
+	if (!_tsnGranularSynth->getTimbreSpace().hasValidAnalysisFor(sampleManager.getWaveformHash())) {
 		ScopedNoDenormals noDenormals;	// probably not necessary at this point but also doesnt hurt
 		for (auto i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i){
 			buffer.clear (i, 0, buffer.getNumSamples());
@@ -239,10 +239,10 @@ void TSNGranularAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBu
 
 void TSNGranularAudioProcessor::ensureSettingsStructure() {
     if (const auto settings = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
-        !nvs::analysis::verifySettingsStructure(settings))
+        !nvs::analysis::deprecated::verifySettingsStructure(settings))
     {
         ValueTree settingsVT = apvts.state.getOrCreateChildWithName(nvs::axiom::tsn::Settings, nullptr);
-        nvs::analysis::initializeSettingsBranches(settingsVT);
+        nvs::analysis::deprecated::initializeSettingsBranches(settingsVT);
     }
 }
 File TSNGranularAudioProcessor::getAnalysisFileFromState() {
@@ -303,15 +303,13 @@ bool TSNGranularAudioProcessor::loadAnalysisFile(const File &analysisFile) {
         }
         {   /* we set these elements before setting analysis, so that it won't be marked as needing new analysis
              unless we explicitly change the settings/audio file */
-            const auto sp = toSpan(sampleManagementGuts.getSampleBuffer());
+            const auto sp = toSpan(sampleManager.getSampleBuffer());
             if (!sp.isOK()) {
                 writeToLog(sp.errorMessage);
                 return false;
             }
             auto settingsVT = apvts.state.getChildWithName(nvs::axiom::tsn::Settings);
-            _analyzer.updateStoredAudioAndSettings(sp.span,
-                getSampleFilePath(),
-                settingsVT, true);
+            _analyzer.updateStoredAudioAndSettings(sampleManager, settingsVT, true);
         }
         {
             const auto superTree = ts.getTimbreSpaceSuperTree();

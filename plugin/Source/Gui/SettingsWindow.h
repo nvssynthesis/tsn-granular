@@ -11,22 +11,22 @@
 #pragma once
 #include "./TsnGranularPluginEditor.h"
 #include "Gui/OnsetSettingsComponent.h"
-#include "Settings.h"
 
-class SettingsWindow  : public juce::DocumentWindow
+class SettingsWindow final : public DocumentWindow
 {
 public:
-	SettingsWindow (TSNGranularAudioProcessor& processor, juce::Colour backgroundColour);
+	SettingsWindow (TSNGranularAudioProcessor& processor, Colour backgroundColour);
 
 	void closeButtonPressed() override;
 
 private:
 	TSNGranularAudioProcessor& proc;
-	std::unique_ptr<juce::TabbedComponent> tabs;
-	juce::ComponentBoundsConstrainer constrainer;
+	std::unique_ptr<TabbedComponent> tabs;
+	ComponentBoundsConstrainer constrainer;
 
-    juce::TooltipWindow tooltipWindow {this};
+    TooltipWindow tooltipWindow {this};
 
 	// Create a component containing all controls for one branch
-	static juce::Component* createPageForBranch (juce::ValueTree& settingsVT, const juce::String& branchName, const std::map<juce::String,nvs::analysis::AnySpec>& specMap) ;
+	static Component* createPageForBranch (ValueTree& settingsVT, const String& branchName,
+	    const std::map<String, nvs::analysis::modern::AnySpec>& specMap);
 };

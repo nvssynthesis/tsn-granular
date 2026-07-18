@@ -374,10 +374,12 @@ void TimbreSpace::decorrelateFromPitchAndLoudness()
     const analysis::vecReal loudness = getRawFeatureValues(analysis::Feature_e::Loudness);
 
     using namespace nvs::dim;
-    auto featureMat = to_eigen(features);
+    Eigen::MatrixXf featureMat = to_eigen(features).transpose();   // (numFeatures x numFrames) -> (numFrames x numFeatures)
+
     decorrelateFromCovariates(featureMat, to_eigen(pitch), to_eigen(loudness));
 
-    from_eigen(featureMat, features);
+    const Eigen::MatrixXf featureMatT = featureMat.transpose();          // back to (numFeatures x numFrames)
+    from_eigen(featureMatT, features);
 }
 
 void TimbreSpace::extractTimbralFeatures(const bool verbose) {
