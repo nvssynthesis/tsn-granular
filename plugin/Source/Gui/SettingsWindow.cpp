@@ -39,7 +39,7 @@ SettingsWindow::SettingsWindow (TSNGranularAudioProcessor& processor,
         [&reg, &settingsVT, this](auto i) {
             using namespace nvs::analysis::modern;
             const auto &group = reg.get<i>();
-            const String branchName = String(std::string(group.groupName));
+            const auto branchName = String(std::string(group.groupName));
             const std::map<String, AnySpec>& specMap = group.getSpecs();
             const auto page = createPageForBranch (settingsVT, branchName, specMap);
             tabs->addTab (branchName,
@@ -99,7 +99,11 @@ Component* SettingsWindow::createPageForBranch (ValueTree& settingsVT,
 						addAndMakeVisible (s);
 
 						s.setNormalisableRange (spec.range);            // range is double
-					    s.setNumDecimalPlacesToDisplay(spec.numDecimalPlaces);
+					    if constexpr (std::is_same_v<SpecT, RangeWithDefaultInt>) {
+					        s.setNumDecimalPlacesToDisplay(0);
+					    } else {
+					        s.setNumDecimalPlacesToDisplay(spec.numDecimalPlaces);
+					    }
 
 					    if (!spec.tooltip.isEmpty()) {
 					        s.setTooltip(spec.tooltip);
